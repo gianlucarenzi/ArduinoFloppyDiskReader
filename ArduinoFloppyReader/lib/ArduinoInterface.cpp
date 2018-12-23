@@ -321,10 +321,23 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 	cfsetospeed(&term, B2000000);
 
 	if(tcsetattr(m_comPort, TCSANOW, &term) < 0) {
-		fprintf(stderr, "openPort: failed to set terminal attributes\n");
-		closePort();
-		return DiagnosticResponse::drPortError;
+		// If it failed something went wrong. We'll change the baud rate to see if its that
+		cfsetispeed(&term, B9600);
+		cfsetospeed(&term, B9600);
+		if(tcsetattr(m_comPort, TCSANOW, &term) < 0) {
+			fprintf(stderr, "openPort: failed to set terminal attributes\n");
+			closePort();
+			m_lastError = DiagnosticResponse::drComportConfigError; 
+			return m_lastError;
+		}
+		else
+		{
+			closePort();
+			m_lastError = DiagnosticResponse::drBaudRateNotSupported;
+			return m_lastError;
+		}
 	}
+
 
 	#ifdef TIOCM_RTS
 		/* assert DTR/RTS lines */
@@ -340,9 +353,9 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 		st &= ~TIOCM_RTS; // RTS Control Disable
 		if(ioctl(m_comPort, TIOCMSET, &st) == -1)
 		{
-			perror("CreateFile: failed to disable flow control");
+			perror("openPort: failed to disable flow control");
 			closePort();
-			return DiagnosticResponse::drPortError;
+			return DiagnosticResponse::drComportConfigError;
 		}
 	}
 	#endif
