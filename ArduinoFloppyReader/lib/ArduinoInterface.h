@@ -27,12 +27,18 @@
 //
 //
 //
+#ifndef _ARDUINOINTERFACE_H_
+#define _ARDUINOINTERFACE_H_
 
-#pragma once
-#ifdef USING_MFC
-#include <afxwin.h>
+#ifdef __MINGW32__
+#	pragma once
+#	ifdef USING_MFC
+#		include <afxwin.h>
+#	else
+#		include <windows.h>
+#	endif
 #else
-#include <Windows.h>
+#	include "LinuxCompat.h"
 #endif
 #include <string>
 

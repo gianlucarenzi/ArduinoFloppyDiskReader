@@ -196,6 +196,12 @@ DiagnosticResponse ArduinoInterface::testCTS(const unsigned int portNumber) {
 	return DiagnosticResponse::drOK;
 }
 
+#ifdef __MINGW32__
+	#define OS_COM_PORT		"\\\\.\\COM%i"
+#else
+	#define OS_COM_PORT		"/dev/ttyUSB%d"
+#endif
+
 // Attempts to open the reader running on the COM port number provided.  Port MUST support 2M baud
 DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, bool enableCTSflowcontrol) {
 	m_lastCommand = lcOpenPort;
@@ -203,11 +209,12 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 
 	// Communicate with the serial port
 	char buffer[20];
-	sprintf_s(buffer, "\\\\.\\COM%i", portNumber);
-	m_comPort = CreateFileA(buffer, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, 0);
+	sprintf_s(buffer, OS_COM_PORT, portNumber);
+	m_comPort = CreateFile((const wchar_t *) buffer, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, 0);
 
 	// No com port? Error!
 	if (m_comPort == INVALID_HANDLE_VALUE) {
+#ifdef __MINGW32__
 		int i= GetLastError();
 		switch (i) {
 		case ERROR_FILE_NOT_FOUND:  m_lastError = DiagnosticResponse::drPortNotFound;
@@ -217,8 +224,20 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 		default: m_lastError = DiagnosticResponse::drPortError;
 				 return m_lastError;
 		}
+#else
+		if (errno == -EPERM)
+			m_lastError = DiagnosticResponse::drPortNotFound;
+		else
+		if (errno == -ENXIO)
+			m_lastError = DiagnosticResponse::drPortInUse;
+		else
+			m_lastError = DiagnosticResponse::drPortError;
+		
+		return m_lastError;
+#endif
 	}
 
+#ifdef __MINGW32__
 	// Prepare communication settings
 	COMMCONFIG config;
 	DWORD comConfigSize = sizeof(config);
@@ -261,8 +280,49 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 			return m_lastError;
 		}
 	}
+#else
+	struct termios term;
+	tcgetattr(m_comPort, &term);
+	term.c_oflag = 0;
+	term.c_lflag = 0;
+	term.c_cc[VMIN] = 0;
+	term.c_cc[VTIME] = 0;
+
+	term.c_cflag = CLOCAL | CREAD | CS8 | HUPCL;
+	term.c_cflag |= CRTSCTS;
+	
+	term.c_iflag = IGNBRK | IGNPAR;
+
+	cfsetispeed(&term, B2000000);
+	cfsetospeed(&term, B2000000);
+
+	if(tcsetattr(m_comPort, TCSANOW, &term) < 0) {
+		fprintf(stderr, "openPort: failed to set terminal attributes\n");
+		closePort();
+		return DiagnosticResponse::drPortError;
+	}
+
+	#ifdef TIOCM_RTS
+		/* assert DTR/RTS lines */
+		{
+			int st;
+			if(ioctl(m_comPort, TIOCMGET, &st) == -1) {
+				perror("openPort: failed to get modem status");
+				closePort();
+				return DiagnosticResponse::drPortError;
+			}
+			st |= TIOCM_DTR | TIOCM_RTS;
+			if(ioctl(m_comPort, TIOCMSET, &st) == -1) {
+				perror("CreateFile: failed to set flow control");
+				closePort();
+				return DiagnosticResponse::drPortError;
+			}
+	}
+	#endif
+#endif
 
 	// Setup port timeouts
+#ifdef __MINGW32__
 	COMMTIMEOUTS timeouts;
 	timeouts.ReadIntervalTimeout = 2000;
 	timeouts.ReadTotalTimeoutConstant = 2000;
@@ -274,6 +334,9 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 		m_lastError = DiagnosticResponse::drComportTimeoutsError;
 		return m_lastError;
 	}
+#else
+	timeouts = 2000; // In msecs
+#endif
 
 	// Request version from the Arduino device running our software
 	m_lastError = runCommand(COMMAND_VERSION);
@@ -394,7 +457,7 @@ DiagnosticResponse ArduinoInterface::findTrack0() {
 	m_lastError = runCommand(COMMAND_REWIND, '\000', &status);
 	if (m_lastError != DiagnosticResponse::drOK) {
 		m_lastCommand = lcRewind;
-		if (status = '#') return drRewindFailure;
+		if (status == '#') return drRewindFailure;
 		return m_lastError;
 	}
 	return m_lastError;
@@ -500,7 +563,7 @@ void writeBit(RawTrackData& output, int& pos, int& bit, int value) {
 
 void unpack(const RawTrackData& data, RawTrackData& output) {
 	int pos = 0;
-	int index = 0;
+	unsigned int index = 0;
 	int p2 = 0;
 	memset(output, 0, sizeof(output));
 	while (pos < RAW_TRACKDATA_LENGTH) {

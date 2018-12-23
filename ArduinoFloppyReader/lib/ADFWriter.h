@@ -30,8 +30,12 @@
 // The MFM decoding algorithm and information regarding finding the start of a sector
 // were taken from the excellent documentation by Laurent Clévy at http://lclevy.free.fr/adflib/adf_info.html
 // Also credits to Keith Monahan https://www.techtravels.org/tag/mfm/ regarding a bug in the MFM sector start data
+#ifndef _ADFWRITER_H_
+#define _ADFWRITER_H_
 
-#pragma once
+#ifdef __MINGW32__
+	#pragma once
+#endif
 #include <functional>
 #include "ArduinoInterface.h"
 
@@ -94,3 +98,4 @@ namespace ArduinoFloppyReader {
 
 
 };
+#endif

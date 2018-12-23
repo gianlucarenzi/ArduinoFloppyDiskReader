@@ -26,11 +26,11 @@
 
 #pragma once
 
-#include "targetver.h"
-
 #include <stdio.h>
-#include <tchar.h>
-
+#ifdef __MINGW32__
+#	include "targetver.h"
+#	include <tchar.h>
+#endif
 
 
 // TODO: reference additional headers your program requires here

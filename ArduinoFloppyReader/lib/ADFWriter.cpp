@@ -31,10 +31,12 @@
 // were taken from the excellent documentation by Laurent Clévy at http://lclevy.free.fr/adflib/adf_info.html
 // Also credits to Keith Monahan https://www.techtravels.org/tag/mfm/ regarding a bug in the MFM sector start data
 
-#ifdef USING_MFC
-#include <afxwin.h>
-#else
-#include <Windows.h>
+#ifdef __MINGW32__
+#	ifdef USING_MFC
+#		include <afxwin.h>
+#	else
+#		include <Windows.h>
+#	endif
 #endif
 #include <vector>
 #include <algorithm>

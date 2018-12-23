@@ -23,9 +23,13 @@
 
 
 #include "stdafx.h"
-#include <windows.h>
-#include "..\lib\ADFWriter.h"
-#include <conio.h>
+#include "../lib/ADFWriter.h"
+#ifdef __MINGW32__
+#	include <windows.h>
+#	include <conio.h>
+#else
+#	define _getch() getc(stdin)
+#endif
 
 using namespace ArduinoFloppyReader;
 
@@ -126,20 +130,44 @@ void runDiagnostics(int comPort) {
 	writer.closeDevice();
 }
 
+#ifndef __MINGW32__
+void _wcsupr(char *ptr)
+{
+	char c;
+	while (*ptr != '\0')
+	{
+		char t;
+		t = *(ptr);
+		c = toupper(t);
+		*(ptr) = c;
+		ptr++;
+	}
+}
+int _wtoi(char *ptr)
+{
+	return strtoul(ptr, NULL, 10);
+}
+
+#endif
+#ifdef __MINGW32__
 int wmain(int argc, wchar_t* argv[], wchar_t *envp[])
+#else
+int main(int argc, char* argv[])
+#endif
 {
 	printf("Arduino Amiga ADF Floppy disk Reader/Writer, Copyright (C) 2017-2018 Robert Smith\r\n");
 	printf("Full sourcecode and documentation at http://amiga.robsmithdev.co.uk\r\n");
-	printf("This is free software licenced under the GNU General Public Licence V3\r\n\r\n");
+	printf("This is free software licenced under the GNU General Public Licence V3\r\n");
+	printf("Linux Version Copyright (C) 2018 Gianluca Renzi <icjtqr@gmail.com>\r\n\r\n");
 
 	if (argc < 3) {
 		printf("Usage:\r\n\n");
 		printf("To read a disk to an ADF file:\r\n");
-		printf("ArduinoFloppyReader <COMPORT> OutputFilename.ADF [READ]\r\n\r\n");
+		printf("%s <COMPORT> OutputFilename.ADF [READ]\r\n\r\n", argv[0]);
 		printf("To write an ADF file to disk:\r\n");
-		printf("ArduinoFloppyReader <COMPORT> InputFilename.ADF WRITE [VERIFY]\r\n\r\n");
+		printf("%s <COMPORT> InputFilename.ADF WRITE [VERIFY]\r\n\r\n",argv[0]);
 		printf("To start interface diagnostics:\r\n");
-		printf("ArduinoFloppyReader DIAGNOSTIC <COMPORT>\r\n\r\n");
+		printf("%s DIAGNOSTIC <COMPORT>\r\n\r\n", argv[0]);
 		return 0;
 	}
 
@@ -147,15 +175,15 @@ int wmain(int argc, wchar_t* argv[], wchar_t *envp[])
 	bool verify = false;
 	if (argc > 3) {
 		_wcsupr(argv[3]);
-		writeMode = wcscmp(argv[3], L"WRITE") == 0;
+		writeMode = wcscmp((const wchar_t *) argv[3], L"WRITE") == 0;
 	}
 	if (argc > 4) {
 		_wcsupr(argv[4]);
-		verify = wcscmp(argv[4], L"VERIFY") == 0;
+		verify = wcscmp((const wchar_t *)argv[4], L"VERIFY") == 0;
 	}
 
 	_wcsupr(argv[1]);
-	if (wcscmp(argv[1], L"DIAGNOSTIC") == 0) {
+	if (wcscmp((const wchar_t *)argv[1], L"DIAGNOSTIC") == 0) {
 		runDiagnostics(_wtoi(argv[2]));
 	}
 	else {
@@ -165,7 +193,7 @@ int wmain(int argc, wchar_t* argv[], wchar_t *envp[])
 		}
 		else {
 
-			if (writeMode) adf2Disk(argv, verify); else disk2ADF(argv);
+			if (writeMode) adf2Disk((wchar_t **)argv, verify); else disk2ADF((wchar_t **)argv);
 
 			writer.closeDevice();
 		}
