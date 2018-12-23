@@ -10,7 +10,8 @@ STRIP = $(CROSS_COMPILE)strip
 CXX = $(CROSS_COMPILE)g++
 CPP = $(CROSS_COMPILE)cpp
 
-src = ArduinoFloppyReader/Main.cpp \
+src = \
+	ArduinoFloppyReader/Main.cpp \
 	lib/ArduinoInterface.cpp \
 	lib/ADFWriter.cpp \
 	lib/LinuxCompat.cpp \
@@ -18,7 +19,7 @@ src = ArduinoFloppyReader/Main.cpp \
 	
 obj = $(src:.cpp=.o)
 dep = $(obj:.o=.d)
-bin = arduinofloppyreader
+bin = avrfloppyreader
 
 CXXFLAGS = -pedantic -Wall -g -Ilib -IArduinoFloppyReader
 
@@ -32,7 +33,7 @@ $(bin): $(obj)
 
 .PHONY: clean
 clean:
-	rm -f $(obj) $(bin)
+	rm -f $(dep) $(obj) $(bin)
 
 .PHONY: cleandep
 cleandep:
