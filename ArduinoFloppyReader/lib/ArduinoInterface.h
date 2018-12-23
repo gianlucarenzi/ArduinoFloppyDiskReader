@@ -159,7 +159,7 @@ namespace ArduinoFloppyReader {
 		// Turns on and off the reading interface. If irError is returned the disk is write protected
 		DiagnosticResponse  enableWriting(const bool enable, const bool reset = true);
 
-		// Attempts to open the reader running on the COM port number provided.  Port MUST support 2M baud
+		// Attempts to open the reader running on the serial port number provided.  Port MUST support 2M baud
 		DiagnosticResponse openPort(const unsigned int portNumber, bool enableCTSflowcontrol = true);
 
 		// Seek to track 0
@@ -196,4 +196,5 @@ namespace ArduinoFloppyReader {
 		void closePort();
 	};
 
-};
+}
+#endif

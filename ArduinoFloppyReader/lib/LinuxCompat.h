@@ -37,7 +37,8 @@ typedef int HANDLE;
 #define CREATE_ALWAYS      4
 
 extern bool GetCommModemStatus(HANDLE m_handle, DWORD *mask);
-extern HANDLE CreateFile(const wchar_t *port, int o_flag, int s_type, void *p, int o_xflag, int dummy1, int dummy2);
+extern HANDLE CreateFile(const wchar_t *file, int o_flag, int s_type, void *p, int o_xflag, int dummy1, int dummy2);
+extern HANDLE CreateFileA(const wchar_t *dev, int o_flag, int s_type, void *p, int o_xflag, int dummy1, int dummy2);
 extern bool ReadFile(HANDLE m_handle, void *buf, DWORD size, uint32_t *dataRead, void *ptr);
 extern bool WriteFile(HANDLE m_handle, const void *buf, DWORD size, uint32_t *dataWritten, void *ptr);
 
