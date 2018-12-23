@@ -71,7 +71,7 @@ namespace ArduinoFloppyReader {
 	// Main writer class
 	class ADFWriter {
 	private:
-		// The Arduino device
+		// The board/Arduino device
 		ArduinoInterface m_device;
 
 	public: 

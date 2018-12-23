@@ -18,7 +18,7 @@
 */
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Class to manage the communication between the computer and the Arduino             //
+// Class to manage the communication between the computer and the AVR Board           //
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 // Purpose:
@@ -75,49 +75,49 @@ const std::string ArduinoInterface::getLastErrorStr() const
 	std::stringstream tmp;
 	switch (m_lastError)
 	{
-		case drOldFirmware: return "The Arduino is running an older version of the firmware/sketch.  Please re-upload.";
+		case drOldFirmware: return "The board is running an older version of the firmware/sketch.  Please re-upload.";
 		case drOK: return "Last command completed successfully."; 
 		case drPortInUse: return "The specified serial port is currently in use by another application.";
 		case drPortNotFound: return "The specified serial port was not found.";
 		case drAccessDenied: return "The operating system denied access to the specified serial port.";
 		case drComportConfigError: return "We were unable to configure the serial port using the SetCommConfig() command.";
 		case drBaudRateNotSupported: return "The serial port does not support the 2M baud rate required by this application.";
-		case drErrorReadingVersion: return "An error occured attempting to read the version of the sketch running on the Arduino.";
-		case drErrorMalformedVersion: return "The Arduino returned an unexpected string when version was requested.  This could be a baud rate mismatch or incorrect loaded sketch.";
+		case drErrorReadingVersion: return "An error occured attempting to read the version of the sketch running on the board.";
+		case drErrorMalformedVersion: return "The board returned an unexpected string when version was requested.  This could be a baud rate mismatch or incorrect loaded sketch.";
 		case drCTSFailure: return "Diagnostics report the CTS line is not connected correctly or is not behaving correctly.";
 		case drTrackRangeError: return "An error occured attempting to go to a track number that was out of allowed range.";
 		case drWriteProtected: return "Unable to write to the disk.  The disk is write protected.";
 		case drPortError: return "An unknown error occured attempting to open access to the specified serial port.";
 		case drComportTimeoutsError: return "An error occured attempting to set the timeouts on the specified serial port.";
 		case drDiagnosticNotAvailable: return "CTS diagnostic not available, command GetCommModemStatus failed to execute.";
-		case drSelectTrackError: return "Arduino reported an error seeking to a specific track.";
-		case drTrackWriteResponseError: return "Error receiving status from Arduino after a track write operation.";
+		case drSelectTrackError: return "Board reported an error seeking to a specific track.";
+		case drTrackWriteResponseError: return "Error receiving status from board after a track write operation.";
 		case drSendDataFailed: return "Error sending track data to be written to disk.  This could be a serial timeout.";
-		case drRewindFailure: return "Arduino was unable to find track 0.  This could be a wiring fault or power supply failure.";
-		case drError:	tmp << "Arduino responded with an error running the " << lastCommandToName(m_lastCommand) << " command.";
+		case drRewindFailure: return "Board was unable to find track 0.  This could be a wiring fault or power supply failure.";
+		case drError:	tmp << "Board responded with an error running the " << lastCommandToName(m_lastCommand) << " command.";
 						return tmp.str();
 
 		case drReadResponseFailed:
 			switch (m_lastCommand)
 			{
-				case lcGotoTrack: return "Unable to read response from Arduino after requesting to go to a specific track";
+				case lcGotoTrack: return "Unable to read response from board after requesting to go to a specific track";
 				case lcReadTrack: return "Gave up trying to read a full track from the disk.";
 				case lcWriteTrack: return "Unable to read response to requesting to write a track.";
-				default: tmp << "Error reading response from the Arduino while running command " << lastCommandToName(m_lastCommand) << ".";
+				default: tmp << "Error reading response from the board while running command " << lastCommandToName(m_lastCommand) << ".";
 					return tmp.str();
 			}
 
 		case drSendFailed:
 			if (m_lastCommand == lcGotoTrack) 
-				return "Unable to send the complete select track command to the Arduino.";
+				return "Unable to send the complete select track command to the board.";
 			else {
-				tmp << "Error sending the command " << lastCommandToName(m_lastCommand) << " to the Arduino.";
+				tmp << "Error sending the command " << lastCommandToName(m_lastCommand) << " to the board.";
 				return tmp.str();
 			}
 
 		case drSendParameterFailed:	tmp << "Unable to send a parameter while executing the " << lastCommandToName(m_lastCommand) << " command.";
 			return tmp.str();
-		case drStatusError: tmp << "An unknown response was was received from the Arduino while executing the " << lastCommandToName(m_lastCommand) << " command.";
+		case drStatusError: tmp << "An unknown response was was received from the board while executing the " << lastCommandToName(m_lastCommand) << " command.";
 			return tmp.str();
 
 		default: return "Unknown error.";
@@ -366,7 +366,7 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 	timeouts = 2000; // In msecs
 #endif
 
-	// Request version from the Arduino device running our software
+	// Request version from the board device running our software
 	m_lastError = runCommand(COMMAND_VERSION);
 	if (m_lastError != DiagnosticResponse::drOK)
 	{
@@ -730,7 +730,7 @@ DiagnosticResponse ArduinoInterface::readCurrentTrack(RawTrackData& trackData, c
 	return m_lastError;
 }
 
-// Asks the Arduino to wipe the current track
+// Asks the board to wipe the current track
 DiagnosticResponse ArduinoInterface::eraseCurrentTrack()
 {
 	m_lastError = runCommand(COMMAND_ERASETRACK);
@@ -769,7 +769,7 @@ DiagnosticResponse ArduinoInterface::eraseCurrentTrack()
 		m_lastError = DiagnosticResponse::drReadResponseFailed;
 		return m_lastError;
 	}
-	// If this is a '1' then the Arduino erased the track
+	// If this is a '1' then the board erased the track
 	if (response != '1')
 	{
 		m_lastCommand = lcEraseTrack;
@@ -866,7 +866,7 @@ DiagnosticResponse ArduinoInterface::writeCurrentTrack(const unsigned char* data
 		return m_lastError;
 	}
 
-	// If this is a '1' then the Arduino didn't miss a single bit!
+	// If this is a '1' then the board didn't miss a single bit!
 	if (response != '1')
 	{
 		m_lastCommand = lcWriteTrack;

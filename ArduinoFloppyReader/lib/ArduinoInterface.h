@@ -18,7 +18,7 @@
 */
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Class to manage the communication between the computer and the Arduino             //
+// Class to manage the communication between the computer and the board               //
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 // Purpose:
@@ -44,7 +44,7 @@
 
 // Paula on the Amiga used to find the SYNC then read 1900 WORDS. (12868 bytes)
 // As the PC is doing the SYNC we need to read more than this to allow a further overlap
-// This number must match what the sketch in the Arduino is set to. 
+// This number must match what the sketch in the board is set to. 
 #define RAW_TRACKDATA_LENGTH    (0x1900*2+0x440)
 // With the disk spinning at 300rpm, and data rate of 500kbps, for a full revolution we should receive 12500 bytes of data (12.5k)
 // The above buffer assumes a full Paula data capture plsu the size of a sector.
@@ -183,7 +183,7 @@ namespace ArduinoFloppyReader {
 		// Attempts to write a sector back to the disk.  This must be pre-formatted and MFM encoded correctly
 		DiagnosticResponse  writeCurrentTrack(const unsigned char*, const unsigned short numBytes, const bool writeFromIndexPulse);
 
-		// Asks the Arduino to wipe the current track, filling it with the 0xAA pattern
+		// Asks the board to wipe the current track, filling it with the 0xAA pattern
 		DiagnosticResponse eraseCurrentTrack();
 
 		// Check CTS status 
