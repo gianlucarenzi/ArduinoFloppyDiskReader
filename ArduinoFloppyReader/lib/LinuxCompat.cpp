@@ -76,4 +76,23 @@ bool WriteFile(HANDLE m_handle, const void *buf, DWORD size, uint32_t *dataWritt
 		*dataWritten = 0;
 	return r == size;
 }
+
+void _wcsupr(char *ptr)
+{
+	char c;
+	while (*ptr != '\0')
+	{
+		char t;
+		t = *(ptr);
+		c = toupper(t);
+		*(ptr) = c;
+		ptr++;
+	}
+}
+
+int _wtoi(char *ptr)
+{
+	return strtoul(ptr, NULL, 10);
+}
+
 #endif

@@ -349,8 +349,8 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 			closePort();
 			return DiagnosticResponse::drPortError;
 		}
-		st &= ~TIOCM_DTR; // DTR Control Disable
-		st &= ~TIOCM_RTS; // RTS Control Disable
+		st |= TIOCM_DTR; // DTR Control Disabled
+		st |= TIOCM_RTS; // RTS Control Disabled
 		if(ioctl(m_comPort, TIOCMSET, &st) == -1)
 		{
 			perror("openPort: failed to disable flow control");

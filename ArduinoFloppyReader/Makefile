@@ -2,6 +2,39 @@
 PREFIX = /usr/local
 CROSS_COMPILE ?=
 
+# Platform specific Makefile tweaks based on uname detection
+
+uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
+uname_M := $(shell sh -c 'uname -m 2>/dev/null || echo not')
+uname_O := $(shell sh -c 'uname -o 2>/dev/null || echo not')
+uname_R := $(shell sh -c 'uname -r 2>/dev/null || echo not')
+uname_P := $(shell sh -c 'uname -p 2>/dev/null || echo not')
+uname_V := $(shell sh -c 'uname -v 2>/dev/null || echo not')
+
+ifdef MSVC
+	# avoid the MingW and Cygwin configuration sections
+	uname_S := Windows
+	uname_O := Windows
+endif
+
+ifeq ($(uname_S),Linux)
+	LINUXDEF = -D__LINUX__
+	WINDOWSDEF =
+	DARWINDEF =
+endif
+
+ifeq ($(uname_S),Darwin)
+	LINUXDEF =
+	WINDOWSDEF =
+	DARWINDEF = -D__MACOS__
+endif
+
+ifeq ($(uname_S),Windows)
+	LINUXDEF =
+	WINDOWSDEF = -D__MINGW32__
+	DARWINDEF =
+endif
+
 # Environment variables
 CC = $(CROSS_COMPILE)gcc
 WINDRES = $(CROSS_COMPILE)windres
@@ -21,7 +54,7 @@ obj = $(src:.cpp=.o)
 dep = $(obj:.o=.d)
 bin = avrfloppyreader
 
-CXXFLAGS = -pedantic -Wall -g -Ilib -IArduinoFloppyReader
+CXXFLAGS = -pedantic -Wall -g -Ilib -IArduinoFloppyReader $(LINUXDEF) $(WINDOWSDEF) $(DARWINDEF)
 
 $(bin): $(obj)
 	$(CXX) -o $@ $(obj) $(LDFLAGS)
