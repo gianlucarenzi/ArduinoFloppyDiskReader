@@ -215,8 +215,14 @@ DiagnosticResponse ArduinoInterface::testCTS(const unsigned int portNumber)
 
 #ifdef __MINGW32__
 	#define OS_COM_PORT		"\\\\.\\COM%i"
-#else
+#endif
+
+#ifdef __LINUX__
 	#define OS_COM_PORT		"/dev/ttyUSB%d"
+#endif
+
+#ifndef OS_COM_PORT
+	#error "Need a serial port for this system. Please correct"
 #endif
 
 // Attempts to open the reader running on the serial port number provided.  Port MUST support 2M baud
