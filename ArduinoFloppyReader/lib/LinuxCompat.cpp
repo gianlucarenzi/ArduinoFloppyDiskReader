@@ -1,8 +1,8 @@
 #include "LinuxCompat.h"
-
-#ifndef __MINGW32__
 #include <errno.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <ctype.h>
 
 int timeouts = 0; // Global definition. Will be used in ArduinoInterface.cpp
 
@@ -95,4 +95,3 @@ int _wtoi(char *ptr)
 	return strtoul(ptr, NULL, 10);
 }
 
-#endif
