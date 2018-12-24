@@ -37,9 +37,12 @@
 #	else
 #		include <windows.h>
 #	endif
-#else
+#endif
+
+#ifdef __LINUX__
 #	include "LinuxCompat.h"
 #endif
+
 #include <string>
 
 // Paula on the Amiga used to find the SYNC then read 1900 WORDS. (12868 bytes)
