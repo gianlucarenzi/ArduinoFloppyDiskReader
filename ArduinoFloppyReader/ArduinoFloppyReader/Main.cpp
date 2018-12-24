@@ -182,25 +182,6 @@ void runDiagnostics(int comPort)
 	writer.closeDevice();
 }
 
-#ifndef __MINGW32__
-void _wcsupr(char *ptr)
-{
-	char c;
-	while (*ptr != '\0')
-	{
-		char t;
-		t = *(ptr);
-		c = toupper(t);
-		*(ptr) = c;
-		ptr++;
-	}
-}
-int _wtoi(char *ptr)
-{
-	return strtoul(ptr, NULL, 10);
-}
-
-#endif
 #ifdef __MINGW32__
 int wmain(int argc, wchar_t* argv[], wchar_t *envp[])
 #else
