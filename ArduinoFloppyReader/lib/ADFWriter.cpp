@@ -609,7 +609,8 @@ void mergeInvalidSectors(DecodedTrack& track)
 // Open the device we want to use.  Returns TRUE if it worked
 bool ADFWriter::openDevice(const unsigned int comPort)
 {
-	if (m_device.openPort(comPort) != DiagnosticResponse::drOK)
+	DiagnosticResponse response = m_device.openPort(comPort); 
+	if (response != DiagnosticResponse::drOK)
 		return false;
 	Sleep(100);
 	return m_device.enableReading(true, true)== DiagnosticResponse::drOK;
@@ -692,6 +693,7 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 	}
 
 	// Ask the user for verification of the result
+	fflush(stdin);
 	if (!askQuestion(true,"Did the floppy disk start spinning, and did the drive LED switch on?"))
 	{
 		messageOutput(true, "Please check the drive has power");
@@ -704,6 +706,7 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 	if (r == DiagnosticResponse::drRewindFailure)
 	{
 		messageOutput(true, "Unable to find track 0");
+		fflush(stdin);
 		if (askQuestion(true,"Could you hear the drive head moving?"))
 		{
 			messageOutput(true, "Please check the drive or defective board components");
@@ -723,11 +726,13 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 	// Track 0 found.  Lets see if we can seek to track 70
 	messageOutput(false, "Track 0 was found.  Asking the board to find Track 70");
 	r = m_device.selectTrack(70);
-	if (r != DiagnosticResponse::drOK) {
+	if (r != DiagnosticResponse::drOK)
+	{
 		messageOutput(true, m_device.getLastErrorStr());
 		return false;
 	}
 
+	fflush(stdin);
 	if (!askQuestion(true,"Could you hear the head moving quite a distance?"))
 	{
 		messageOutput(true, "As we successfully found track 0, please "
@@ -737,11 +742,13 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 
 	// So we can open the drive and move the head.  We're going to turn the drive off
 	r = m_device.enableReading(false, false);
-	if (r != DiagnosticResponse::drOK) {
+	if (r != DiagnosticResponse::drOK)
+	{
 		messageOutput(true, m_device.getLastErrorStr());
 		return false;
 	}
 
+	fflush(stdin);
 	if (!askQuestion(false,"Please insert a write protected AmigaDOS disk in the drive"))
 	{
 		messageOutput(true, "Diagnostics aborted");

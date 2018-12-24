@@ -319,8 +319,12 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 	term.c_cc[VTIME] = 0;
 
 	term.c_cflag = CLOCAL | CREAD | CS8 | HUPCL;
-	term.c_cflag |= CRTSCTS;
-	
+
+	if (enableCTSflowcontrol)
+		term.c_cflag |= CRTSCTS;
+	else
+		term.c_cflag &= ~CRTSCTS;
+
 	term.c_iflag = IGNBRK | IGNPAR;
 
 	cfsetispeed(&term, B2000000);
@@ -382,6 +386,8 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 		return m_lastError;
 	}
 #else
+	tcflush(m_comPort, TCIFLUSH);
+	tcflush(m_comPort, TCOFLUSH);
 	timeouts = 2000; // In msecs
 #endif
 
@@ -396,7 +402,9 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 
 	// Version is always 4 bytes, we're gonna read them in one by one, and if any are wrong we exit with an error
 	char versionBuffer[4];
-	if (!deviceRead(versionBuffer, 4))
+	bool versionRead = deviceRead(versionBuffer,4);
+ 
+	if (!versionRead)
 	{
 		closePort();
 		m_lastError = DiagnosticResponse::drErrorReadingVersion;
