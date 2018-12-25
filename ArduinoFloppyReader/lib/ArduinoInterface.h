@@ -47,10 +47,10 @@
 
 // Paula on the Amiga used to find the SYNC then read 1900 WORDS. (12868 bytes)
 // As the PC is doing the SYNC we need to read more than this to allow a further overlap
-// This number must match what the sketch in the board is set to. 
+// This number must match what the sketch in the board is set to.
 #define RAW_TRACKDATA_LENGTH    (0x1900*2+0x440)
 // With the disk spinning at 300rpm, and data rate of 500kbps, for a full revolution we should receive 12500 bytes of data (12.5k)
-// The above buffer assumes a full Paula data capture plsu the size of a sector.
+// The above buffer assumes a full Paula data capture plus the size of a sector.
 
 
 namespace ArduinoFloppyReader {
@@ -180,7 +180,7 @@ namespace ArduinoFloppyReader {
 		// Choose which surface of the disk to read from
 		DiagnosticResponse  selectSurface(const DiskSurface side);
 
-		// Read RAW data from the current track and surface selected 
+		// Read RAW data from the current track and surface selected
 		DiagnosticResponse  readCurrentTrack(RawTrackData& trackData, const bool readFromIndexPulse);
 
 		// Attempts to write a sector back to the disk.  This must be pre-formatted and MFM encoded correctly
@@ -189,7 +189,7 @@ namespace ArduinoFloppyReader {
 		// Asks the board to wipe the current track, filling it with the 0xAA pattern
 		DiagnosticResponse eraseCurrentTrack();
 
-		// Check CTS status 
+		// Check CTS status
 		DiagnosticResponse testCTS(const unsigned int portNumber);
 
 		// Returns true if the track actually contains some data, else its considered blank or unformatted

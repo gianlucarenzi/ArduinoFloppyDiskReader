@@ -3,17 +3,80 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include "ArduinoInterface.h"
 
-int timeouts = 0; // Global definition. Will be used in ArduinoInterface.cpp
+#define COLORS
+//#undef  COLORS
+
+#ifdef COLORS
+	#define ANSI_RED        "\033[0;31m"
+	#define ANSI_GREEN      "\033[0;32m"
+	#define ANSI_YELLOW     "\033[0;33m"
+	#define ANSI_BLUE       "\033[0;34m"
+	#define ANSI_MAGENTA    "\033[0;35m"
+	#define ANSI_CYAN       "\033[0;36m"
+	#define ANSI_GREY       "\033[1;36m"
+	#define ANSI_RESET      "\033[0m"
+#else
+	#define ANSI_RED        ""
+	#define ANSI_GREEN      ""
+	#define ANSI_YELLOW     ""
+	#define ANSI_BLUE       ""
+	#define ANSI_MAGENTA    ""
+	#define ANSI_CYAN       ""
+	#define ANSI_GREY       ""
+	#define ANSI_RESET      ""
+#endif
+
+enum {
+	DBG_ERROR = 0,
+	DBG_INFO,
+	DBG_VERBOSE,
+	DBG_NOISY,
+};
+
+static int debuglevel = DBG_NOISY;
+
+#define DBG_E(fmt, args...) \
+	fprintf(stderr, " " ANSI_RED "ERROR  : %s:%d:%s(): " ANSI_RESET fmt, __FILE__, \
+		__LINE__, __func__, ##args);
+
+#define DBG_I(fmt, args...) \
+	if (debuglevel >= DBG_INFO) \
+		fprintf(stderr, ANSI_GREEN "INFO   : %s:%d:%s(): " ANSI_RESET fmt, __FILE__, \
+			__LINE__, __func__, ##args)
+
+#define DBG_V(fmt, args...) \
+	if (debuglevel >= DBG_VERBOSE) \
+		fprintf(stderr, ANSI_BLUE "VERBOSE: %s:%d:%s(): " ANSI_RESET fmt, __FILE__, \
+			__LINE__, __func__, ##args)
+
+#define DBG_N(fmt, args...) \
+	if (debuglevel >= DBG_NOISY) \
+		fprintf(stderr, ANSI_YELLOW "NOISY  : %s:%d:%s(): " ANSI_RESET fmt, __FILE__, \
+			__LINE__, __func__, ##args)
+
+static int timeouts = 0; // Global definition. Will be used in ArduinoInterface.cpp
+
+void SetTimeout(int timer)
+{
+	DBG_N("arg: %d\n", timer);
+	timeouts = timer;
+}
 
 bool GetCommModemStatus(HANDLE m_handle, DWORD *mask)
 {
 	int status;
+	DBG_N("args: %d - ptr: %p\n", m_handle, mask);
 	int r = ioctl(m_handle, TIOCMGET, &status);
 	if (r >= 0)
 		*mask = (DWORD) status;
 	else
+	{
+		DBG_E("ioctl %d\n", r);
+		perror("ioctl");
 		*mask = 0;
+	}
 	return r >= 0;
 }
 
@@ -21,11 +84,14 @@ HANDLE CreateFileA(const wchar_t *dev, int o_flag, int s_type, void *p, int o_xf
 {
 	int fd;
 
-	if((fd = open((const char *)dev, O_NONBLOCK | O_RDWR | O_NOCTTY)) == -1)
+	DBG_N("Port Device: %s\n", (const char *)dev);
+	// Serial Port are open in blocking mode
+	if((fd = open((const char *)dev, O_RDWR | O_NOCTTY)) == -1)
 	{
-		fprintf(stderr, "CreateFile: failed to open device: %s: %s\n", (const char *) dev, strerror(errno));
+		DBG_E("failed to open device: %s: %s\n", (const char *) dev, strerror(errno));
 		return -1;
 	}
+	DBG_N("Exit with: %d\n", fd);
 	return fd;
 }
 
@@ -33,12 +99,14 @@ HANDLE CreateFile(const wchar_t *file, int o_flag, int s_type, void *p, int o_xf
 {
 	int fd;
 	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+	DBG_N("File: %s\n", (const char *) file);
 
 	if((fd = open((const char *)file, O_RDWR | O_CREAT, mode)) == -1)
 	{
-		fprintf(stderr, "CreateFile: failed to open file: %s: %s\n", (const char *) file, strerror(errno));
+		DBG_E("failed to open file: %s: %s\n", (const char *) file, strerror(errno));
 		return -1;
 	}
+	DBG_N("Exit with: %d\n", fd);
 	return fd;
 }
 
@@ -95,7 +163,7 @@ static void print_hex_ascii_line(const unsigned char *payload, int len, int offs
 	fprintf(stdout, "\n");
 }
 
-static void dump_buffer(const unsigned char *ptr, int len)
+static void dump_buffer(const unsigned char *ptr, int len, const char * ansicolor)
 {
 	int len_rem = len;
 	int line_width = 16;           // number of bytes per line
@@ -103,17 +171,21 @@ static void dump_buffer(const unsigned char *ptr, int len)
 	int offset = 0;                // zero-based offset counter
 	const unsigned char *ch = ptr;
 
+	DBG_N("Buffer @ %p - Len: %d\n", ptr, len);
+
 	if (len <= 0)
 	{
-		fprintf(stderr, "%s No LEN. Exit\n", __FUNCTION__);
 		return;
 	}
+
+	if (ansicolor != NULL)
+		fprintf(stdout, "%s", ansicolor);
 
 	// data fits on one line
 	if (len <= line_width)
 	{
 		print_hex_ascii_line(ch, len, offset);
-		fprintf(stdout, "Small Line. Exiting\n");
+		fprintf(stdout, "" ANSI_RESET);
 		return;
 	}
 
@@ -138,122 +210,137 @@ static void dump_buffer(const unsigned char *ptr, int len)
 			break;
 		}
 	}
+	fprintf(stdout, ANSI_RESET);
 }
+
+int SetPortBlock(int fd)
+{
+	return fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) & ~O_NONBLOCK);
+}
+
+int SetPortNonBlock(int fd)
+{
+	return fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+}
+
 
 bool ReadFile(HANDLE m_handle, void *buf, DWORD size, uint32_t *dataRead, void *ptr)
 {
 	static struct timeval tv_zero;
 	fd_set rd;
-	DWORD r; 
+	DWORD r;
 	unsigned char * buffer = (unsigned char *)buf;
-	DWORD bytesread = 0;
-	DWORD len = size;
+	DWORD bytesRead = 0;
+	int timer = 0;
 	int rval;
 	int err;
 
-	fprintf(stderr, "%s To read: %d\n", __FUNCTION__, len);
-
-retry:
-	FD_ZERO(&rd);
-	FD_SET(m_handle, &rd);
-
-	tv_zero.tv_sec = timeouts / 1000;
-	tv_zero.tv_usec = timeouts * 1000;
-
-	rval = select(m_handle + 1, &rd, NULL, NULL, timeouts > 0 ? &tv_zero : 0);
-
-	err = errno;
-	if (rval < 0)
+	DBG_N("Bytes to read: %d (timeouts %dmSec) ONE-AT-TIME\n", size, timeouts);
+	do
 	{
-		if (errno == EINTR || errno == EAGAIN)
+		r = read(m_handle, buffer, 1);
+		err = errno;
+		if (r <= 0)
 		{
-			goto retry;
-		}
-		else
-		{
-			fprintf(stderr, "%s ERROR ON SELECT\n", __FUNCTION__);
-			return false;
-		}
-	}
-	else
-	if (rval == 0)
-	{
-		// Timeout
-		fprintf(stderr, "%s TIMEOUT\n", __FUNCTION__);
-		return false;
-	}
-	else
-	{
-		int ctscounter = 0;
-		for (;;)
-		{
-			r = ioctl(m_handle, FIONREAD, &bytesread);
-			if (bytesread > 0)
+			// Something weird happens in between...
+			if (r == 0 || err == EINTR || err == EAGAIN)
 			{
-				ctscounter = 0;
-				fprintf(stderr, "%s To read: %d\n", __FUNCTION__, len);
-				r = read(m_handle, buffer, len);
-				err = errno;
-				if (r < 0)
+				if (r == 0)
 				{
-					if (err == EINTR || err == EAGAIN)
-						continue;
-					else
+					timer++;
+					DBG_N("[%04d] Nothing to read\n", timer);
+					if (timer > timeouts)
 					{
-						fprintf(stderr, "%s ERROR READING %d\n", __FUNCTION__, r);
-						perror("reading serial");
-						bytesread = 0;
 						break;
 					}
-				}
-				else
-				if (r >= 0)
-				{
-					if (r < len)
-					{
-						len -= r;
-						buffer += r;
-					}
-					else
-					{
-						bytesread = size;
-						break;
-					}
+					usleep(1000); // 1ms timer tick
 				}
 			}
 			else
 			{
-				fprintf(stderr, "%s [%d] Nothing to read\n", __FUNCTION__, ctscounter);
-				usleep(1000);
-				ctscounter++;
-				if (ctscounter > 10)
-				{
-					ctscounter = 0;
-				}
+				// This is an error, for sure!
+				DBG_E("READING %d - %s\n", r, strerror(err));
+				bytesRead = 0;
+				break;
 			}
 		}
-	}
+		else
+		{
+			// Ok. 1 byte read, now the next
+			buffer++;
+			bytesRead++;
+			timer = 0;
+		}
+	} while (bytesRead < size);
 
-	*dataRead = (uint32_t) bytesread;
+	*dataRead = (uint32_t) bytesRead;
 
-//	fprintf(stderr, "%s read: %d\n", __FUNCTION__, bytesread);
+	DBG_V("To read: %d -- read: %d in %d good timer ticks\n",
+		size, bytesRead, timer);
+	if (debuglevel >= DBG_NOISY)
+		dump_buffer((const unsigned char *) buf, bytesRead, ANSI_GREY);
 
-	//dump_buffer((const unsigned char *) buf, bytesread);
-
-	return bytesread == size;
+	DBG_N("Exit with %s\n", bytesRead == size ? "TRUE" : "FALSE");
+	return bytesRead == size;
 }
 
 bool WriteFile(HANDLE m_handle, const void *buf, DWORD size, uint32_t *dataWritten, void *ptr)
 {
 	DWORD r;
-//	fprintf(stderr, "%s To write: %d\n", __FUNCTION__, size);
-	r = write(m_handle, buf, size);
-	if (r > 0)
-		*dataWritten = r;
-	else
-		*dataWritten = 0;
-//	fprintf(stderr, "%s Written: %d\n", __FUNCTION__, r);
-	return r == size;
+	DWORD bytesWritten = 0;
+	unsigned char * buff = (unsigned char *)buf;
+	int err;
+	int timer = 0;
+
+	DBG_N("To Write: %d (timeouts %d)\n", size, timeouts);
+	// Write 1 byte at time!
+	do
+	{
+		r = write(m_handle, buff, 1);
+		err = errno;
+		if (r <= 0)
+		{
+			if (r == 0 || err == EAGAIN || err == EINTR)
+			{
+				if (r == 0)
+				{
+					timer++;
+					DBG_N("[%04d] No Write. Wait...\n", timer);
+					if (timer > timeouts)
+					{
+						break;
+					}
+					usleep(1000); // 1ms timer tick
+				}
+			}
+			else
+			{
+				// This is an error, for sure!
+				DBG_E("WRITING %d - %s\n", r, strerror(err));
+				perror("reading serial");
+				bytesWritten = 0;
+				break;
+			}
+		}
+		else
+		{
+			// Ok write next
+			buff++;
+			bytesWritten++;
+			timer = 0;
+		}
+	} while (bytesWritten < size);
+
+	*dataWritten = bytesWritten;
+
+	DBG_V("To write: %d - written: %d in %d good timer ticks = returns %s\n",
+		size, bytesWritten, timer, size == bytesWritten ? "TRUE" : "FALSE");
+
+	if (debuglevel >= DBG_NOISY)
+		dump_buffer((const unsigned char *) buf, bytesWritten, ANSI_MAGENTA);
+
+	DBG_N("Exit with: %s\n", bytesWritten == size ? "TRUE" : "FALSE");
+	return bytesWritten == size;
 }
 
 void _wcsupr(char *ptr)

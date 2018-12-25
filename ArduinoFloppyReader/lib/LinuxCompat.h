@@ -43,7 +43,9 @@ extern bool ReadFile(HANDLE m_handle, void *buf, DWORD size, uint32_t *dataRead,
 extern bool WriteFile(HANDLE m_handle, const void *buf, DWORD size, uint32_t *dataWritten, void *ptr);
 extern void _wcsupr(char *ptr);
 extern int _wtoi(char *ptr);
+extern int SetPortBlock(int fd);
+extern int SetPortNonBlock(int fd);
+extern void SetTimeout(int timer);
 
-extern int timeouts;
 
 #endif /* __LINUX_COMPAT_H__ */

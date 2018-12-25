@@ -26,7 +26,7 @@
 // Once all errors have been corrected the class will save the tracks to disk as an ADF file
 //
 // The class also handles writing an ADF file back to disk and optionally verifying the write.
-// 
+//
 // The MFM decoding algorithm and information regarding finding the start of a sector
 // were taken from the excellent documentation by Laurent Clévy at http://lclevy.free.fr/adflib/adf_info.html
 // Also credits to Keith Monahan https://www.techtravels.org/tag/mfm/ regarding a bug in the MFM sector start data
@@ -48,7 +48,7 @@
 using namespace ArduinoFloppyReader;
 
 
-#define MFM_MASK    0x55555555L		
+#define MFM_MASK    0x55555555L
 #define AMIGA_WORD_SYNC  0x4489							 // Disk SYNC code for the Amiga start of sector
 #define SECTOR_BYTES	512								 // Number of bytes in a decoded sector
 #define NUM_SECTORS_PER_TRACK 11						 // Number of sectors per track
@@ -104,8 +104,8 @@ struct DecodedTrack {
 
 
 // MFM decoding algorithm
-// *input;	MFM coded data buffer (size == 2*data_size) 
-// *output;	decoded data buffer (size == data_size) 
+// *input;	MFM coded data buffer (size == 2*data_size)
+// *output;	decoded data buffer (size == data_size)
 // Returns the checksum calculated over the data
 unsigned long decodeMFMdata(const unsigned long* input, unsigned long* output, const unsigned int data_size)
 {
@@ -113,10 +113,10 @@ unsigned long decodeMFMdata(const unsigned long* input, unsigned long* output, c
 	unsigned long chksum = 0L;
 	unsigned int count;
 
-	// the decoding is made here long by long : with data_size/4 iterations 
+	// the decoding is made here long by long : with data_size/4 iterations
 	for (count = 0; count < data_size / 4; count++)
 	{
-		odd_bits = *input;					// longs with odd bits 
+		odd_bits = *input;					// longs with odd bits
 		even_bits = *(unsigned long*)(((unsigned char*)input) + data_size);
 			// longs with even bits - located 'data_size' bytes after the odd bits
 
@@ -131,8 +131,8 @@ unsigned long decodeMFMdata(const unsigned long* input, unsigned long* output, c
 }
 
 // MFM encoding algorithm part 1 - this just writes the actual data bits in the right places
-// *input;	RAW data buffer (size == data_size) 
-// *output;	MFM encoded buffer (size == data_size*2) 
+// *input;	RAW data buffer (size == data_size)
+// *output;	MFM encoded buffer (size == data_size*2)
 // Returns the checksum calculated over the data
 unsigned long encodeMFMdataPart1(const unsigned long* input, unsigned long* output, const unsigned int data_size)
 {
@@ -152,7 +152,7 @@ unsigned long encodeMFMdataPart1(const unsigned long* input, unsigned long* outp
 		outputOdd++;
 		input++;
 	}
-	
+
 	// Checksum calculator
 	// Encode over two passes.  First split out the odd and even data, then encode
 	// the MFM values, the /4 is because we're working in longs, not bytes
@@ -166,7 +166,7 @@ unsigned long encodeMFMdataPart1(const unsigned long* input, unsigned long* outp
 }
 
 // Copys the data from inTrack into outTrack but fixes the bit/byte
-// alignment so its aligned on the start of a byte 
+// alignment so its aligned on the start of a byte
 void alignSectorToByte(const RawTrackData& inTrack, int byteStart, int bitStart, RawEncodedSector& outSector)
 {
 	unsigned char byteOut = 0;
@@ -175,7 +175,7 @@ void alignSectorToByte(const RawTrackData& inTrack, int byteStart, int bitStart,
 	// Bit counter output
 	unsigned int counter = 0;
 
-	// The position supplied is the last bit of the track sync.  
+	// The position supplied is the last bit of the track sync.
 	bitStart--;   // goto the next bit
 	if (bitStart < 0)
 	{
@@ -214,11 +214,11 @@ void alignSectorToByte(const RawTrackData& inTrack, int byteStart, int bitStart,
 bool repairMFMData(unsigned char* data, const unsigned int dataLength)
 {
 	bool errors = false;
-	// Only certain bit-patterns are allowed.  So if we come across an invalid one we will try to repair it.  
+	// Only certain bit-patterns are allowed.  So if we come across an invalid one we will try to repair it.
 	// You cannot have two '1's together, and a max of three '0' in a row
 	// Allowed combinations:  (note the SYNC WORDS and TRACK START are designed
 	// to break these rules, but we shouldn't encounter them)
-	// 
+	//
 	//	00010
 	//	00100
 	//	00101
@@ -245,7 +245,7 @@ bool repairMFMData(unsigned char* data, const unsigned int dataLength)
 				if ((testByte & 0x2) != 0x2)
 				{
 					testByte |= 1;
-				} 
+				}
 				else
 				{
 					// We detected two '1's in a row, which isnt allowed.  From reading this most likely
@@ -297,9 +297,9 @@ bool attemptFixSector(const DecodedTrack& decodedTrack, DecodedSector& outputSec
 	for (const DecodedSector& sec : decodedTrack.invalidSectors[sectorNumber])
 	{
 		for (int byteNumber = 0; byteNumber < SECTOR_BYTES + SECTOR_BYTES; byteNumber++)
-		{ 
+		{
 			for (int bit = 0; bit <= 7; bit++)
-			{ 
+			{
 				if (sec.rawSector[byteNumber] & (1 << bit))
 					sectorSum[byteNumber][bit].ones++;
 				else
@@ -334,8 +334,8 @@ bool decodeSector(const RawEncodedSector& rawSector, const unsigned int trackNum
 
 	// Easier to operate on
 	unsigned char* sectorData = (unsigned char*)rawSector;
- 
-	// Read the first 4 bytes (8).  This  is the track header data	
+
+	// Read the first 4 bytes (8).  This  is the track header data
 	sector.headerChecksumCalculated = decodeMFMdata(
 		(unsigned long*)(sectorData + 8), (unsigned long*)&sector, 4);
 
@@ -353,11 +353,11 @@ bool decodeSector(const RawEncodedSector& rawSector, const unsigned int trackNum
 		return false;
 
 	// Check if the header contains valid fields
-	if (sector.trackFormat != 0xFF) 
+	if (sector.trackFormat != 0xFF)
 		return false;  // not valid
-	if (sector.sectorNumber > 10) 
+	if (sector.sectorNumber > 10)
 		return false;
-	if (sector.trackNumber > 162) 
+	if (sector.trackNumber > 162)
 		return false;   // 81 tracks * 2 for both sides
 	if (sector.sectorsRemaining > 11)
 		return false;  // this isnt possible either
@@ -423,7 +423,7 @@ bool decodeSector(const RawEncodedSector& rawSector, const unsigned int trackNum
   (byte & 0x08 ? '1' : '0'), \
   (byte & 0x04 ? '1' : '0'), \
   (byte & 0x02 ? '1' : '0'), \
-  (byte & 0x01 ? '1' : '0') 
+  (byte & 0x01 ? '1' : '0')
 
 
 // Encode a sector into the correct format for disk
@@ -448,7 +448,7 @@ void encodeSector(const unsigned int trackNumber, const DiskSurface surface,
 
 	header.trackFormat = 0xFF;
 	header.trackNumber = (trackNumber << 1) | ((surface == DiskSurface::dsUpper) ? 1 : 0);
-	header.sectorNumber = sectorNumber; 
+	header.sectorNumber = sectorNumber;
 	header.sectorsRemaining = NUM_SECTORS_PER_TRACK - sectorNumber;  //1..11
 
 
@@ -482,9 +482,9 @@ void encodeSector(const unsigned int trackNumber, const DiskSurface surface,
 	{
 		for (int bit = 7; bit >= 1; bit -= 2)
 		{
-			lastBit = thisBit;			
+			lastBit = thisBit;
 			thisBit = encodedSector[count] & (1 << (bit-1));
-	
+
 			if (!(lastBit | thisBit))
 			{
 				// Encode a 1!
@@ -521,7 +521,8 @@ void findSectors(const RawTrackData& track, unsigned int trackNumber,
 		for (int bitIndex = 7; bitIndex >= 0; bitIndex--)
 		{
 			decoded <<= 1;   // shift off one bit to make room for the new bit
-			if (track[byteIndex] & (1 << bitIndex)) decoded |= 1;
+			if (track[byteIndex] & (1 << bitIndex))
+				decoded |= 1;
 
 			// Have we matched the sync words correctly
 			++nextTrackBitCount;
@@ -529,8 +530,9 @@ void findSectors(const RawTrackData& track, unsigned int trackNumber,
 			if (( decoded == search) || ((nextTrackBitCount >=63) &&
 				(nextTrackBitCount <= 65)))
 			{
+				//printf("%s DECODED OK\n", __FUNCTION__);
 				RawEncodedSector alignedSector;
-				
+
 				// We extract ALL of the track data from this BIT to
 				// byte align it properly, then pass it onto the code
 				// to read the sector (from the start of the sync code)
@@ -547,7 +549,7 @@ void findSectors(const RawTrackData& track, unsigned int trackNumber,
 					// skip this many bytes as we know this is part
 					// of the track! minus 8 for the SYNC
 					if (byteIndex >= RAW_TRACKDATA_LENGTH)
-						break; 
+						break;
 					// We know that 8 bytes from here should be another track.
 					// - we allow 1 bit either way for slippage, but this
 					// allows an extra check incase the SYNC pattern is damaged
@@ -555,6 +557,7 @@ void findSectors(const RawTrackData& track, unsigned int trackNumber,
 				}
 				else
 				{
+					//printf("%s DECODE FAILED. TRY HOMEMADE\n", __FUNCTION__);
 					// Decode failed.  Lets try a "homemade" one
 					DecodedSector newTrack;
 
@@ -586,6 +589,7 @@ void findSectors(const RawTrackData& track, unsigned int trackNumber,
 		}
 		byteIndex++;
 	}
+	//printf("%s Exit\n", __FUNCTION__);
 }
 
 // Merges any invalid sectors into the valid ones as a last resort
@@ -609,7 +613,7 @@ void mergeInvalidSectors(DecodedTrack& track)
 // Open the device we want to use.  Returns TRUE if it worked
 bool ADFWriter::openDevice(const unsigned int comPort)
 {
-	DiagnosticResponse response = m_device.openPort(comPort); 
+	DiagnosticResponse response = m_device.openPort(comPort);
 	if (response != DiagnosticResponse::drOK)
 		return false;
 	Sleep(100);
@@ -805,7 +809,9 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 
 	for (int a = 0; a < 10; a++)
 	{
+		//printf("%s [%02d] Loop\n", __FUNCTION__, a);
 		r = m_device.readCurrentTrack(data, true);
+		//printf("%s loop readCurrentTrack() returns: %d\n", __FUNCTION__, r);
 		if (r != DiagnosticResponse::drOK)
 		{
 			messageOutput(true, m_device.getLastErrorStr());
@@ -816,7 +822,7 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 		DecodedTrack trk1;
 		findSectors(data, 40, ArduinoFloppyReader::DiskSurface::dsUpper, AMIGA_WORD_SYNC, trk1, true);
 
-		counter=0; 
+		counter=0;
 		for (int sec=0; sec<NUM_SECTORS_PER_TRACK; sec++)
 		{
 			if (trk1.invalidSectors[sec].size())
@@ -950,7 +956,7 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 		}
 	} while (r == DiagnosticResponse::drWriteProtected);
 	// Writing is enabled.
-	
+
 	// Goto 41, we'll write some stuff
 	r = m_device.selectTrack(41);
 	if (r != DiagnosticResponse::drOK)
@@ -992,16 +998,19 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 	bool writtenOK = false;
 	for (int a = 1; a <= 10; a++)
 	{
+		printf("%s %d Attempt to write track\n", __FUNCTION__, a);
 		r = m_device.writeCurrentTrack(
 			(const unsigned char*)(&disktrack), sizeof(disktrack), false);
-
+		printf("%s DiagnosticResponse WRITE CURRENT TRACK: %d\n", __FUNCTION__, r);
 		if (r != DiagnosticResponse::drOK)
 		{
 			messageOutput(true, m_device.getLastErrorStr());
 			return false;
 		}
 
+		printf("%s %d Attempt to read track back\n", __FUNCTION__, a);
 		r = m_device.readCurrentTrack(data, false);
+		printf("%s DiagnosticResponse READ CURRENT TRACK: %d\n", __FUNCTION__, r);
 		if (r != DiagnosticResponse::drOK)
 		{
 			messageOutput(true, m_device.getLastErrorStr());
@@ -1015,7 +1024,7 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 		// valid and matched the phrase we wrote onto the disk
 		for (const DecodedSector& sec : trk.validSectors)
 		{
-			// See if we can find the sequence in here somewhere 
+			// See if we can find the sequence in here somewhere
 			std::string s;
 			s.resize(SECTOR_BYTES);
 			memcpy(&s[0], sec.data, SECTOR_BYTES);
@@ -1025,7 +1034,7 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 				// Excellent
 				writtenOK = true;
 				break;
-			}					
+			}
 		}
 
 		if (!writtenOK)
@@ -1035,7 +1044,7 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 			{
 				for (const DecodedSector& sec : trk.invalidSectors[sector])
 				{
-					// See if we can find the sequence in here somewhere 
+					// See if we can find the sequence in here somewhere
 					std::string s;
 					s.resize(SECTOR_BYTES);
 					memcpy(&s[0], sec.data, SECTOR_BYTES);
@@ -1053,6 +1062,8 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 			}
 		}
 	}
+
+	printf("%s writtenOK: %d\n", __FUNCTION__, writtenOK);
 
 	// Final results
 	if (!writtenOK)
@@ -1077,7 +1088,7 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 
 
 
-// Writes an ADF file back to a floppy disk.  Return FALSE in the callback to abort this operation 
+// Writes an ADF file back to a floppy disk.  Return FALSE in the callback to abort this operation
 ADFResult ADFWriter::ADFToDisk(const std::wstring inputFile, bool eraseFirst,
 	bool verify, std::function < WriteResponse(const int currentTrack,
 	const DiskSurface currentSide, const bool isVerifyError) > callback)
@@ -1188,7 +1199,7 @@ ADFResult ADFWriter::ADFToDisk(const std::wstring inputFile, bool eraseFirst,
 
 					if (trackRead.validSectors.size() == NUM_SECTORS_PER_TRACK)
 						break;
-				} 
+				}
 
 				// So we found all 11 sectors, but were they the ones we actually wrote!?
 				if (trackRead.validSectors.size() == NUM_SECTORS_PER_TRACK)
@@ -1265,7 +1276,7 @@ ADFResult ADFWriter::ADFToDisk(const std::wstring inputFile, bool eraseFirst,
 
 		// But there is a physical limit
 		if (currentTrack > 81)
-			break; 
+			break;
 	}
 
 	return errors? ADFResult::adfrCompletedWithErrors: ADFResult::adfrComplete;
@@ -1282,7 +1293,7 @@ ADFResult ADFWriter::DiskToADF(const std::wstring outputFile, const unsigned int
 
 	// Higher than this is not supported
 	if (numTracks > 82)
-		return ADFResult::adfrDriveError; 
+		return ADFResult::adfrDriveError;
 
 	// Attempt ot open the file
 	HANDLE hADFFile = CreateFile(outputFile.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, 0);
@@ -1308,7 +1319,7 @@ ADFResult ADFWriter::DiskToADF(const std::wstring outputFile, const unsigned int
 		// Now select the side
 		for (unsigned int surfaceIndex = 0; surfaceIndex < 2; surfaceIndex++)
 		{
-			// Surface 
+			// Surface
 			const DiskSurface surface = (surfaceIndex == 1) ? DiskSurface::dsUpper : DiskSurface::dsLower;
 
 			// Change the surface we're looking at
@@ -1354,7 +1365,7 @@ ADFResult ADFWriter::DiskToADF(const std::wstring outputFile, const unsigned int
 							CloseHandle(hADFFile);
 							return ADFResult::adfrAborted;
 
-						case WriteResponse::wrSkipBadChecksums: 
+						case WriteResponse::wrSkipBadChecksums:
 							if (ignoreChecksums)
 							{
 								// Already been here, so we'll create blank
