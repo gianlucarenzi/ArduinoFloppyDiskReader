@@ -48,13 +48,13 @@ src = \
 	lib/ArduinoInterface.cpp \
 	lib/ADFWriter.cpp \
 	lib/LinuxCompat.cpp \
-	
-	
+
+
 obj = $(src:.cpp=.o)
 dep = $(obj:.o=.d)
 bin = avrfloppyreader
 
-CXXFLAGS = -pedantic -Wall -g -Ilib -IArduinoFloppyReader $(LINUXDEF) $(WINDOWSDEF) $(DARWINDEF)
+CXXFLAGS = -Wall -g -pg -O0 -Ilib -IArduinoFloppyReader $(LINUXDEF) $(WINDOWSDEF) $(DARWINDEF)
 
 $(bin): $(obj)
 	$(CXX) -o $@ $(obj) $(LDFLAGS)
