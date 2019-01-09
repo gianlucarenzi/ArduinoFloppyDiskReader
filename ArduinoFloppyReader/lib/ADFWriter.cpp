@@ -856,6 +856,10 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 
 		if (tracksFound)
 			break;
+		else
+			messageOutput(false, "No Tracks found. Retry\n");
+
+		usleep(500 * 1000L);
 	}
 
 	messageOutput(false, "Attempting to read a track from the LOWER side of the disk");
@@ -915,9 +919,19 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 
 		if (tracksFound)
 			break;
+		else
+			messageOutput(false, "No Tracks found. Retry\n");
+
+		usleep(500 * 1000L);
 	}
 
-	messageOutput(false, "Reading was successful!");
+	if (tracksFound)
+		messageOutput(false, "Reading was successful!");
+	else
+	{
+		messageOutput(false, "No valid tracks found.");
+		return false;
+	}
 
 	// Turn the drive off again
 	r = m_device.enableReading(false,false);
