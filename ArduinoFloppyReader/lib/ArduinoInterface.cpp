@@ -424,7 +424,7 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 
 	if ((m_version.major == 1) && (m_version.minor < 2))
 	{
-		// Ok, success
+		// Old Firmware
 		m_lastError = DiagnosticResponse::drOldFirmware;
 		return m_lastError;
 	}
