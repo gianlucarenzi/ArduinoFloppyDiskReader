@@ -28,12 +28,27 @@
 #	include <windows.h>
 #	include <conio.h>
 #else
+#include <stdio.h>
 #	define _getch() getc(stdin)
+static FILE *trackFile = NULL;
+static FILE *badFile = NULL;
+static FILE *sideFile = NULL;
 #endif
 
 using namespace ArduinoFloppyReader;
 
 ADFWriter writer;
+
+#ifdef __LINUX__
+static void prepareUIFiles(void)
+{
+	trackFile = fopen("/tmp/track", "w+b");
+
+	sideFile = fopen("/tmp/side", "w+b");
+
+	badFile = fopen("/tmp/bad", "w+b");
+}
+#endif
 
 
 // Read an ADF file and write it to disk
@@ -87,7 +102,7 @@ void adf2Disk(wchar_t* argv[], bool verify)
 			printf("\rError opening ADF file.                                                            ");
 			break;
 		case adfrDriveError:
-			printf("\rError communicating with the Arduino interface.                                    "); 
+			printf("\rError communicating with the AVR interface.                                    ");
 			printf("\n%s                                                  ", writer.getLastError().c_str());
 			break;
 		case adfrDiskWriteProtected:
@@ -107,12 +122,15 @@ void disk2ADF(wchar_t* argv[])
 		{
 			if (retryCounter > 20) {
 				char input;
+#ifndef USEGUI
 				do
 				{
 					printf("\rDisk has checksum errors/missing data.  [R]etry, [I]gnore, [A]bort?                                      ");
 					input = toupper(getchar());
 				} while ((input != 'R') && (input != 'I') && (input != 'A'));
-
+#else
+				input = 'I';
+#endif
 				switch (input)
 				{
 					case 'R': return WriteResponse::wrRetry;
@@ -120,9 +138,34 @@ void disk2ADF(wchar_t* argv[])
 					case 'A': return WriteResponse::wrAbort;
 				}
 		}
+#ifdef __LINUX__
+		fprintf(stdout, "\rReading Track %d, %s side (retry: %d) - Got %d/11 sectors (%d bad found)   ",
+			currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower",
+			retryCounter, sectorsFound, badSectorsFound);
+		fflush(stdout);
+		if (trackFile)
+		{
+			fseek(trackFile, 0, SEEK_SET);
+			fprintf(trackFile, "%d", currentTrack);
+			fflush(trackFile);
+		}
+		if (sideFile)
+		{
+			fseek(sideFile, 0, SEEK_SET);
+			fprintf(sideFile, "%s", (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
+			fflush(sideFile);
+		}
+		if (badFile)
+		{
+			fseek(badFile, 0, SEEK_SET);
+			fprintf(badFile, "%d", badSectorsFound);
+			fflush(badFile);
+		}
+#else
 		printf("\rReading Track %i, %s side (retry: %i) - Got %i/11 sectors (%i bad found)   ",
 			currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower",
 			retryCounter, sectorsFound, badSectorsFound);
+#endif
 		return WriteResponse::wrContinue;
 		}
 	);
@@ -145,7 +188,7 @@ void disk2ADF(wchar_t* argv[])
 			printf("\rADF file created with partial success.                                             ");
 			break;
 		case adfrDriveError:
-			printf("\rError communicating with the Arduino interface.                                    ");
+			printf("\rError communicating with the AVR interface.                                    ");
 			printf("\n%s                                                  ", writer.getLastError().c_str());
 			break;
 	}
@@ -160,13 +203,13 @@ void runDiagnostics(int comPort)
 	{
 		if (isError)
 			printf("DIAGNOSTICS FAILED: %s\n",message.c_str());
-		else 
+		else
 			printf("%s\n", message.c_str());
 	}, [](bool isQuestion, const std::string question)->bool
 	{
-		if (isQuestion) 
+		if (isQuestion)
 			printf("%s [Y/N]: ", question.c_str());
-		else 
+		else
 			printf("%s [Enter/ESC]: ", question.c_str());
 
 		char c;
@@ -240,6 +283,9 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
+#ifdef __LINUX__
+			prepareUIFiles();
+#endif
 			if (writeMode)
 				adf2Disk((wchar_t **)argv, verify);
 			else
@@ -252,4 +298,3 @@ int main(int argc, char* argv[])
 	getchar();
     return 0;
 }
-
