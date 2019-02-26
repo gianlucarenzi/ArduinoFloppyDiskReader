@@ -1,6 +1,7 @@
 # Makefile
 PREFIX = /usr/local
 CROSS_COMPILE ?=
+NONINTERACTIVE ?=
 
 # Platform specific Makefile tweaks based on uname detection
 
@@ -54,7 +55,11 @@ obj = $(src:.cpp=.o)
 dep = $(obj:.o=.d)
 bin = avrfloppyreader
 
-CXXFLAGS = -Wall -g -pg -O0 -Ilib -IArduinoFloppyReader $(LINUXDEF) $(WINDOWSDEF) $(DARWINDEF)
+CXXFLAGS = -Wall -g -pg -O3 -Ilib -IArduinoFloppyReader $(LINUXDEF) $(WINDOWSDEF) $(DARWINDEF)
+
+CXXFLAGS += \
+	$(NONINTERACTIVE) \
+
 
 $(bin): $(obj)
 	$(CXX) -o $@ $(obj) $(LDFLAGS)
