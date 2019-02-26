@@ -174,7 +174,7 @@ DiagnosticResponse ArduinoInterface::testCTS(const unsigned int portNumber)
 
 	for (int a = 1; a <= 10; a++)
 	{
-		// Port opened.  We need to check what hapens as the pin is toggled
+		// Port opened.  We need to check what happens as the pin is toggled
 		m_lastError = runCommand(COMMAND_DIAGNOSTICS, (a&1)?'1':'2');
 		if (m_lastError != drOK)
 		{
@@ -829,7 +829,6 @@ DiagnosticResponse ArduinoInterface::writeCurrentTrack(const unsigned char* data
 		m_lastError = DiagnosticResponse::drReadResponseFailed;
 		return m_lastError;
 	}
-
 	// 'N' means NO Writing, aka write protected
 	if (chr == 'N')
 	{
@@ -881,8 +880,6 @@ DiagnosticResponse ArduinoInterface::writeCurrentTrack(const unsigned char* data
 		return m_lastError;
 	}
 
-	//printf("%s Response: '%c'\n", __FUNCTION__, response);
-
 	if (response != '!')
 	{
 		printf("%s Error Response: '%c'\n", __FUNCTION__, response);
@@ -890,6 +887,8 @@ DiagnosticResponse ArduinoInterface::writeCurrentTrack(const unsigned char* data
 		m_lastError = DiagnosticResponse::drStatusError;
 		return m_lastError;
 	}
+
+	//printf("%s Now Writing %d bytes\n", __FUNCTION__, numBytes);
 
 	if (!deviceWrite((const void*)data, numBytes))
 	{
@@ -912,9 +911,18 @@ DiagnosticResponse ArduinoInterface::writeCurrentTrack(const unsigned char* data
 	// If this is a '1' then the board didn't miss a single bit!
 	if (response != '1')
 	{
-		printf("%s Error Response: '%c'\n", __FUNCTION__, response);
-		m_lastCommand = lcWriteTrack;
-		m_lastError = DiagnosticResponse::drStatusError;
+		if (response == 'X')
+		{
+			printf("%s buffer underflow. PC wasn't sending us data fast enough\n", __FUNCTION__);
+			m_lastCommand = lcWriteTrack;
+			m_lastError = DiagnosticResponse::drTrackWriteResponseError;
+		}
+		else
+		{
+			printf("%s Error Response: '%c'\n", __FUNCTION__, response);
+			m_lastCommand = lcWriteTrack;
+			m_lastError = DiagnosticResponse::drStatusError;
+		}
 		return m_lastError;
 	}
 
@@ -967,17 +975,17 @@ DiagnosticResponse ArduinoInterface::runCommand(const char command, const char p
 // Read a desired number of bytes into the target pointer
 bool ArduinoInterface::deviceRead(void* target, const unsigned int numBytes)
 {
-	DWORD read;
+	DWORD m_read;
 	if (m_comPort == INVALID_HANDLE_VALUE)
 		return false;
 
-	if (!ReadFile(m_comPort, target, numBytes, &read, NULL))
+	if (!ReadFile(m_comPort, target, numBytes, &m_read, NULL))
 		return false;
-	if (read < numBytes)
+	if (m_read < numBytes)
 	{
 		// Clear the unread bytes
-		char* target2 = ((char*)target) + read;
-		memset(target2, 0, numBytes - read);
+		char* target2 = ((char*)target) + m_read;
+		memset(target2, 0, numBytes - m_read);
 	}
 
 	return true;
@@ -989,5 +997,7 @@ bool ArduinoInterface::deviceWrite(const void* source, const unsigned int numByt
 	DWORD written;
 	if (m_comPort == INVALID_HANDLE_VALUE)
 		return false;
-	return (WriteFile(m_comPort, source, numBytes, &written, NULL)) && (written == numBytes);
+	if (!WriteFile(m_comPort, source, numBytes, &written, NULL))
+		return false;
+	return written == numBytes;
 }
