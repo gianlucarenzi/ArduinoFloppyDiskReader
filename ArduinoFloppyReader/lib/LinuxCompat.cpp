@@ -35,7 +35,7 @@ enum {
 	DBG_NOISY,
 };
 
-static int debuglevel = DBG_NOISY;
+static int debuglevel = DBG_ERROR;
 
 #define DBG_E(fmt, args...) \
 	fprintf(stderr, " " ANSI_RED "ERROR  : %s:%d:%s(): " ANSI_RESET fmt, __FILE__, \
@@ -234,11 +234,12 @@ bool ReadFile(HANDLE m_handle, void *buf, DWORD size, uint32_t *dataRead, void *
 	int timer = 0;
 	int rval;
 	int err;
+	DWORD toread = size;
 
 	DBG_N("Bytes to read: %d (timeouts %dmSec) ONE-AT-TIME\n", size, timeouts);
 	do
 	{
-		r = read(m_handle, buffer, 1);
+		r = read(m_handle, buffer, toread);
 		err = errno;
 		if (r <= 0)
 		{
@@ -253,8 +254,9 @@ bool ReadFile(HANDLE m_handle, void *buf, DWORD size, uint32_t *dataRead, void *
 					{
 						break;
 					}
-					usleep(1000); // 1ms timer tick
 				}
+				usleep(1000); // 1ms timer tick.
+				// Do not change this otherwise the timeout setting will not work!
 			}
 			else
 			{
@@ -267,8 +269,8 @@ bool ReadFile(HANDLE m_handle, void *buf, DWORD size, uint32_t *dataRead, void *
 		else
 		{
 			// Ok. 1 byte read, now the next
-			buffer++;
-			bytesRead++;
+			buffer += toread;
+			bytesRead += toread;
 			timer = 0;
 		}
 	} while (bytesRead < size);
@@ -277,6 +279,7 @@ bool ReadFile(HANDLE m_handle, void *buf, DWORD size, uint32_t *dataRead, void *
 
 	DBG_V("To read: %d -- read: %d in %d good timer ticks\n",
 		size, bytesRead, timer);
+
 	if (debuglevel >= DBG_NOISY)
 		dump_buffer((const unsigned char *) buf, bytesRead, ANSI_GREY);
 
@@ -291,33 +294,31 @@ bool WriteFile(HANDLE m_handle, const void *buf, DWORD size, uint32_t *dataWritt
 	unsigned char * buff = (unsigned char *)buf;
 	int err;
 	int timer = 0;
+	DWORD towrite = size;
 
-	DBG_N("To Write: %d (timeouts %d)\n", size, timeouts);
-	// Write 1 byte at time!
+	DBG_I("To Write: %d (timeouts %d)\n", size, timeouts);
+
 	do
 	{
-		r = write(m_handle, buff, 1);
+		DBG_N("WRITE : %d\n", towrite);
+		r = write(m_handle, buff, towrite);
 		err = errno;
 		if (r <= 0)
 		{
 			if (r == 0 || err == EAGAIN || err == EINTR)
 			{
-				if (r == 0)
+				DBG_N("[%04d] No Write. Wait...\n", timer);
+				if (timer > timeouts)
 				{
-					timer++;
-					DBG_N("[%04d] No Write. Wait...\n", timer);
-					if (timer > timeouts)
-					{
-						break;
-					}
-					usleep(1000); // 1ms timer tick
+					break;
 				}
+				usleep(1000); // 1ms timer tick
 			}
 			else
 			{
 				// This is an error, for sure!
 				DBG_E("WRITING %d - %s\n", r, strerror(err));
-				perror("reading serial");
+				perror("writing");
 				bytesWritten = 0;
 				break;
 			}
@@ -325,8 +326,13 @@ bool WriteFile(HANDLE m_handle, const void *buf, DWORD size, uint32_t *dataWritt
 		else
 		{
 			// Ok write next
-			buff++;
-			bytesWritten++;
+			buff += towrite;
+			bytesWritten += towrite;
+			if (bytesWritten < size)
+			{
+				DBG_N("Partially Written: %d of %d\n", bytesWritten, size);
+				towrite = size - bytesWritten;
+			}
 			timer = 0;
 		}
 	} while (bytesWritten < size);
