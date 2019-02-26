@@ -8,3 +8,12 @@
 /ArduinoFloppyReader/ArduinoFloppyReader/Main.o
 /ArduinoFloppyReader/ArduinoFloppyReader/Main.d
 CVS
+/ArduinoFloppyReader/AVRFloppyReaderQt/avrfloppyQt/avrfloppyQt
+/ArduinoFloppyReader/AVRFloppyReaderQt/avrfloppyQt/clicklabel.o
+/ArduinoFloppyReader/AVRFloppyReaderQt/avrfloppyQt/main.o
+/ArduinoFloppyReader/AVRFloppyReaderQt/avrfloppyQt/mainwindow.o
+/ArduinoFloppyReader/AVRFloppyReaderQt/avrfloppyQt/moc_clicklabel.cpp
+/ArduinoFloppyReader/AVRFloppyReaderQt/avrfloppyQt/moc_clicklabel.o
+/ArduinoFloppyReader/AVRFloppyReaderQt/avrfloppyQt/moc_mainwindow.cpp
+/ArduinoFloppyReader/AVRFloppyReaderQt/avrfloppyQt/moc_mainwindow.o
+/ArduinoFloppyReader/AVRFloppyReaderQt/avrfloppyQt/ui_mainwindow.h
