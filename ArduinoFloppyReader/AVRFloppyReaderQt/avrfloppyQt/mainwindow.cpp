@@ -91,7 +91,7 @@ void MainWindow::progressChange(QString s)
             return;
         QByteArray qbaBad = badFile.readLine();
         QString t = qbaBad.data();
-        bad++;
+        bad += t.toInt();
         ui->bad->setText(t);
     }
     // Calculate the progress
