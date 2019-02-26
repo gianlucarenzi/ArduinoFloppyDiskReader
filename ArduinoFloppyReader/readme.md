@@ -8,7 +8,7 @@ E-Mail:
 It is a Qt Gui to the AVR Floppy Disk Reader. It's not a writer (for now ;-)
 
 # Screenshots
-[![Waffle Qt Start](ArduinoFloppyDiskReader/ArduinoFloppyReader/AVRFloppyReaderQt/images/waffle-qt-start.png "Waffle Qt Start")](#features)
+[![Waffle Qt Start](AVRFloppyReaderQt/images/waffle-qt-start.png "Waffle Qt Start")](#features)
 [![Waffle Qt While Copying](ArduinoFloppyReader/AVRFloppyReaderQt/images/waffle-qt-while-copying.png "Waffle Qt While Copying")](#features)
 [![Waffle Qt Some Errors](ArduinoFloppyReader/AVRFloppyReaderQt/images/waffle-qt-some-errors.png "Waffle Qt Some Errors")](#features)
 [![Waffle Qt Perfect Reading](ArduinoFloppyReader/AVRFloppyReaderQt/images/waffle-qt-perfect-reading.png "Waffle Qt Perfect Reading")](#features)
