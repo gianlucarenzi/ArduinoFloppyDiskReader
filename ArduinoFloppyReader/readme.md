@@ -13,10 +13,10 @@ Thanks to John Tsiombikas <nuclear@member.fsf.org> for AVR porting instead of Ar
 Thanks to Qt Library to be (almost) cross platform. ;-)
 
 # Screenshots
-# Waffle Qt start[![](AVRFloppyReaderQt/images/waffle-qt-start.png "Waffle Qt Start")](#features)
-# Waffle Qt while copying[![](AVRFloppyReaderQt/images/waffle-qt-while-copying.png "Waffle Qt While Copying")](#features)
-# Waffle Qt some errors[![](AVRFloppyReaderQt/images/waffle-qt-some-errors.png "Waffle Qt Some Errors")](#features)
-# Waffle Qt perfect reading[![](AVRFloppyReaderQt/images/waffle-qt-perfect-reading.png "Waffle Qt Perfect Reading")](#features)
+Waffle Qt start[![](AVRFloppyReaderQt/images/waffle-qt-start.png "Waffle Qt Start")](#features)
+Waffle Qt while copying[![](AVRFloppyReaderQt/images/waffle-qt-while-copying.png "Waffle Qt While Copying")](#features)
+Waffle Qt some errors[![](AVRFloppyReaderQt/images/waffle-qt-some-errors.png "Waffle Qt Some Errors")](#features)
+Waffle Qt perfect reading[![](AVRFloppyReaderQt/images/waffle-qt-perfect-reading.png "Waffle Qt Perfect Reading")](#features)
 
 # Whats changed?
 V1.0 Initial release
