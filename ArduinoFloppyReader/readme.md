@@ -7,11 +7,16 @@ E-Mail:
 # What is it?
 It is a Qt Gui to the AVR Floppy Disk Reader. It's not a writer (for now ;-)
 
+# Credits
+Thanks to Robert Smith <rob@robsmithdev.co.uk> for his initial support and some images of the Windows version
+Thanks to John Tsiombikas <nuclear@member.fsf.org> for AVR porting instead of Arduino
+Thanks to Qt Library to be (almost) cross platform. ;-)
+
 # Screenshots
-[![Waffle Qt Start](AVRFloppyReaderQt/images/waffle-qt-start.png "Waffle Qt Start")](#features)
-[![Waffle Qt While Copying](AVRFloppyReaderQt/images/waffle-qt-while-copying.png "Waffle Qt While Copying")](#features)
-[![Waffle Qt Some Errors](AVRFloppyReaderQt/images/waffle-qt-some-errors.png "Waffle Qt Some Errors")](#features)
-[![Waffle Qt Perfect Reading](AVRFloppyReaderQt/images/waffle-qt-perfect-reading.png "Waffle Qt Perfect Reading")](#features)
+# Waffle Qt start[![](AVRFloppyReaderQt/images/waffle-qt-start.png "Waffle Qt Start")](#features)
+# Waffle Qt while copying[![](AVRFloppyReaderQt/images/waffle-qt-while-copying.png "Waffle Qt While Copying")](#features)
+# Waffle Qt some errors[![](AVRFloppyReaderQt/images/waffle-qt-some-errors.png "Waffle Qt Some Errors")](#features)
+# Waffle Qt perfect reading[![](AVRFloppyReaderQt/images/waffle-qt-perfect-reading.png "Waffle Qt Perfect Reading")](#features)
 
 # Whats changed?
 V1.0 Initial release
