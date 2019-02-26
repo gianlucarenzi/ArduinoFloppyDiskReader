@@ -1012,19 +1012,19 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 	bool writtenOK = false;
 	for (int a = 1; a <= 10; a++)
 	{
-		printf("%s %d Attempt to write track\n", __FUNCTION__, a);
+		//printf("%s %d Attempt to write track\n", __FUNCTION__, a);
 		r = m_device.writeCurrentTrack(
 			(const unsigned char*)(&disktrack), sizeof(disktrack), false);
-		printf("%s DiagnosticResponse WRITE CURRENT TRACK: %d\n", __FUNCTION__, r);
+		//printf("%s DiagnosticResponse WRITE CURRENT TRACK: %d\n", __FUNCTION__, r);
 		if (r != DiagnosticResponse::drOK)
 		{
 			messageOutput(true, m_device.getLastErrorStr());
 			return false;
 		}
 
-		printf("%s %d Attempt to read track back\n", __FUNCTION__, a);
+		//printf("%s %d Attempt to read track back\n", __FUNCTION__, a);
 		r = m_device.readCurrentTrack(data, false);
-		printf("%s DiagnosticResponse READ CURRENT TRACK: %d\n", __FUNCTION__, r);
+		//printf("%s DiagnosticResponse READ CURRENT TRACK: %d\n", __FUNCTION__, r);
 		if (r != DiagnosticResponse::drOK)
 		{
 			messageOutput(true, m_device.getLastErrorStr());
@@ -1077,7 +1077,7 @@ bool ADFWriter::runDiagnostics(const unsigned int comPort,
 		}
 	}
 
-	printf("%s writtenOK: %d\n", __FUNCTION__, writtenOK);
+	//printf("%s writtenOK: %d\n", __FUNCTION__, writtenOK);
 
 	// Final results
 	if (!writtenOK)
