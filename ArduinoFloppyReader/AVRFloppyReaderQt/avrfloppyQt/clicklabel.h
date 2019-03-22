@@ -5,6 +5,10 @@
 #include <QWidget>
 #include <Qt>
 
+#ifndef Q_NULLPTR
+#define Q_NULLPTR	0
+#endif
+
 class ClickLabel : public QLabel {
     Q_OBJECT
 
