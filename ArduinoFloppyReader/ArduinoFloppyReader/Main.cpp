@@ -102,11 +102,14 @@ void adf2Disk(wchar_t* argv[], bool verify)
 			printf("\rError opening ADF file.                                                            ");
 			break;
 		case adfrDriveError:
-			printf("\rError communicating with the AVR interface.                                    ");
+			printf("\rError communicating with the AVR interface.                                        ");
 			printf("\n%s                                                  ", writer.getLastError().c_str());
 			break;
 		case adfrDiskWriteProtected:
 			printf("\rError, disk is write protected!                                                    ");
+			break;
+		case adfrFileIOError:
+			printf("\radfrFileIOError:not handled in switch!                                             ");
 			break;
 	}
 }
@@ -188,8 +191,11 @@ void disk2ADF(wchar_t* argv[])
 			printf("\rADF file created with partial success.                                             ");
 			break;
 		case adfrDriveError:
-			printf("\rError communicating with the AVR interface.                                    ");
+			printf("\rError communicating with the AVR interface.                                        ");
 			printf("\n%s                                                  ", writer.getLastError().c_str());
+			break;
+		case adfrDiskWriteProtected:
+			printf("\radfrDiskWriteProtected: not handled in switch.                                     ");
 			break;
 	}
 }
