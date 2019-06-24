@@ -1268,6 +1268,9 @@ ADFResult ADFWriter::ADFToDisk(const std::wstring inputFile, bool eraseFirst,
 
 							case wrContinue:
 								break;
+
+							case wrRetry:
+								break;
 						}
 
 						if (breakOut)
@@ -1352,7 +1355,6 @@ ADFResult ADFWriter::DiskToADF(const std::wstring outputFile, const unsigned int
 			// Extract phase code
 			int failureTotal = 0;
 			bool ignoreChecksums = false;
-			unsigned int totalFails = 0;
 
 			// Repeat until we have all 11 sectors
 			while (track.validSectors.size() < NUM_SECTORS_PER_TRACK)
@@ -1422,7 +1424,6 @@ ADFResult ADFWriter::DiskToADF(const std::wstring outputFile, const unsigned int
 				// If the user wants to skip invalid sectors and save them
 				if (ignoreChecksums)
 				{
-					int total = 0;
 					for (unsigned int sector = 0; sector < NUM_SECTORS_PER_TRACK; sector++)
 					{
 						if (track.invalidSectors[sector].size())
