@@ -232,9 +232,14 @@ bool ReadFile(HANDLE m_handle, void *buf, DWORD size, uint32_t *dataRead, void *
 	unsigned char * buffer = (unsigned char *)buf;
 	DWORD bytesRead = 0;
 	int timer = 0;
-	int rval;
+	int rval = 0;
 	int err;
 	DWORD toread = size;
+
+	// Avoid gcc warning
+	tv_zero = tv_zero;
+	rd = rd;
+	rval = rval;
 
 	DBG_N("Bytes to read: %d (timeouts %dmSec) ONE-AT-TIME\n", size, timeouts);
 	do
