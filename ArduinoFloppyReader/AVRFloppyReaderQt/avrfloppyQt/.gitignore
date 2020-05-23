@@ -1,2 +1,4 @@
 avrfloppyQt.pro.user
 Makefile
+/.qmake.stash
+/moc_predefs.h
