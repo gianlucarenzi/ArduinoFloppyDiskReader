@@ -1,7 +1,7 @@
 /* ArduinoFloppyReader (and writer)
 *
-* Copyright (C) 2017-2018 Robert Smith (@RobSmithDev)
-* http://amiga.robsmithdev.co.uk
+* Copyright (C) 2017-2020 Robert Smith (@RobSmithDev)
+* https://amiga.robsmithdev.co.uk
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU Library General Public
@@ -20,7 +20,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
 // Example console application for reading and writing floppy disks to and from ADF files //
 ////////////////////////////////////////////////////////////////////////////////////////////
-
 
 #include "stdafx.h"
 #include "../lib/ADFWriter.h"
@@ -52,94 +51,59 @@ static void prepareUIFiles(void)
 
 
 // Read an ADF file and write it to disk
-void adf2Disk(wchar_t* argv[], bool verify)
-{
+void adf2Disk(wchar_t* argv[], bool verify) {
 	printf("\nWrite disk from ADF mode\n\n");
-	if (!verify)
-		printf("WARNING: It is STRONGLY recommended to write with "
-			"verify support turned on.\r\n\r\n");
+	if (!verify) printf("WARNING: It is STRONGLY recommended to write with verify support turned on.\r\n\r\n");
 
-	ADFResult result = writer.ADFToDisk(argv[2],true, verify,
-		[](const int currentTrack, const DiskSurface currentSide,
-		bool isVerifyError) ->WriteResponse
-		{
-			if (isVerifyError) {
-				char input;
-				do
-				{
-					printf("\rDisk write verify error on track %i, %s side.\n"
-					"[R]etry, [S]kip, [A]bort?                                   ",
-					currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
-					input = toupper(getchar());
-				} while ((input != 'R') && (input != 'S') && (input != 'A'));
-
-			switch (input)
-			{
-				case 'R': return WriteResponse::wrRetry;
-				case 'I': return WriteResponse::wrSkipBadChecksums;
-				case 'A': return WriteResponse::wrAbort;
+	ADFResult result = writer.ADFToDisk(argv[2],true, verify, [](const int currentTrack, const DiskSurface currentSide, bool isVerifyError) ->WriteResponse {
+		if (isVerifyError) {
+			char input;
+			do {
+				printf("\rDisk write verify error on track %i, %s side. [R]etry, [S]kip, [A]bort?                                   ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
+				input = toupper(getchar());
+			} while ((input != 'R') && (input != 'S') && (input != 'A'));
+			
+			switch (input) {
+			case 'R': return WriteResponse::wrRetry;
+			case 'I': return WriteResponse::wrSkipBadChecksums;
+			case 'A': return WriteResponse::wrAbort;
 			}
 		}
-		printf("\rWriting Track %i, %s side     ",
-			currentTrack,
-			(currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
+		printf("\rWriting Track %i, %s side     ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
 		return WriteResponse::wrContinue;
-		}
-	);
+	});
 
-	switch (result)
-	{
-		case adfrComplete:
-			printf("\rADF file written to disk                                                           ");
-			break;
-		case adfrCompletedWithErrors:
-			printf("\rADF file written to disk but there were errors during verification                 ");
-			break;
-		case adfrAborted:
-			printf("\rWriting ADF file to disk                                                           ");
-			break;
-		case adfrFileError:
-			printf("\rError opening ADF file.                                                            ");
-			break;
-		case adfrDriveError:
-			printf("\rError communicating with the AVR interface.                                        ");
-			printf("\n%s                                                  ", writer.getLastError().c_str());
-			break;
-		case adfrDiskWriteProtected:
-			printf("\rError, disk is write protected!                                                    ");
-			break;
-		case adfrFileIOError:
-			printf("\radfrFileIOError:not handled in switch!                                             ");
-			break;
+	switch (result) {
+	case ADFResult::adfrComplete:					printf("\rADF file written to disk                                                           "); break;
+	case ADFResult::adfrCompletedWithErrors:		printf("\rADF file written to disk but there were errors during verification                 "); break;
+	case ADFResult::adfrAborted:					printf("\rWriting ADF file to disk                                                           "); break;
+	case ADFResult::adfrFileError:					printf("\rError opening ADF file.                                                            "); break;
+	case ADFResult::adfrDriveError:					printf("\rError communicating with the AVR interface.                                    "); 
+													printf("\n%s                                                  ", writer.getLastError().c_str()); break;
+	case ADFResult::adfrDiskWriteProtected:			printf("\rError, disk is write protected!                                                    "); break;
 	}
 }
 
 // Read a disk and save it to ADF files
-void disk2ADF(wchar_t* argv[])
-{
+void disk2ADF(wchar_t* argv[]) {
 	printf("\nCreate ADF from disk mode\n\n");
 
-	ADFResult result = writer.DiskToADF(argv[2], 80, [](const int currentTrack,
-		const DiskSurface currentSide, const int retryCounter,
-		const int sectorsFound, const int badSectorsFound) ->WriteResponse
-		{
-			if (retryCounter > 20) {
-				char input;
+	ADFResult result = writer.DiskToADF(argv[2], 80, [](const int currentTrack, const DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound) ->WriteResponse {
+		if (retryCounter > 20) {
+			char input;
 #ifndef USEGUI
-				do
-				{
-					printf("\rDisk has checksum errors/missing data.  [R]etry, [I]gnore, [A]bort?                                      ");
-					input = toupper(getchar());
-				} while ((input != 'R') && (input != 'I') && (input != 'A'));
+			do {
+				printf("\rDisk has checksum errors/missing data.  [R]etry, [I]gnore, [A]bort?                                      ");
+				input = toupper(getchar());
+			} while ((input != 'R') && (input != 'I') && (input != 'A'));
 #else
-				input = 'I';
+		input = 'I';
 #endif
-				switch (input)
-				{
-					case 'R': return WriteResponse::wrRetry;
-					case 'I': return WriteResponse::wrSkipBadChecksums;
-					case 'A': return WriteResponse::wrAbort;
-				}
+			switch (input) {
+			case 'R': return WriteResponse::wrRetry;
+			case 'I': return WriteResponse::wrSkipBadChecksums;
+			case 'A': return WriteResponse::wrAbort;
+			}
 		}
 #ifdef __LINUX__
 		fprintf(stdout, "\rReading Track %d, %s side (retry: %d) - Got %d/11 sectors (%d bad found)   ",
@@ -170,52 +134,32 @@ void disk2ADF(wchar_t* argv[])
 			retryCounter, sectorsFound, badSectorsFound);
 #endif
 		return WriteResponse::wrContinue;
-		}
-	);
+	});
 
-	switch (result)
-	{
-		case adfrComplete:
-			printf("\rADF file created with valid checksums.                                             ");
-			break;
-		case adfrAborted:
-			printf("\rADF file aborted.                                                                  ");
-			break;
-		case adfrFileError:
-			printf("\rError creating ADF file.                                                           ");
-			break;
-		case adfrFileIOError:
-			printf("\rError writing to ADF file.                                                         ");
-			break;
-		case adfrCompletedWithErrors:
-			printf("\rADF file created with partial success.                                             ");
-			break;
-		case adfrDriveError:
-			printf("\rError communicating with the AVR interface.                                        ");
-			printf("\n%s                                                  ", writer.getLastError().c_str());
-			break;
-		case adfrDiskWriteProtected:
-			printf("\radfrDiskWriteProtected: not handled in switch.                                     ");
-			break;
+	switch (result) {
+	case ADFResult::adfrComplete:					printf("\rADF file created with valid checksums.                                             "); break;
+	case ADFResult::adfrAborted:					printf("\rADF file aborted.                                                                  "); break;
+	case ADFResult::adfrFileError:					printf("\rError creating ADF file.                                                           "); break;
+	case ADFResult::adfrFileIOError:				printf("\rError writing to ADF file.                                                         "); break;
+	case ADFResult::adfrCompletedWithErrors:		printf("\rADF file created with partial success.                                             "); break;
+	case ADFResult::adfrDriveError:					printf("\rError communicating with the AVR interface.                                    ");
+													printf("\n%s                                                  ", writer.getLastError().c_str()); break;
 	}
 }
 
 // Run the diagnostics module
-void runDiagnostics(int comPort)
-{
+void runDiagnostics(int comPort) {
 	printf("\rRunning diagnostics on COM port: %i\n",comPort);
 
-	writer.runDiagnostics(comPort, [](bool isError, const std::string message)->void
-	{
+	writer.runDiagnostics(comPort, [](bool isError, const std::string message)->void {
 		if (isError)
 			printf("DIAGNOSTICS FAILED: %s\n",message.c_str());
-		else
+		else 
 			printf("%s\n", message.c_str());
-	}, [](bool isQuestion, const std::string question)->bool
-	{
-		if (isQuestion)
+	}, [](bool isQuestion, const std::string question)->bool {
+		if (isQuestion) 
 			printf("%s [Y/N]: ", question.c_str());
-		else
+		else 
 			printf("%s [Enter/ESC]: ", question.c_str());
 
 		char c;
@@ -237,7 +181,7 @@ int wmain(int argc, wchar_t* argv[], wchar_t *envp[])
 int main(int argc, char* argv[])
 #endif
 {
-	printf("AVR Amiga ADF Floppy disk Reader/Writer, Copyright 2018-2019 Gianluca Renzi <icjtqr@gmail.com>\r\n");
+	printf("AVR Amiga ADF Floppy disk Reader/Writer, Copyright 2018-2021 Gianluca Renzi <icjtqr@gmail.com>\r\n");
 	printf("Based on Arduino Amiga Floppy disk Reader/Writer Copyright (C) 2017-2018 Robert Smith\r\n");
 	printf("This is free software licenced under the GNU General Public Licence V3\r\n");
 
@@ -281,26 +225,21 @@ int main(int argc, char* argv[])
 #endif
 		runDiagnostics(_wtoi(argv[2]));
 	}
-	else
-	{
-		if (!writer.openDevice(_wtoi(argv[1])))
-		{
+	else {
+		if (!writer.openDevice(_wtoi(argv[1]))) {
 			printf("\rError opening serial port: %s  ", writer.getLastError().c_str());
 		}
-		else
-		{
+		else {
 #ifdef __LINUX__
 			prepareUIFiles();
 #endif
-			if (writeMode)
-				adf2Disk((wchar_t **)argv, verify);
-			else
-				disk2ADF((wchar_t **)argv);
+			if (writeMode) adf2Disk((wchar_t **)argv, verify); else disk2ADF((wchar_t **)argv);
 
 			writer.closeDevice();
 		}
 	}
-
+	
 	getchar();
     return 0;
 }
+

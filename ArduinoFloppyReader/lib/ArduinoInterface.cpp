@@ -1,7 +1,7 @@
 /* ArduinoFloppyReader (and writer)
 *
-* Copyright (C) 2017-2018 Robert Smith (@RobSmithDev)
-* http://amiga.robsmithdev.co.uk
+* Copyright (C) 2017-2020 Robert Smith (@RobSmithDev)
+* https://amiga.robsmithdev.co.uk
 *
 * This library is free software; you can redistribute it and/or
 * modify it under the terms of the GNU Library General Public
@@ -46,77 +46,76 @@ using namespace ArduinoFloppyReader;
 #define COMMAND_ENABLEWRITE        '~'
 #define COMMAND_ERASETRACK         'X'
 #define COMMAND_DIAGNOSTICS        '&'
-
+#define COMMAND_SWITCHTO_DD		   'D'
+#define COMMAND_SWITCHTO_HD		   'H'
+#define COMMAND_DETECT_DISK_TYPE   'M'	// currently not implemented here
 
 // Convert the last executed command that had an error to a string
-std::string lastCommandToName(LastCommand cmd)
-{
-	switch (cmd)
-	{
-		case lcOpenPort:		return "OpenPort";
-		case lcGetVersion:		return "GetVersion";
-		case lcEnableWrite:		return "EnableWrite";
-		case lcRewind:			return "Rewind";
-		case lcDisableMotor:	return "DisableMotor";
-		case lcEnableMotor:		return "EnableMotor";
-		case lcGotoTrack:		return "GotoTrack";
-		case lcSelectSurface:	return "SelectSurface";
-		case lcReadTrack:		return "ReadTrack";
-		case lcWriteTrack:		return "WriteTrack";
-		case lcRunDiagnostics:	return "RunDiagnostics";
-		case lcEraseTrack:		return "EraseTrack";
-		default:				return "Unknown";
+std::string lastCommandToName(LastCommand cmd) {
+	switch (cmd) {
+	case LastCommand::lcOpenPort:		return "OpenPort";
+	case LastCommand::lcGetVersion:		return "GetVersion";
+	case LastCommand::lcEnableWrite:	return "EnableWrite";
+	case LastCommand::lcRewind:			return "Rewind";
+	case LastCommand::lcDisableMotor:	return "DisableMotor";
+	case LastCommand::lcEnableMotor:	return "EnableMotor";
+	case LastCommand::lcGotoTrack:		return "GotoTrack";
+	case LastCommand::lcSelectSurface:	return "SelectSurface";
+	case LastCommand::lcReadTrack:		return "ReadTrack";
+	case LastCommand::lcWriteTrack:		return "WriteTrack";
+	case LastCommand::lcRunDiagnostics:	return "RunDiagnostics";
+	case LastCommand::lcEraseTrack:		return "EraseTrack";
+	case LastCommand::lcSwitchDiskMode: return "SetCapacity";
+	default:							return "Unknown";
 	}
 }
 
 // Uses the above fields to constructr a suitable error message, hopefully useful in diagnosing the issue
-const std::string ArduinoInterface::getLastErrorStr() const
-{
+const std::string ArduinoInterface::getLastErrorStr() const {
 	std::stringstream tmp;
-	switch (m_lastError)
-	{
-		case drOldFirmware: return "The board is running an older version of the firmware/sketch.  Please re-upload.";
-		case drOK: return "Last command completed successfully.";
-		case drPortInUse: return "The specified serial port is currently in use by another application.";
-		case drPortNotFound: return "The specified serial port was not found.";
-		case drAccessDenied: return "The operating system denied access to the specified serial port.";
-		case drComportConfigError: return "We were unable to configure the serial port using the SetCommConfig() command.";
-		case drBaudRateNotSupported: return "The serial port does not support the 2M baud rate required by this application.";
-		case drErrorReadingVersion: return "An error occured attempting to read the version of the sketch running on the board.";
-		case drErrorMalformedVersion: return "The board returned an unexpected string when version was requested.  This could be a baud rate mismatch or incorrect loaded sketch.";
-		case drCTSFailure: return "Diagnostics report the CTS line is not connected correctly or is not behaving correctly.";
-		case drTrackRangeError: return "An error occured attempting to go to a track number that was out of allowed range.";
-		case drWriteProtected: return "Unable to write to the disk.  The disk is write protected.";
-		case drPortError: return "An unknown error occured attempting to open access to the specified serial port.";
-		case drComportTimeoutsError: return "An error occured attempting to set the timeouts on the specified serial port.";
-		case drDiagnosticNotAvailable: return "CTS diagnostic not available, command GetCommModemStatus failed to execute.";
-		case drSelectTrackError: return "Board reported an error seeking to a specific track.";
-		case drTrackWriteResponseError: return "Error receiving status from board after a track write operation.";
-		case drSendDataFailed: return "Error sending track data to be written to disk.  This could be a serial timeout.";
-		case drRewindFailure: return "Board was unable to find track 0.  This could be a wiring fault or power supply failure.";
-		case drError: tmp << "Board responded with an error running the " << lastCommandToName(m_lastCommand) << " command."; return tmp.str();
-
-		case drReadResponseFailed:
-			switch (m_lastCommand)
-			{
-				case lcGotoTrack: return "Unable to read response from board after requesting to go to a specific track";
-				case lcReadTrack: return "Gave up trying to read a full track from the disk.";
-				case lcWriteTrack: return "Unable to read response to requesting to write a track.";
-				default: tmp << "Error reading response from the board while running command " << lastCommandToName(m_lastCommand) << ".";
+	switch (m_lastError) {
+	case DiagnosticResponse::drOldFirmware: return "The board is running an older version of the firmware/sketch.  Please re-upload.";
+	case DiagnosticResponse::drOK: return "Last command completed successfully.";
+	case DiagnosticResponse::drPortInUse: return "The specified serial port is currently in use by another application.";
+	case DiagnosticResponse::drPortNotFound: return "The specified serial port was not found.";
+	case DiagnosticResponse::drAccessDenied: return "The operating system denied access to the specified serial port.";
+	case DiagnosticResponse::drComportConfigError: return "We were unable to configure the serial port using the SetCommConfig() command.";
+	case DiagnosticResponse::drBaudRateNotSupported: return "The serial port does not support the 2M baud rate required by this application.";
+	case DiagnosticResponse::drErrorReadingVersion: return "An error occured attempting to read the version of the sketch running on the board.";
+	case DiagnosticResponse::drErrorMalformedVersion: return "The board returned an unexpected string when version was requested.  This could be a baud rate mismatch or incorrect loaded sketch.";
+	case DiagnosticResponse::drCTSFailure: return "Diagnostics report the CTS line is not connected correctly or is not behaving correctly.";
+	case DiagnosticResponse::drTrackRangeError: return "An error occured attempting to go to a track number that was out of allowed range.";
+	case DiagnosticResponse::drWriteProtected: return "Unable to write to the disk.  The disk is write protected.";
+	case DiagnosticResponse::drPortError: return "An unknown error occured attempting to open access to the specified serial port.";
+	case DiagnosticResponse::drComportTimeoutsError: return "An error occured attempting to set the timeouts on the specified serial port.";
+	case DiagnosticResponse::drDiagnosticNotAvailable: return "CTS diagnostic not available, command GetCommModemStatus failed to execute.";
+	case DiagnosticResponse::drSelectTrackError: return "Board reported an error seeking to a specific track.";
+	case DiagnosticResponse::drTrackWriteResponseError: return "Error receiving status from board after a track write operation.";
+	case DiagnosticResponse::drSendDataFailed: return "Error sending track data to be written to disk.  This could be a serial timeout.";
+	case DiagnosticResponse::drRewindFailure: return "Board was unable to find track 0.  This could be a wiring fault or power supply failure.";
+	case DiagnosticResponse::drError:	tmp << "Board responded with an error running the " << lastCommandToName(m_lastCommand) << " command.";
 					return tmp.str();
-			}
 
-		case drSendFailed:
-			if (m_lastCommand == lcGotoTrack)
-				return "Unable to send the complete select track command to the board.";
-			else {
-				tmp << "Error sending the command " << lastCommandToName(m_lastCommand) << " to the board.";
-				return tmp.str();
-			}
+	case DiagnosticResponse::drReadResponseFailed:
+		switch (m_lastCommand) {
+		case LastCommand::lcGotoTrack: return "Unable to read response from board after requesting to go to a specific track";
+		case LastCommand::lcReadTrack: return "Gave up trying to read a full track from the disk.";
+		case LastCommand::lcWriteTrack: return "Unable to read response to requesting to write a track.";
+		default: tmp << "Error reading response from the board while running command " << lastCommandToName(m_lastCommand) << ".";
+				 return tmp.str();
+		}
 
-		case drSendParameterFailed:	tmp << "Unable to send a parameter while executing the " << lastCommandToName(m_lastCommand) << " command.";
+	case DiagnosticResponse::drSendFailed:
+		if (m_lastCommand == LastCommand::lcGotoTrack)
+			return "Unable to send the complete select track command to the board.";
+		else {
+			tmp << "Error sending the command " << lastCommandToName(m_lastCommand) << " to the board.";
 			return tmp.str();
-		case drStatusError: tmp << "An unknown response was received from the board while executing the " << lastCommandToName(m_lastCommand) << " command.";
+		}
+
+		case DiagnosticResponse::drSendParameterFailed:	tmp << "Unable to send a parameter while executing the " << lastCommandToName(m_lastCommand) << " command.";
+			return tmp.str();
+		case DiagnosticResponse::drStatusError: tmp << "An unknown response was received from the board while executing the " << lastCommandToName(m_lastCommand) << " command.";
 			return tmp.str();
 
 		default: return "Unknown error.";
@@ -126,59 +125,52 @@ const std::string ArduinoInterface::getLastErrorStr() const
 
 
 // Constructor for this class
-ArduinoInterface::ArduinoInterface()
-{
+ArduinoInterface::ArduinoInterface() {
 	m_comPort = INVALID_HANDLE_VALUE;
 	m_version = { 0,0 };
+	m_lastError = DiagnosticResponse::drOK;
+	m_lastCommand = LastCommand::lcGetVersion;
+	m_inWriteMode = false;
 }
 
 // Free me
-ArduinoInterface::~ArduinoInterface()
-{
+ArduinoInterface::~ArduinoInterface() {
 	closePort();
 }
 
 
 // Check CTS status by asking the device to set it and then checking what happened
-DiagnosticResponse ArduinoInterface::testIndexPulse()
-{
-	// Port opned.  We need to check what hapens as the pin is toggled
+DiagnosticResponse ArduinoInterface::testIndexPulse() {
+	// Port opned.  We need to check what happens as the pin is toggled
 	m_lastError = runCommand(COMMAND_DIAGNOSTICS, '3');
-	if (m_lastError != drOK)
-	{
-		m_lastCommand = lcRunDiagnostics;
+	if (m_lastError != DiagnosticResponse::drOK) {
+		m_lastCommand = LastCommand::lcRunDiagnostics;
 		return m_lastError;
 	}
 	return m_lastError;
 }
 
 // Check CTS status by asking the device to set it and then checking what happened
-DiagnosticResponse ArduinoInterface::testDataPulse()
-{
-	// Port opened.  We need to check what happens as the pin is toggled
+DiagnosticResponse ArduinoInterface::testDataPulse() {
+	// Port opned.  We need to check what happens as the pin is toggled
 	m_lastError = runCommand(COMMAND_DIAGNOSTICS, '4');
-	if (m_lastError != drOK)
-	{
-		m_lastCommand = lcRunDiagnostics;
+	if (m_lastError != DiagnosticResponse::drOK) {
+		m_lastCommand = LastCommand::lcRunDiagnostics;
 		return m_lastError;
 	}
 	return m_lastError;
 }
 
 // Check CTS status by asking the device to set it and then checking what happened
-DiagnosticResponse ArduinoInterface::testCTS(const unsigned int portNumber)
-{
+DiagnosticResponse ArduinoInterface::testCTS(const unsigned int portNumber) {
 	m_lastError = openPort(portNumber, false);
-	if (m_lastError != DiagnosticResponse::drOK)
-		return m_lastError;
+	if (m_lastError != DiagnosticResponse::drOK) return m_lastError;
 
-	for (int a = 1; a <= 10; a++)
-	{
-		// Port opened.  We need to check what happens as the pin is toggled
+	for (int a = 1; a <= 10; a++) {
+		// Port opned.  We need to check what happens as the pin is toggled
 		m_lastError = runCommand(COMMAND_DIAGNOSTICS, (a&1)?'1':'2');
-		if (m_lastError != drOK)
-		{
-			m_lastCommand = lcRunDiagnostics;
+		if (m_lastError != DiagnosticResponse::drOK) {
+			m_lastCommand = LastCommand::lcRunDiagnostics;
 			closePort();
 			return m_lastError;
 		}
@@ -186,8 +178,7 @@ DiagnosticResponse ArduinoInterface::testCTS(const unsigned int portNumber)
 		// Check the state of it
 		DWORD mask;
 
-		if (!GetCommModemStatus(m_comPort, &mask))
-		{
+		if (!GetCommModemStatus(m_comPort, &mask)) {
 			closePort();
 			m_lastError = DiagnosticResponse::drDiagnosticNotAvailable;
 			return m_lastError;
@@ -196,8 +187,7 @@ DiagnosticResponse ArduinoInterface::testCTS(const unsigned int portNumber)
 		// This doesnt actually run a command, this switches the CTS line back to its default setting
 		m_lastError = runCommand(COMMAND_DIAGNOSTICS);
 
-		if (((mask&MS_CTS_ON)!=0)^((a&1)!=0))
-		{
+		if (((mask&MS_CTS_ON)!=0)^((a&1)!=0)) {
 			// If we get here then the CTS value isn't what it should be
 			closePort();
 			m_lastError = DiagnosticResponse::drCTSFailure;
@@ -225,9 +215,8 @@ DiagnosticResponse ArduinoInterface::testCTS(const unsigned int portNumber)
 #endif
 
 // Attempts to open the reader running on the serial port number provided.  Port MUST support 2M baud
-DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, bool enableCTSflowcontrol)
-{
-	m_lastCommand = lcOpenPort;
+DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, bool enableCTSflowcontrol) {
+	m_lastCommand = LastCommand::lcOpenPort;
 	closePort();
 
 	// Communicate with the serial port
@@ -236,18 +225,16 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 	m_comPort = CreateFileA((const wchar_t *) buffer, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, 0);
 
 	// No com port? Error!
-	if (m_comPort == INVALID_HANDLE_VALUE)
-	{
+	if (m_comPort == INVALID_HANDLE_VALUE) {
 #ifdef __MINGW32__
 		int i= GetLastError();
-		switch (i)
-		{
-			case ERROR_FILE_NOT_FOUND:  m_lastError = DiagnosticResponse::drPortNotFound;
-				return m_lastError;
-			case ERROR_ACCESS_DENIED:   m_lastError = DiagnosticResponse::drPortInUse;
-				return m_lastError;
-			default: m_lastError = DiagnosticResponse::drPortError;
-				return m_lastError;
+		switch (i) {
+		case ERROR_FILE_NOT_FOUND:  m_lastError = DiagnosticResponse::drPortNotFound;
+			return m_lastError;		
+		case ERROR_ACCESS_DENIED:   m_lastError = DiagnosticResponse::drPortInUse;
+									return m_lastError;
+		default: m_lastError = DiagnosticResponse::drPortError;
+				 return m_lastError;
 		}
 #else
 		int i = errno;
@@ -285,25 +272,22 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 	config.dcb.fRtsControl = RTS_CONTROL_DISABLE;
 	config.dcb.fAbortOnError = false;
 	config.dcb.StopBits = 0;  // 1 stop bit
-	config.dcb.fOutX = 0;
+	config.dcb.fOutX = 0;  
 	config.dcb.fInX = 0;
 	config.dcb.fErrorChar = 0;
 	config.dcb.fAbortOnError = 0;
 	config.dcb.fInX = 0;
-
+				  
 	// Try to put the serial port in the mode we require
-	if (!SetCommConfig(m_comPort, &config, sizeof(config)))
-	{
+	if (!SetCommConfig(m_comPort, &config, sizeof(config))) {
 		// If it failed something went wrong.  We'll change the baud rate to see if its that
 		config.dcb.BaudRate = 9600;
-		if (!SetCommConfig(m_comPort, &config, sizeof(config)))
-		{
+		if (!SetCommConfig(m_comPort, &config, sizeof(config))) {
 			closePort();
 			m_lastError = DiagnosticResponse::drComportConfigError;
 			return m_lastError;
 		}
-		else
-		{
+		else {
 			closePort();
 			m_lastError = DiagnosticResponse::drBaudRateNotSupported;
 			return m_lastError;
@@ -379,8 +363,7 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 	timeouts.ReadTotalTimeoutMultiplier = 200;
 	timeouts.WriteTotalTimeoutConstant = 2000;
 	timeouts.WriteTotalTimeoutMultiplier = 200;
-	if (!SetCommTimeouts(m_comPort, &timeouts))
-	{
+	if (!SetCommTimeouts(m_comPort, &timeouts)) {
 		closePort();
 		m_lastError = DiagnosticResponse::drComportTimeoutsError;
 		return m_lastError;
@@ -392,27 +375,22 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 
 	// Request version from the board device running our software
 	m_lastError = runCommand(COMMAND_VERSION);
-	if (m_lastError != DiagnosticResponse::drOK)
-	{
-		m_lastCommand = lcGetVersion;
+	if (m_lastError != DiagnosticResponse::drOK) {
+		m_lastCommand = LastCommand::lcGetVersion;
 		closePort();
 		return m_lastError;
 	}
 
 	// Version is always 4 bytes, we're gonna read them in one by one, and if any are wrong we exit with an error
 	char versionBuffer[4];
-	bool versionRead = deviceRead(versionBuffer,4);
-
-	if (!versionRead)
-	{
+	if (!deviceRead(versionBuffer, 4)) {
 		closePort();
 		m_lastError = DiagnosticResponse::drErrorReadingVersion;
 		return m_lastError;
 	}
 
 	// Now check the response
-	if ((versionBuffer[0] != 'V') || (versionBuffer[2] != '.'))
-	{
+	if ((versionBuffer[0] != 'V') || (versionBuffer[2] != '.')) {
 		closePort();
 		m_lastError = DiagnosticResponse::drErrorMalformedVersion;
 		return m_lastError;
@@ -422,9 +400,8 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 	m_version.major = versionBuffer[1] - '0';
 	m_version.minor = versionBuffer[3] - '0';
 
-	if ((m_version.major == 1) && (m_version.minor < 2))
-	{
-		// Old Firmware
+	if ((m_version.major == 1) && (m_version.minor < 2)) {
+		// Ok, success
 		m_lastError = DiagnosticResponse::drOldFirmware;
 		return m_lastError;
 	}
@@ -435,10 +412,8 @@ DiagnosticResponse ArduinoInterface::openPort(const unsigned int portNumber, boo
 }
 
 // Closes the port down
-void ArduinoInterface::closePort()
-{
-	if (m_comPort != INVALID_HANDLE_VALUE)
-	{
+void ArduinoInterface::closePort() {
+	if (m_comPort != INVALID_HANDLE_VALUE) {
 		// Force the drive to power down
 		enableReading(false);
 		// And close the handle
@@ -449,23 +424,18 @@ void ArduinoInterface::closePort()
 }
 
 // Returns true if the track actually contains some data, else its considered blank or unformatted
-bool ArduinoInterface::trackContainsData(const RawTrackData& trackData) const
-{
+bool ArduinoInterface::trackContainsData(const RawTrackData& trackData) const {
 	int zerocount=0, ffcount = 0;
 	unsigned char lastByte = trackData[0];
-	for (unsigned int counter = 1; counter < RAW_TRACKDATA_LENGTH; counter++)
-	{
-		if (trackData[counter]==lastByte)
-		{
-			switch (lastByte)
-			{
-				case 0xFF: ffcount++; zerocount = 0; break;
-				case 0x00: ffcount=0; zerocount++; break;
-				default: zerocount = 0; ffcount = 0;
+	for (unsigned int counter = 1; counter < RAW_TRACKDATA_LENGTH; counter++) {
+		if (trackData[counter]==lastByte) {
+			switch (lastByte) {
+			case 0xFF: ffcount++; zerocount = 0; break;
+			case 0x00: ffcount=0; zerocount++; break;
+			default: zerocount = 0; ffcount = 0;
 			}
 		}
-		else
-		{
+		else {
 			lastByte = trackData[counter];
 			zerocount = 0; ffcount = 0;
 		}
@@ -476,34 +446,26 @@ bool ArduinoInterface::trackContainsData(const RawTrackData& trackData) const
 }
 
 // Turns on and off the writing interface.  If irError is returned the disk is write protected
-DiagnosticResponse ArduinoInterface::enableWriting(const bool enable, const bool reset)
-{
-	if (enable)
-	{
+DiagnosticResponse ArduinoInterface::enableWriting(const bool enable, const bool reset) {
+	if (enable) {
 		// Enable the device
 		m_lastError = runCommand(COMMAND_ENABLEWRITE);
-
-		if (m_lastError == DiagnosticResponse::drError)
-		{
-			m_lastCommand = lcEnableWrite;
+		if (m_lastError == DiagnosticResponse::drError) {
+			m_lastCommand = LastCommand::lcEnableWrite;
 			m_lastError = DiagnosticResponse::drWriteProtected;
 			return m_lastError;
 		}
-
-		if (m_lastError != DiagnosticResponse::drOK)
-		{
-			m_lastCommand = lcEnableWrite;
+		if (m_lastError != DiagnosticResponse::drOK) {
+			m_lastCommand = LastCommand::lcEnableWrite;
 			return m_lastError;
 		}
 		m_inWriteMode = true;
 
 		// Reset?
-		if (reset)
-		{
+		if (reset) {
 			// And rewind to the first track
 			m_lastError = findTrack0();
-			if (m_lastError != DiagnosticResponse::drOK)
-				return m_lastError;
+			if (m_lastError != DiagnosticResponse::drOK) return m_lastError;
 
 			// Lets know where we are
 			return selectSurface(DiskSurface::dsUpper);
@@ -511,56 +473,46 @@ DiagnosticResponse ArduinoInterface::enableWriting(const bool enable, const bool
 		m_lastError = DiagnosticResponse::drOK;
 		return m_lastError;
 	}
-	else
-	{
+	else {
 		// Disable the device
 		m_lastError = runCommand(COMMAND_DISABLE);
-		if (m_lastError != DiagnosticResponse::drOK)
-		{
-			m_lastCommand = lcDisableMotor;
+		if (m_lastError != DiagnosticResponse::drOK) {
+			m_lastCommand = LastCommand::lcDisableMotor;
 			return m_lastError;
 		}
 		m_inWriteMode = false;
-
+		
 		return m_lastError;
 	}
 }
 
-DiagnosticResponse ArduinoInterface::findTrack0()
-{
+DiagnosticResponse ArduinoInterface::findTrack0() {
 	// And rewind to the first track
 	char status = '0';
 	m_lastError = runCommand(COMMAND_REWIND, '\000', &status);
-	if (m_lastError != DiagnosticResponse::drOK)
-	{
-		m_lastCommand = lcRewind;
-		if (status == '#')
-			return drRewindFailure;
+	if (m_lastError != DiagnosticResponse::drOK) {
+		m_lastCommand = LastCommand::lcRewind;
+		if (status == '#') return DiagnosticResponse::drRewindFailure;
 		return m_lastError;
 	}
 	return m_lastError;
 }
 
 // Turns on and off the reading interface
-DiagnosticResponse ArduinoInterface::enableReading(const bool enable, const bool reset)
-{
+DiagnosticResponse ArduinoInterface::enableReading(const bool enable, const bool reset) {
 	m_inWriteMode = false;
-	if (enable)
-	{
+	if (enable) {
 		// Enable the device
 		m_lastError = runCommand(COMMAND_ENABLE);
-		if (m_lastError != DiagnosticResponse::drOK)
-		{
-			m_lastCommand = lcEnableMotor;
+		if (m_lastError != DiagnosticResponse::drOK) {
+			m_lastCommand = LastCommand::lcEnableMotor;
 			return m_lastError;
 		}
 
 		// Reset?
-		if (reset)
-		{
+		if (reset) {
 			m_lastError = findTrack0();
-			if (m_lastError != DiagnosticResponse::drOK)
-				return m_lastError;
+			if (m_lastError != DiagnosticResponse::drOK) return m_lastError;
 
 			// Lets know where we are
 			return selectSurface(DiskSurface::dsUpper);
@@ -569,13 +521,11 @@ DiagnosticResponse ArduinoInterface::enableReading(const bool enable, const bool
 		return m_lastError;
 
 	}
-	else
-	{
+	else {
 		// Disable the device
 		m_lastError = runCommand(COMMAND_DISABLE);
-		if (m_lastError != DiagnosticResponse::drOK)
-		{
-			m_lastCommand = lcDisableMotor;
+		if (m_lastError != DiagnosticResponse::drOK) {
+			m_lastCommand = LastCommand::lcDisableMotor;
 			return m_lastError;
 		}
 
@@ -583,11 +533,21 @@ DiagnosticResponse ArduinoInterface::enableReading(const bool enable, const bool
 	}
 }
 
+// Check and switch to HD disk
+DiagnosticResponse ArduinoInterface::setDiskCapacity(bool switchToHD_Disk) {
+	// Disable the device
+	m_lastError = runCommand(switchToHD_Disk ? COMMAND_SWITCHTO_HD : COMMAND_SWITCHTO_DD);
+	if (m_lastError != DiagnosticResponse::drOK) {
+		m_lastCommand = LastCommand::lcSwitchDiskMode;
+		return m_lastError;
+	}
+
+	return m_lastError;
+}
+
 // Select the track, this makes the motor seek to this position
-DiagnosticResponse ArduinoInterface::selectTrack(const unsigned char trackIndex)
-{
-	if (trackIndex > 81)
-	{
+DiagnosticResponse ArduinoInterface::selectTrack(const unsigned char trackIndex) {
+	if (trackIndex > 81) {
 		m_lastError = DiagnosticResponse::drTrackRangeError;
 		return m_lastError; // no chance, it can't be done.
 	}
@@ -600,9 +560,8 @@ DiagnosticResponse ArduinoInterface::selectTrack(const unsigned char trackIndex)
 	sprintf(buf, "%c%02d", COMMAND_GOTOTRACK, trackIndex);
 #endif
 	// Send track number
-	if (!deviceWrite(buf, 3))
-	{
-		m_lastCommand = lcGotoTrack;
+	if (!deviceWrite(buf, 3)) {
+		m_lastCommand = LastCommand::lcGotoTrack;
 		m_lastError = DiagnosticResponse::drSendFailed;
 		return m_lastError;
 	}
@@ -610,21 +569,19 @@ DiagnosticResponse ArduinoInterface::selectTrack(const unsigned char trackIndex)
 	// Get result
 	char result;
 
-	if (!deviceRead(&result, 1))
-	{
-		m_lastCommand = lcGotoTrack;
+	if (!deviceRead(&result, 1)) {
+		m_lastCommand = LastCommand::lcGotoTrack;
 		m_lastError = DiagnosticResponse::drReadResponseFailed;
 		return m_lastError;
 	}
-
-	switch (result)
-	{
+	
+	switch (result) {
 		case '1':   m_lastError = DiagnosticResponse::drOK;
 					break;
-		case '0':   m_lastCommand = lcGotoTrack;
+		case '0':   m_lastCommand = LastCommand::lcGotoTrack; 
 					m_lastError = DiagnosticResponse::drSelectTrackError;
 					break;
-		default:	m_lastCommand = lcGotoTrack;
+		default:	m_lastCommand = LastCommand::lcGotoTrack;
 					m_lastError = DiagnosticResponse::drStatusError;
 					break;
 	}
@@ -632,126 +589,103 @@ DiagnosticResponse ArduinoInterface::selectTrack(const unsigned char trackIndex)
 }
 
 // Choose which surface of the disk to read from
-DiagnosticResponse ArduinoInterface::selectSurface(const DiskSurface side)
-{
+DiagnosticResponse ArduinoInterface::selectSurface(const DiskSurface side) {
 	m_lastError = runCommand((side == DiskSurface::dsUpper) ? COMMAND_HEAD0 : COMMAND_HEAD1);
-	if (m_lastError != DiagnosticResponse::drOK)
-	{
-		m_lastCommand = lcSelectSurface;
+	if (m_lastError != DiagnosticResponse::drOK) {
+		m_lastCommand = LastCommand::lcSelectSurface;
 		return m_lastError;
 	}
 	return m_lastError;
 }
 
 
-void writeBit(RawTrackData& output, int& pos, int& bit, int value)
-{
-	if (pos >= RAW_TRACKDATA_LENGTH)
-		return;
+void writeBit(RawTrackData& output, int& pos, int& bit, int value) {
+	if (pos >= RAW_TRACKDATA_LENGTH) return;
 
 	output[pos] <<= 1;
 	output[pos] |= value;
 	bit++;
-	if (bit >= 8)
-	{
+	if (bit >= 8) {
 		pos++;
 		bit = 0;
 	}
 }
 
-void unpack(const RawTrackData& data, RawTrackData& output)
-{
+void unpack(const RawTrackData& data, RawTrackData& output) {
 	int pos = 0;
-	unsigned int index = 0;
+	int index = 0;
 	int p2 = 0;
 	memset(output, 0, sizeof(output));
-	while (pos < RAW_TRACKDATA_LENGTH)
-	{
+	while (pos < RAW_TRACKDATA_LENGTH) {
 		// Each byte contains four pairs of bits that identify an MFM sequence to be encoded
 
-		for (int b = 6; b >= 0; b -= 2)
-		{
+		for (int b = 6; b >= 0; b -= 2) {
 			unsigned char value = (data[index] >> b) & 3;
-			switch (value)
-			{
-				case 0: // This is an '1'
-					// This can't happen, its an END OF DATA marker
-					return;
-					break;
-				case 1: // This is an '01'
-					writeBit(output, pos, p2, 0);
-					writeBit(output, pos, p2, 1);
-					break;
-				case 2: // This is an '001'
-					writeBit(output, pos, p2, 0);
-					writeBit(output, pos, p2, 0);
-					writeBit(output, pos, p2, 1);
-					break;
-				case 3: // this is an '0001'
-					writeBit(output, pos, p2, 0);
-					writeBit(output, pos, p2, 0);
-					writeBit(output, pos, p2, 0);
-					writeBit(output, pos, p2, 1);
-					break;
+			switch (value) {
+			case 0: // This is an '1'
+				// This can't happen, its an END OF DATA marker
+				return;				
+				break;
+			case 1: // This is an '01'
+				writeBit(output, pos, p2, 0);
+				writeBit(output, pos, p2, 1);
+				break;
+			case 2: // This is an '001'
+				writeBit(output, pos, p2, 0);
+				writeBit(output, pos, p2, 0);
+				writeBit(output, pos, p2, 1);
+				break;
+			case 3: // this is an '0001'
+				writeBit(output, pos, p2, 0);
+				writeBit(output, pos, p2, 0);
+				writeBit(output, pos, p2, 0);
+				writeBit(output, pos, p2, 1);
+				break;
 			}
 		}
 		index++;
-		if (index >= sizeof(data))
-			return;
+		if (index >= sizeof(data)) return;
 	}
 	// There will be left-over data
 }
 
-// Read RAW data from the current track and surface
-DiagnosticResponse ArduinoInterface::readCurrentTrack(RawTrackData& trackData, const bool readFromIndexPulse)
-{
+// Read RAW data from the current track and surface 
+DiagnosticResponse ArduinoInterface::readCurrentTrack(RawTrackData& trackData, const bool readFromIndexPulse) {
 	m_lastError = runCommand(COMMAND_READTRACK);
-
+	
 	RawTrackData tmp;
-	//printf("%s m_lastError: %d\n", __FUNCTION__, m_lastError);
+
 	// Allow command retry
-	if (m_lastError != DiagnosticResponse::drOK)
-	{
+	if (m_lastError != DiagnosticResponse::drOK) {
 		// Clear the buffer
-		//printf("%s Read 13k TRACK\n", __FUNCTION__);
 		deviceRead(&tmp, RAW_TRACKDATA_LENGTH);
 		m_lastError = runCommand(COMMAND_READTRACK);
-		if (m_lastError != DiagnosticResponse::drOK)
-		{
-			m_lastCommand = lcReadTrack;
+		if (m_lastError != DiagnosticResponse::drOK) {
+			m_lastCommand = LastCommand::lcReadTrack;
 			return m_lastError;
 		}
 	}
 
 	unsigned char signalPulse = readFromIndexPulse ? 1 : 0;
-	if (!deviceWrite(&signalPulse, 1))
-	{
-		m_lastCommand = lcReadTrack;
+	if (!deviceWrite(&signalPulse, 1)) {
+		m_lastCommand = LastCommand::lcReadTrack;
 		m_lastError = DiagnosticResponse::drSendParameterFailed;
 		return m_lastError;
 	}
 
-	// Keep reading until he hit RAW_TRACKDATA_LENGTH or a null byte is received
+	// Keep reading until he hit RAW_TRACKDATA_LENGTH or a null byte is recieved
 	int bytePos = 0;
 	int readFail = 0;
-	for (;;)
-	{
+	for (;;) {
 		unsigned char value;
-		if (deviceRead(&value, 1))
-		{
-			// Using the two bit mask scheme 01 10 and 11 are valid data
-			// so we are using 00 as END-OF-DATA marker.
-			if (value == 0)
-				break;
-			else if (bytePos < RAW_TRACKDATA_LENGTH)
-				tmp[bytePos++] = value;
+		if (deviceRead(&value, 1)) {
+			if (value == 0) break; else
+				if (bytePos < RAW_TRACKDATA_LENGTH) tmp[bytePos++] = value;
 		}
-		else
-		{
+		else {
 			readFail++;
-			if (readFail > 4)
-			{
-				m_lastCommand = lcReadTrack;
+			if (readFail > 4) {
+				m_lastCommand = LastCommand::lcReadTrack;
 				m_lastError = DiagnosticResponse::drReadResponseFailed;
 				return m_lastError;
 			}
@@ -762,49 +696,42 @@ DiagnosticResponse ArduinoInterface::readCurrentTrack(RawTrackData& trackData, c
 	return m_lastError;
 }
 
-// Asks the board to wipe the current track
-DiagnosticResponse ArduinoInterface::eraseCurrentTrack()
-{
+// Asks the Arduino to wipe the current track
+DiagnosticResponse ArduinoInterface::eraseCurrentTrack() {
 	m_lastError = runCommand(COMMAND_ERASETRACK);
-	if (m_lastError != DiagnosticResponse::drOK)
-	{
-		m_lastCommand = lcEraseTrack;
+	if (m_lastError != DiagnosticResponse::drOK) {
+		m_lastCommand = LastCommand::lcEraseTrack;
 		return m_lastError;
 	}
 
 	unsigned char chr;
-	if (!deviceRead(&chr, 1))
-	{
-		m_lastCommand = lcEraseTrack;
+	if (!deviceRead(&chr, 1)) {
+		m_lastCommand = LastCommand::lcEraseTrack;
 		m_lastError = DiagnosticResponse::drReadResponseFailed;
 		return m_lastError;
 	}
 
 	// 'N' means NO Writing, aka write protected
-	if (chr == 'N')
-	{
-		m_lastCommand = lcEraseTrack;
+	if (chr == 'N') {
+		m_lastCommand = LastCommand::lcEraseTrack;
 		m_lastError = DiagnosticResponse::drWriteProtected;
 		return m_lastError;
 	}
-	if (chr != 'Y')
-	{
-		m_lastCommand = lcEraseTrack;
+	if (chr != 'Y') {
+		m_lastCommand = LastCommand::lcEraseTrack;
 		m_lastError = DiagnosticResponse::drStatusError;
 		return m_lastError;
 	}
 
 	unsigned char response;
-	if (!deviceRead(&response, 1))
-	{
-		m_lastCommand = lcEraseTrack;
+	if (!deviceRead(&response, 1)) {
+		m_lastCommand = LastCommand::lcEraseTrack;
 		m_lastError = DiagnosticResponse::drReadResponseFailed;
 		return m_lastError;
 	}
-	// If this is a '1' then the board erased the track
-	if (response != '1')
-	{
-		m_lastCommand = lcEraseTrack;
+	// If this is a '1' then the Arduino erased the track
+	if (response != '1') {
+		m_lastCommand = LastCommand::lcEraseTrack;
 		m_lastError = DiagnosticResponse::drStatusError;
 		return m_lastError;
 	}
@@ -814,115 +741,82 @@ DiagnosticResponse ArduinoInterface::eraseCurrentTrack()
 }
 
 // Writes RAW data onto the current track
-DiagnosticResponse ArduinoInterface::writeCurrentTrack(const unsigned char* data, const unsigned short numBytes, const bool writeFromIndexPulse)
-{
+DiagnosticResponse ArduinoInterface::writeCurrentTrack(const unsigned char* data, const unsigned short numBytes, const bool writeFromIndexPulse) {
 	m_lastError = runCommand(COMMAND_WRITETRACK);
-	if (m_lastError != DiagnosticResponse::drOK)
-	{
-		m_lastCommand = lcWriteTrack;
+	if (m_lastError != DiagnosticResponse::drOK) {
+		m_lastCommand = LastCommand::lcWriteTrack;
 		return m_lastError;
 	}
 	unsigned char chr;
-	if (!deviceRead(&chr, 1))
-	{
-		m_lastCommand = lcWriteTrack;
+	if (!deviceRead(&chr, 1)) {
+		m_lastCommand = LastCommand::lcWriteTrack;
 		m_lastError = DiagnosticResponse::drReadResponseFailed;
 		return m_lastError;
 	}
+
 	// 'N' means NO Writing, aka write protected
-	if (chr == 'N')
-	{
-		m_lastCommand = lcWriteTrack;
+	if (chr == 'N') {
+		m_lastCommand = LastCommand::lcWriteTrack;
 		m_lastError = DiagnosticResponse::drWriteProtected;
 		return m_lastError;
 	}
-	if (chr != 'Y')
-	{
-		m_lastCommand = lcWriteTrack;
+	if (chr != 'Y') {
+		m_lastCommand = LastCommand::lcWriteTrack;
 		m_lastError = DiagnosticResponse::drStatusError;
 		return m_lastError;
 	}
 
 	// Now we send the number of bytes we're planning on transmitting
 	unsigned char b = (numBytes >> 8);
-	if (!deviceWrite(&b, 1))
-	{
-		printf("%s Error on write (1)\n", __FUNCTION__);
-		m_lastCommand = lcWriteTrack;
+	if (!deviceWrite(&b, 1)) {
+		m_lastCommand = LastCommand::lcWriteTrack; 
 		m_lastError = DiagnosticResponse::drSendParameterFailed;
 		return m_lastError;
 	}
 	b = numBytes & 0xFF;
-	if (!deviceWrite(&b, 1))
-	{
-		printf("%s Error on write (2)\n", __FUNCTION__);
-		m_lastCommand = lcWriteTrack;
+	if (!deviceWrite(&b, 1)) {
+		m_lastCommand = LastCommand::lcWriteTrack; 
 		m_lastError = DiagnosticResponse::drSendParameterFailed;
 		return m_lastError;
 	}
 
 	// Explain if we want index pulse sync writing (slower and not required by normal AmigaDOS disks)
 	b = writeFromIndexPulse ? 1 : 0;
-	if (!deviceWrite(&b, 1))
-	{
-		printf("%s Error on write (3)\n", __FUNCTION__);
-		m_lastCommand = lcWriteTrack;
+	if (!deviceWrite(&b, 1)) {
+		m_lastCommand = LastCommand::lcWriteTrack;
 		m_lastError = DiagnosticResponse::drSendParameterFailed;
 		return m_lastError;
 	}
 
 	unsigned char response;
-	if (!deviceRead(&response, 1))
-	{
-		printf("%s Error on read (1)\n", __FUNCTION__);
-		m_lastCommand = lcWriteTrack;
+	if (!deviceRead(&response, 1)) {
+		m_lastCommand = LastCommand::lcWriteTrack;
 		m_lastError = DiagnosticResponse::drReadResponseFailed;
 		return m_lastError;
 	}
-
-	if (response != '!')
-	{
-		printf("%s Error Response: '%c'\n", __FUNCTION__, response);
-		m_lastCommand = lcWriteTrack;
+	
+	if (response != '!') {
+		m_lastCommand = LastCommand::lcWriteTrack;
 		m_lastError = DiagnosticResponse::drStatusError;
 		return m_lastError;
 	}
 
-	//printf("%s Now Writing %d bytes\n", __FUNCTION__, numBytes);
-
-	if (!deviceWrite((const void*)data, numBytes))
-	{
-		printf("%s Error on write %d\n", __FUNCTION__, numBytes);
-		m_lastCommand = lcWriteTrack;
+	if (!deviceWrite((const void*)data, numBytes)) {
+		m_lastCommand = LastCommand::lcWriteTrack;
 		m_lastError = DiagnosticResponse::drSendDataFailed;
 		return m_lastError;
 	}
 
-	if (!deviceRead(&response, 1))
-	{
-		printf("%s Error on read (2)\n", __FUNCTION__);
-		m_lastCommand = lcWriteTrack;
+	if (!deviceRead(&response, 1)) {
+		m_lastCommand = LastCommand::lcWriteTrack;
 		m_lastError = DiagnosticResponse::drTrackWriteResponseError;
 		return m_lastError;
 	}
 
-	//printf("%s Response: '%c'\n", __FUNCTION__, response);
-
 	// If this is a '1' then the board didn't miss a single bit!
-	if (response != '1')
-	{
-		if (response == 'X')
-		{
-			printf("%s buffer underflow. PC wasn't sending us data fast enough\n", __FUNCTION__);
-			m_lastCommand = lcWriteTrack;
-			m_lastError = DiagnosticResponse::drTrackWriteResponseError;
-		}
-		else
-		{
-			printf("%s Error Response: '%c'\n", __FUNCTION__, response);
-			m_lastCommand = lcWriteTrack;
-			m_lastError = DiagnosticResponse::drStatusError;
-		}
+	if (response != '1') {
+		m_lastCommand = LastCommand::lcWriteTrack;
+		m_lastError = DiagnosticResponse::drStatusError;
 		return m_lastError;
 	}
 
@@ -931,73 +825,60 @@ DiagnosticResponse ArduinoInterface::writeCurrentTrack(const unsigned char* data
 }
 
 // Run a command that returns 1 or 0 for its response
-DiagnosticResponse ArduinoInterface::runCommand(const char command, const char parameter, char* actualResponse)
-{
+DiagnosticResponse ArduinoInterface::runCommand(const char command, const char parameter, char* actualResponse) {
 	unsigned char response;
 
 	// Send the command
-	if (!deviceWrite(&command, 1))
-	{
+	if (!deviceWrite(&command, 1)) {
 		m_lastError = DiagnosticResponse::drSendFailed;
 		return m_lastError;
 	}
 
 	// Only send the parameter if its not NULL
-	if (parameter!='\0')
-	{
-		if (!deviceWrite(&parameter, 1))
-		{
+	if (parameter!='\0') 
+		if (!deviceWrite(&parameter, 1)) {
 			m_lastError = DiagnosticResponse::drSendParameterFailed;
 			return m_lastError;
 		}
-	}
 
 	// And read the response
-	if (!deviceRead(&response, 1))
-	{
+	if (!deviceRead(&response, 1)) {
 		m_lastError = DiagnosticResponse::drReadResponseFailed;
 		return m_lastError;
 	}
 
-	if (actualResponse)
-		*actualResponse = response;
+	if (actualResponse) *actualResponse = response;
 
 	// Evaluate the response
-	switch (response)
-	{
-		case '1': m_lastError = DiagnosticResponse::drOK; break;
-		case '0': m_lastError = DiagnosticResponse::drError; break;
-		default:  m_lastError = DiagnosticResponse::drStatusError; break;
+	switch (response) {
+		case '1': m_lastError = DiagnosticResponse::drOK;
+			      break;
+		case '0': m_lastError = DiagnosticResponse::drError;
+				  break;
+		default:  m_lastError = DiagnosticResponse::drStatusError;
+			      break;
 	}
 	return m_lastError;
 }
 
 // Read a desired number of bytes into the target pointer
-bool ArduinoInterface::deviceRead(void* target, const unsigned int numBytes)
-{
-	DWORD m_read;
-	if (m_comPort == INVALID_HANDLE_VALUE)
-		return false;
+bool ArduinoInterface::deviceRead(void* target, const unsigned int numBytes) {
+	DWORD read;
+	if (m_comPort == INVALID_HANDLE_VALUE) return false;
 
-	if (!ReadFile(m_comPort, target, numBytes, &m_read, NULL))
-		return false;
-	if (m_read < numBytes)
-	{
+	if (!ReadFile(m_comPort, target, numBytes, &read, NULL)) return false;
+	if (read < numBytes) {
 		// Clear the unread bytes
-		char* target2 = ((char*)target) + m_read;
-		memset(target2, 0, numBytes - m_read);
+		char* target2 = ((char*)target) + read;
+		memset(target2, 0, numBytes - read);
 	}
-
+	
 	return true;
 }
 
 // Writes a desired number of bytes from the the pointer
-bool ArduinoInterface::deviceWrite(const void* source, const unsigned int numBytes)
-{
+bool ArduinoInterface::deviceWrite(const void* source, const unsigned int numBytes) {
 	DWORD written;
-	if (m_comPort == INVALID_HANDLE_VALUE)
-		return false;
-	if (!WriteFile(m_comPort, source, numBytes, &written, NULL))
-		return false;
-	return written == numBytes;
+	if (m_comPort == INVALID_HANDLE_VALUE) return false;
+	return (WriteFile(m_comPort, source, numBytes, &written, NULL)) && (written == numBytes);
 }

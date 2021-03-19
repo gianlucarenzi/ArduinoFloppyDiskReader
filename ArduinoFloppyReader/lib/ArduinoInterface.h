@@ -65,13 +65,13 @@ namespace ArduinoFloppyReader {
 
 
 	// Represent which side of the disk we're looking at
-	enum DiskSurface {
+	enum class DiskSurface {
 							dsUpper,            // The upper side of the disk
 							dsLower             // The lower side of the disk
 						};
 
 	// Diagnostic responses from the interface
-	enum DiagnosticResponse {
+	enum class DiagnosticResponse {
 								drOK,
 
 								// Responses from openPort
@@ -105,7 +105,7 @@ namespace ArduinoFloppyReader {
 								drRewindFailure,
 							};
 
-	enum LastCommand {
+	enum class LastCommand {
 		lcOpenPort,
 		lcGetVersion,
 		lcEnableWrite,
@@ -117,7 +117,8 @@ namespace ArduinoFloppyReader {
 		lcReadTrack,
 		lcWriteTrack,
 		lcEraseTrack,
-		lcRunDiagnostics
+		lcRunDiagnostics,
+		lcSwitchDiskMode
 	};
 
 	class ArduinoInterface {
@@ -174,13 +175,16 @@ namespace ArduinoFloppyReader {
 		// Check CTS status by asking the device to set it and then checking what happened
 		DiagnosticResponse testDataPulse();
 
+		// Check and switch to HD disk
+		DiagnosticResponse setDiskCapacity(bool switchToHD_Disk);
+
 		// Select the track, this makes the motor seek to this position
 		DiagnosticResponse  selectTrack(const unsigned char trackIndex);
 
 		// Choose which surface of the disk to read from
 		DiagnosticResponse  selectSurface(const DiskSurface side);
 
-		// Read RAW data from the current track and surface selected
+		// Read RAW data from the current track and surface selected 
 		DiagnosticResponse  readCurrentTrack(RawTrackData& trackData, const bool readFromIndexPulse);
 
 		// Attempts to write a sector back to the disk.  This must be pre-formatted and MFM encoded correctly
@@ -189,7 +193,7 @@ namespace ArduinoFloppyReader {
 		// Asks the board to wipe the current track, filling it with the 0xAA pattern
 		DiagnosticResponse eraseCurrentTrack();
 
-		// Check CTS status
+		// Check CTS status 
 		DiagnosticResponse testCTS(const unsigned int portNumber);
 
 		// Returns true if the track actually contains some data, else its considered blank or unformatted

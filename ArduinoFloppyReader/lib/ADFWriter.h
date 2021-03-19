@@ -1,6 +1,6 @@
 /* ArduinoFloppyReader (and writer)
 *
-* Copyright (C) 2017-2018 Robert Smith (@RobSmithDev)
+* Copyright (C) 2017-2020 Robert Smith (@RobSmithDev)
 * http://amiga.robsmithdev.co.uk
 *
 * This library is free software; you can redistribute it and/or
@@ -44,14 +44,14 @@
 namespace ArduinoFloppyReader {
 
 	// Optional how to respond to the callback from the writeADF command.
-	enum WriteResponse {
+	enum class WriteResponse {
 								wrContinue,				// Continue working as normal
 								wrAbort,				// Abort thr process and stop
 								wrSkipBadChecksums,		// Request that the process ignores bad checksums (not recommended unless the retryCounter gets beyond RETRYS_PER_PHASE*16)
 								wrRetry                 // Retry!
 							};
 
-	enum ADFResult {
+	enum class ADFResult {
 						adfrComplete,					// Process completed successfully
 						adfrAborted,					// Process was aborted
 						adfrFileError,					// Error opening the file to write to
@@ -61,7 +61,7 @@ namespace ArduinoFloppyReader {
 						adfrDriveError					// Something wrong with reading the disk
 					};
 
-	enum AnalysisResult {
+	enum class AnalysisResult {
 			                 arComplete,				// Anaysis is complete and ready for use
 							 arFailed,                  // Anaysis failed to read a disk
 							 arAborted,                 // Analysis was aborted
@@ -71,7 +71,7 @@ namespace ArduinoFloppyReader {
 	// Main writer class
 	class ADFWriter {
 	private:
-		// The board/Arduino device
+		// The Arduino device
 		ArduinoInterface m_device;
 
 	public: 
@@ -97,5 +97,5 @@ namespace ArduinoFloppyReader {
 
 
 
-}
+};
 #endif
