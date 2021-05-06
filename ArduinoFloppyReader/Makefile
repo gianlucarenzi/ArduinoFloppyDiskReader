@@ -55,6 +55,12 @@ obj = $(src:.cpp=.o)
 dep = $(obj:.o=.d)
 bin = avrfloppyreader
 
+# Add the .exe suffix for Windows Machines
+ifeq ($(uname_S),Windows)
+	bin = avrfloppyreader.exe
+endif
+
+
 CXXFLAGS = -Wall -g -pg -O3 -Ilib -IArduinoFloppyReader $(LINUXDEF) $(WINDOWSDEF) $(DARWINDEF)
 
 CXXFLAGS += \
