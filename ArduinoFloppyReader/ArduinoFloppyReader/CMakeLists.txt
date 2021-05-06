@@ -4,7 +4,7 @@ set (EXEC avrfloppyreader)
 if(MINGW OR MSYS)
 	# Add specific Windows Files
 	set (SOURCES ${SOURCES} stdafx.cpp)
-	set (EXEC avrfloppy.exe)
+	set (EXEC avrfloppyreader.exe)
 endif()
 
 message (STATUS "Source Code for library: ${SOURCES}")
