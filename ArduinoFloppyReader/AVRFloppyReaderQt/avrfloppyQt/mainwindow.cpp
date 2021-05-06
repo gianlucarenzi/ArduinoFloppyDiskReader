@@ -13,9 +13,15 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->readButton, SIGNAL(clicked(bool)), this, SLOT(copyDisk(bool)));
     watcher = new QFileSystemWatcher(this);
     QStringList fileList;
+#if defined(__linux__) || defined(__APPLE__)
     fileList.append("/tmp/track");
     fileList.append("/tmp/side");
     fileList.append("/tmp/bad");
+#else
+    fileList.append("C:\tmptrack");
+    fileList.append("C:\tmpside");
+    fileList.append("C:\tmpbad");
+#endif
     qDebug() << fileList.count();
     watcher->addPaths(fileList);
     connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(progressChange(QString)));
@@ -64,7 +70,11 @@ void MainWindow::progressChange(QString s)
     //qDebug() << s << "changed";
     if (s == "/tmp/track")
     {
+#if defined(__linux__) || defined(__APPLE__)
         QFile trackFile("/tmp/track");
+#else
+        QFile trackFile("C:\tmptrack");
+#endif
         if (!trackFile.open(QIODevice::ReadOnly | QIODevice::Text))
             return;
         QByteArray qbaTrack = trackFile.readLine();
@@ -75,7 +85,11 @@ void MainWindow::progressChange(QString s)
     else
     if (s == "/tmp/side")
     {
+#if defined(__linux__) || defined(__APPLE__)
         QFile sideFile("/tmp/side");
+#else
+        QFile sideFile("C:\tmpside");
+#endif
         if (!sideFile.open(QIODevice::ReadOnly | QIODevice::Text))
             return;
         QByteArray qbaSide = sideFile.readLine();
@@ -86,7 +100,11 @@ void MainWindow::progressChange(QString s)
     else
     if (s == "/tmp/bad")
     {
+#if defined(__linux__) || defined(__APPLE__)
         QFile badFile("/tmp/bad");
+#else
+        QFile badFile("C:\tmpbad");
+#endif
         if (!badFile.open(QIODevice::ReadOnly | QIODevice::Text))
             return;
         QByteArray qbaBad = badFile.readLine();
@@ -142,7 +160,11 @@ void MainWindow::copyDisk(bool p)
 
         if (shouldStart)
         {
+#if defined(__linux__) || defined(__APPLE__)
             QString cmdline = "../../avrfloppyreader ";
+#else            
+            QString cmdline = "../../avrfloppyreader.exe";
+#endif
             cmdline += ui->serialPort->text() + " ";
             cmdline += ui->fileName->text() + " READ";
             //qDebug() << cmdline;
