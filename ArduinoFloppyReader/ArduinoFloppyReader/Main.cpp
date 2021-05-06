@@ -38,16 +38,16 @@ using namespace ArduinoFloppyReader;
 
 ADFWriter writer;
 
-#ifdef __LINUX__
 static void prepareUIFiles(void)
 {
+#if defined(__LINUX__) || defined(__MACOS__)
 	trackFile = fopen("/tmp/track", "w+b");
-
 	sideFile = fopen("/tmp/side", "w+b");
-
 	badFile = fopen("/tmp/bad", "w+b");
-}
+#else
+	#error "How to create files in Windows?"
 #endif
+}
 
 
 // Read an ADF file and write it to disk
@@ -230,9 +230,7 @@ int main(int argc, char* argv[])
 			printf("\rError opening serial port: %s  ", writer.getLastError().c_str());
 		}
 		else {
-#ifdef __LINUX__
 			prepareUIFiles();
-#endif
 			if (writeMode) adf2Disk((wchar_t **)argv, verify); else disk2ADF((wchar_t **)argv);
 
 			writer.closeDevice();
