@@ -36,6 +36,13 @@
 
 #include "RotationExtractor.h"
 #include "SerialIO.h"
+#ifndef _WIN32
+#include <stdint.h>
+#include <inttypes.h>
+#else
+typedef unsigned int uint32_t
+typedef int int32_t
+#endif
 
 // Paula on the Amiga used to find the SYNC then read 1900 WORDS. (12868 bytes)
 // As the PC is doing the SYNC we need to read more than this to allow a further overlap
@@ -109,7 +116,7 @@ namespace ArduinoFloppyReader {
 		drDiagnosticNotAvailable,
 		drUSBSerialBad,
 		drCTSFailure,
-		drRewindFailure,
+		drRewindFailure
 	};
 
 	enum class LastCommand {
@@ -128,6 +135,7 @@ namespace ArduinoFloppyReader {
 		lcReadTrackStream,
 		lcCheckDiskInDrive,
 		lcCheckDiskWriteProtected,
+		lcEraseTrack
 	};
 
 	class ArduinoInterface {
@@ -145,9 +153,9 @@ namespace ArduinoFloppyReader {
 		bool			m_isStreaming;
 
 		// Read a desired number of bytes into the target pointer
-		bool deviceRead(void* target, const unsigned int numBytes, const bool failIfNotAllRead = false);
+		bool deviceRead(void* target, const uint32_t numBytes, const bool failIfNotAllRead = false);
 		// Writes a desired number of bytes from the the pointer
-		bool deviceWrite(const void* source, const unsigned int numBytes);
+		bool deviceWrite(const void* source, const uint32_t numBytes);
 
 		// Version of the above where the command has a parameter on the end (as long as its not char 0)
 		DiagnosticResponse runCommand(const char command, const char parameter = '\0', char* actualResponse = nullptr);
@@ -212,7 +220,7 @@ namespace ArduinoFloppyReader {
 
 		// Reads a complete rotation of the disk, and returns it using the callback function whcih can return FALSE to stop
 		// An instance of RotationExtractor is required.  This is purely to save on re-allocations.  It is internally reset each time
-		DiagnosticResponse readRotation(RotationExtractor& extractor, const unsigned int maxOutputSize, RotationExtractor::MFMSample* firstOutputBuffer, RotationExtractor::IndexSequenceMarker& startBitPatterns, std::function<bool(RotationExtractor::MFMSample** mfmData, const unsigned int dataLengthInBits)> onRotation);
+		DiagnosticResponse readRotation(RotationExtractor& extractor, const uint32_t maxOutputSize, RotationExtractor::MFMSample* firstOutputBuffer, RotationExtractor::IndexSequenceMarker& startBitPatterns, std::function<bool(RotationExtractor::MFMSample** mfmData, const uint32_t dataLengthInBits)> onRotation);
 
 		// Stops the read streamming immediately and any data in the buffer will be discarded. The above function will exit when the Arduino has also stopped streaming data
 		bool abortReadStreaming();
@@ -232,6 +240,9 @@ namespace ArduinoFloppyReader {
 		// Select the track, this makes the motor seek to this position
 		DiagnosticResponse  selectTrack(const unsigned char trackIndex, const TrackSearchSpeed searchSpeed = TrackSearchSpeed::tssNormal, bool ignoreDiskInsertCheck = false);
 
+		// If the drive is on track 0, this does a test seek to -1 if supported
+		DiagnosticResponse performNoClickSeek();
+
 		// Choose which surface of the disk to read from
 		DiagnosticResponse  selectSurface(const DiskSurface side);
 
@@ -242,6 +253,9 @@ namespace ArduinoFloppyReader {
 		DiagnosticResponse  writeCurrentTrack(const unsigned char* data, const unsigned short numBytes, const bool writeFromIndexPulse);
 		// The precomp version of the above. 
 		DiagnosticResponse  writeCurrentTrackPrecomp(const unsigned char* mfmData, const unsigned short numBytes, const bool writeFromIndexPulse, bool usePrecomp);
+
+		// Erases the current track by writing 0xAA to it
+		DiagnosticResponse eraseCurrentTrack();
 
 		// Check CTS status - you must open with CTS disabled for this to work
 		DiagnosticResponse testCTS();

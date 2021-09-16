@@ -39,6 +39,10 @@
 #include "RotationExtractor.h"
 #include "ArduinoInterface.h"
 
+#ifndef _WIN32
+#include <stdint.h>
+#include <inttypes.h>
+#endif
 
 namespace ArduinoFloppyReader {
 
@@ -88,16 +92,16 @@ namespace ArduinoFloppyReader {
 
 		// Reads the disk and write the data to the ADF file supplied.  The callback is for progress, and you can returns FALSE to abort the process
 		// numTracks is the number of tracks to read.  Usually 80 (0..79), sometimes track 80 and 81 are needed
-		ADFResult DiskToADF(const std::wstring& outputFile, const unsigned int numTracks, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound)> callback);
+		ADFResult DiskToADF(const std::wstring& outputFile, const unsigned int numTracks, std::function < WriteResponse(const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound)> callback);
 
 		// Reads the disk and write the data to the SCP file supplied.  The callback is for progress, and you can returns FALSE to abort the process
 		// numTracks is the number of tracks to read.  Usually 80 (0..79), sometimes track 80 and 81 are needed. revolutions is hwo many revolutions of the disk to save (1-5)
 		// SCP files are a low level flux record of the disk and usually can backup copy protected disks to.  Without special hardware they can't usually be written back to disks.
-		ADFResult DiskToSCP(const std::wstring& outputFile, const unsigned int numTracks, const unsigned char revolutions, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound)> callback);
+		ADFResult DiskToSCP(const std::wstring& outputFile, const unsigned int numTracks, const unsigned char revolutions, std::function < WriteResponse(const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound)> callback);
 
 		// Writes an ADF file back to a floppy disk.  Return FALSE in the callback to abort this operation.  If verify is set then the track isread back and and sector checksums are checked for 11 valid sectors
 		// IF using precomp mode then DO NOT connect the Arduino via a USB hub, and try to plug it into a USB2 port
-		ADFResult ADFToDisk(const std::wstring& inputFile, bool verify, bool usePrecompMode, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const bool isVerifyError) > callback);
+		ADFResult ADFToDisk(const std::wstring& inputFile, bool verify, bool usePrecompMode, std::function < WriteResponse(const int32_t currentTrack, const DiskSurface currentSide, const bool isVerifyError) > callback);
 	
 		// Run diagnostics on the system.  You do not need to call openDevice first.  Return TRUE if everything passed
 		bool runDiagnostics(const std::wstring& portName, std::function<void(bool isError, const std::string message)> messageOutput, std::function<bool(bool isQuestion, const std::string question)> askQuestion);

@@ -48,6 +48,11 @@
 #ifndef _WIN32
 #include <string.h>
 #include <cstring>
+#include <stdint.h>
+#include <inttypes.h>
+#else
+typedef unsigned int uint32_t
+typedef int int32_t
 #endif
 
 using namespace ArduinoFloppyReader;
@@ -89,13 +94,13 @@ typedef struct alignas(8)  {
 	unsigned char sectorNumber;       // The sector we just read (0 to 11)
 	unsigned char sectorsRemaining;   // How many more sectors remain until the gap (0 to 10)
 
-	unsigned long sectorLabel[4];     // OS Recovery Data, we ignore this
+	uint32_t sectorLabel[4];     // OS Recovery Data, we ignore this
 
-	unsigned long headerChecksum;	  // Read from the header, header checksum
-	unsigned long dataChecksum;		  // Read from the header, data checksum
+	uint32_t headerChecksum;	  // Read from the header, header checksum
+	uint32_t dataChecksum;		  // Read from the header, data checksum
 
-	unsigned long headerChecksumCalculated;   // The header checksum we calculate
-	unsigned long dataChecksumCalculated;     // The data checksum we calculate
+	uint32_t headerChecksumCalculated;   // The header checksum we calculate
+	uint32_t dataChecksumCalculated;     // The data checksum we calculate
 
 	RawDecodedSector data;          // decoded sector data
 
@@ -116,15 +121,15 @@ struct DecodedTrack {
 // *input;	MFM coded data buffer (size == 2*data_size) 
 // *output;	decoded data buffer (size == data_size) 
 // Returns the checksum calculated over the data
-unsigned long decodeMFMdata(const unsigned long* input, unsigned long* output, const unsigned int data_size) {
-	unsigned long odd_bits, even_bits;
-	unsigned long chksum = 0L;
-	unsigned int count;
+uint32_t decodeMFMdata(const uint32_t* input, uint32_t* output, const unsigned int data_size) {
+	uint32_t odd_bits, even_bits;
+	uint32_t chksum = 0L;
+	uint32_t count;
 
 	// the decoding is made here long by long : with data_size/4 iterations 
 	for (count = 0; count < data_size / 4; count++) {
 		odd_bits = *input;					// longs with odd bits 
-		even_bits = *(unsigned long*)(((unsigned char*)input) + data_size);   // longs with even bits - located 'data_size' bytes after the odd bits
+		even_bits = *(uint32_t*)(((unsigned char*)input) + data_size);   // longs with even bits - located 'data_size' bytes after the odd bits
 
 		chksum ^= odd_bits;              // XOR Checksum
 		chksum ^= even_bits;
@@ -140,12 +145,12 @@ unsigned long decodeMFMdata(const unsigned long* input, unsigned long* output, c
 // *input;	RAW data buffer (size == data_size) 
 // *output;	MFM encoded buffer (size == data_size*2) 
 // Returns the checksum calculated over the data
-unsigned long encodeMFMdataPart1(const unsigned long* input, unsigned long* output, const unsigned int data_size) {
-	unsigned long chksum = 0L;
-	unsigned int count;
+uint32_t encodeMFMdataPart1(const uint32_t* input, uint32_t* output, const uint32_t data_size) {
+	uint32_t chksum = 0L;
+	uint32_t count;
 
-	unsigned long* outputOdd = output;
-	unsigned long* outputEven = (unsigned long*)(((unsigned char*)output) + data_size);
+	uint32_t* outputOdd = output;
+	uint32_t* outputEven = (uint32_t*)(((unsigned char*)output) + data_size);
 
 	// Encode over two passes.  First split out the odd and even data, then encode the MFM values, the /4 is because we're working in longs, not bytes
 	for (count = 0; count < data_size / 4; count++) {
@@ -167,12 +172,12 @@ unsigned long encodeMFMdataPart1(const unsigned long* input, unsigned long* outp
 }
 
 // Copys the data from inTrack into outTrack but fixes the bit/byte alignment so its aligned on the start of a byte 
-void alignSectorToByte(const RawTrackData& inTrack, int byteStart, int bitStart, RawEncodedSector& outSector) {
+void alignSectorToByte(const RawTrackData& inTrack, int32_t byteStart, int32_t bitStart, RawEncodedSector& outSector) {
 	unsigned char byteOut = 0;
-	unsigned int byteOutPosition = 0;
+	uint32_t byteOutPosition = 0;
 
 	// Bit counter output
-	unsigned int counter = 0;
+	uint32_t counter = 0;
 
 	// The position supplied is the last bit of the track sync.  
 	bitStart--;   // goto the next bit
@@ -185,7 +190,7 @@ void alignSectorToByte(const RawTrackData& inTrack, int byteStart, int bitStart,
 
 	// This is mis-aligned.  So we need to shift the data into byte boundarys
 	for (;;) {
-		for (int bitCounter = bitStart; bitCounter >= 0; bitCounter--) {
+		for (int32_t bitCounter = bitStart; bitCounter >= 0; bitCounter--) {
 			byteOut <<= 1;
 			if (inTrack[byteStart%RAW_TRACKDATA_LENGTH] & (1 << bitCounter)) byteOut |= 1;
 
@@ -204,7 +209,7 @@ void alignSectorToByte(const RawTrackData& inTrack, int byteStart, int bitStart,
 }
 
 // Attempt to repair the MFM data.  Returns TRUE if errors are detected
-bool repairMFMData(unsigned char* data, const unsigned int dataLength) {
+bool repairMFMData(unsigned char* data, const uint32_t dataLength) {
 	bool errors = false;
 	// Only certain bit-patterns are allowed.  So if we come across an invalid one we will try to repair it.  
 	// You cannot have two '1's together, and a max of three '0' in a row
@@ -222,10 +227,10 @@ bool repairMFMData(unsigned char* data, const unsigned int dataLength) {
 	//	10101
 	//
 	unsigned char testByte = 0;
-	int counter = 0;
-	for (unsigned int position = 0; position < dataLength; position++) {
+	int32_t counter = 0;
+	for (uint32_t position = 0; position < dataLength; position++) {
 		// Fixed: This was the wrong way around
-		for (int bitIndex = 7; bitIndex >= 0; bitIndex--) {
+		for (int32_t bitIndex = 7; bitIndex >= 0; bitIndex--) {
 			testByte <<= 1;   // shift off one bit to make room for the new bit
 			if (*data & (1 << bitIndex)) {
 				// Make sure two '1's dont come in together as this is not allowed! This filters out a lot of BAD combinations
@@ -260,13 +265,13 @@ bool repairMFMData(unsigned char* data, const unsigned int dataLength) {
 
 // Looks at the history for this sector number and creates a new sector where the bits are set to whatever occurs more.  We then do a checksum and if it succeeds we use it
 bool attemptFixSector(const DecodedTrack& decodedTrack, DecodedSector& outputSector) {
-	int sectorNumber = outputSector.sectorNumber;
+	int32_t sectorNumber = outputSector.sectorNumber;
 
 	if (decodedTrack.invalidSectors[sectorNumber].size() < 2) return false;
 
 	typedef struct {
-		int zeros = 0;
-		int ones = 0;
+		int32_t zeros = 0;
+		int32_t ones = 0;
 	} SectorCounter[8];
 
 	SectorCounter sectorSum[SECTOR_BYTES + SECTOR_BYTES];
@@ -275,15 +280,15 @@ bool attemptFixSector(const DecodedTrack& decodedTrack, DecodedSector& outputSec
 
 	// Calculate the number of '1's and '0's in each block
 	for (const DecodedSector& sec : decodedTrack.invalidSectors[sectorNumber]) 
-		for (int byteNumber = 0; byteNumber < SECTOR_BYTES + SECTOR_BYTES; byteNumber++) 
-			for (int bit = 0; bit <= 7; bit++) 
+		for (int32_t byteNumber = 0; byteNumber < SECTOR_BYTES + SECTOR_BYTES; byteNumber++) 
+			for (int32_t bit = 0; bit <= 7; bit++) 
 				if (sec.rawSector[byteNumber] & (1 << bit))
 					sectorSum[byteNumber][bit].ones++; else sectorSum[byteNumber][bit].zeros++;
 
 	// Now create a sector based on this data
 	memset(outputSector.rawSector, 0, sizeof(outputSector.rawSector));
-	for (int byteNumber = 0; byteNumber < SECTOR_BYTES + SECTOR_BYTES; byteNumber++)
-		for (int bit = 0; bit <= 7; bit++)
+	for (int32_t byteNumber = 0; byteNumber < SECTOR_BYTES + SECTOR_BYTES; byteNumber++)
+		for (int32_t bit = 0; bit <= 7; bit++)
 			if (sectorSum[byteNumber][bit].ones >= sectorSum[byteNumber][bit].zeros)
 				outputSector.rawSector[byteNumber] |= (1 << bit);
 
@@ -291,7 +296,7 @@ bool attemptFixSector(const DecodedTrack& decodedTrack, DecodedSector& outputSec
 }
 
 // Extract and convert the sector.  This may be a duplicate so we may reject it.  Returns TRUE if it was valid, or false if not
-bool decodeSector(const RawEncodedSector& rawSector, const unsigned int trackNumber, const DiskSurface surface, DecodedTrack& decodedTrack, bool ignoreHeaderChecksum, int& lastSectorNumber) {
+bool decodeSector(const RawEncodedSector& rawSector, const uint32_t trackNumber, const DiskSurface surface, DecodedTrack& decodedTrack, bool ignoreHeaderChecksum, int32_t& lastSectorNumber) {
 	DecodedSector sector;
 
 	lastSectorNumber = -1;
@@ -301,11 +306,11 @@ bool decodeSector(const RawEncodedSector& rawSector, const unsigned int trackNum
 	unsigned char* sectorData = (unsigned char*)rawSector;
  
 	// Read the first 4 bytes (8).  This  is the track header data	
-	sector.headerChecksumCalculated = decodeMFMdata((unsigned long*)(sectorData + 8), (unsigned long*)&sector, 4);
+	sector.headerChecksumCalculated = decodeMFMdata((uint32_t*)(sectorData + 8), (uint32_t*)&sector, 4);
 	// Decode the label data and update the checksum
-	sector.headerChecksumCalculated ^= decodeMFMdata((unsigned long*)(sectorData + 16), (unsigned long*)&sector.sectorLabel[0], 16);
+	sector.headerChecksumCalculated ^= decodeMFMdata((uint32_t*)(sectorData + 16), (uint32_t*)&sector.sectorLabel[0], 16);
 	// Get the checksum for the header
-	decodeMFMdata((unsigned long*)(sectorData + 48), (unsigned long*)&sector.headerChecksum, 4);  // (computed on mfm longs, longs between offsets 8 and 44 == 2 * (1 + 4) longs)
+	decodeMFMdata((uint32_t*)(sectorData + 48), (uint32_t*)&sector.headerChecksum, 4);  // (computed on mfm longs, longs between offsets 8 and 44 == 2 * (1 + 4) longs)
 	// If the header checksum fails we just cant trust anything we received, so we just drop it
 	if ((sector.headerChecksum != sector.headerChecksumCalculated) && (!ignoreHeaderChecksum)) {
 		return false;
@@ -329,11 +334,11 @@ bool decodeSector(const RawEncodedSector& rawSector, const unsigned int trackNum
 	if (sector.trackNumber != targetTrackNumber) return false; // this'd be weird
 
 	// Get the checksum for the data
-	decodeMFMdata((unsigned long*)(sectorData + 56), (unsigned long*)&sector.dataChecksum, 4);
+	decodeMFMdata((uint32_t*)(sectorData + 56), (uint32_t*)&sector.dataChecksum, 4);
 	
 
 	// Lets see if we already have this one
-	const int searchSector = sector.sectorNumber;
+	const int32_t searchSector = sector.sectorNumber;
 	auto index = std::find_if(decodedTrack.validSectors.begin(), decodedTrack.validSectors.end(), [searchSector](const DecodedSector& sector) -> bool {
 		return (sector.sectorNumber == searchSector);
 	});
@@ -342,7 +347,7 @@ bool decodeSector(const RawEncodedSector& rawSector, const unsigned int trackNum
 	if (index != decodedTrack.validSectors.end()) return true;
 
 	// Decode the data and receive it's checksum
-	sector.dataChecksumCalculated = decodeMFMdata((unsigned long*)(sectorData + 64), (unsigned long*)&sector.data[0], SECTOR_BYTES); // (from 64 to 1088 == 2*512 bytes)
+	sector.dataChecksumCalculated = decodeMFMdata((uint32_t*)(sectorData + 64), (uint32_t*)&sector.data[0], SECTOR_BYTES); // (from 64 to 1088 == 2*512 bytes)
 
 	// Is the data valid?
 	if (sector.dataChecksum != sector.dataChecksumCalculated) {
@@ -362,7 +367,7 @@ bool decodeSector(const RawEncodedSector& rawSector, const unsigned int trackNum
 }
 
 // Encode a sector into the correct format for disk
-void encodeSector(const unsigned int trackNumber, const DiskSurface surface, const unsigned int sectorNumber, const RawDecodedSector& input, RawEncodedSector& encodedSector, unsigned char& lastByte) {
+void encodeSector(const uint32_t trackNumber, const DiskSurface surface, const uint32_t sectorNumber, const RawDecodedSector& input, RawEncodedSector& encodedSector, unsigned char& lastByte) {
 	// Sector Start
 	encodedSector[0] = (lastByte & 1) ? 0x2A : 0xAA;
 	encodedSector[1] = 0xAA;
@@ -384,15 +389,15 @@ void encodeSector(const unsigned int trackNumber, const DiskSurface surface, con
 	header.sectorsRemaining = NUM_SECTORS_PER_TRACK - sectorNumber;  //1..11
 	
 	
-	header.headerChecksumCalculated = encodeMFMdataPart1((const unsigned long*)&header, (unsigned long*)&encodedSector[8], 4);
+	header.headerChecksumCalculated = encodeMFMdataPart1((const uint32_t*)&header, (uint32_t*)&encodedSector[8], 4);
 	// Then theres the 16 bytes of the volume label that isnt used anyway
-	header.headerChecksumCalculated ^= encodeMFMdataPart1((const unsigned long*)&header.sectorLabel, (unsigned long*)&encodedSector[16], 16);
+	header.headerChecksumCalculated ^= encodeMFMdataPart1((const uint32_t*)&header.sectorLabel, (uint32_t*)&encodedSector[16], 16);
 	// Thats 40 bytes written as everything doubles (8+4+4+16+16). - Encode the header checksum
-	encodeMFMdataPart1((const unsigned long*)&header.headerChecksumCalculated, (unsigned long*)&encodedSector[48], 4);
+	encodeMFMdataPart1((const uint32_t*)&header.headerChecksumCalculated, (uint32_t*)&encodedSector[48], 4);
 	// And move on to the data section.  Next should be the checksum, but we cant encode that until we actually know its value!
-	header.dataChecksumCalculated = encodeMFMdataPart1((const unsigned long*)&input, (unsigned long*)&encodedSector[64], SECTOR_BYTES);
+	header.dataChecksumCalculated = encodeMFMdataPart1((const uint32_t*)&input, (uint32_t*)&encodedSector[64], SECTOR_BYTES);
 	// And add the checksum
-	encodeMFMdataPart1( (const unsigned long*)&header.dataChecksumCalculated, (unsigned long*)&encodedSector[56], 4);
+	encodeMFMdataPart1( (const uint32_t*)&header.dataChecksumCalculated, (uint32_t*)&encodedSector[56], 4);
 
 	// Now fill in the MFM clock bits
 	bool lastBit = encodedSector[7] & (1 << 0);
@@ -400,8 +405,8 @@ void encodeSector(const unsigned int trackNumber, const DiskSurface surface, con
 
 	// Clock bits are bits 7, 5, 3 and 1
 	// Data is 6, 4, 2, 0
-	for (int count = 8; count < RAW_SECTOR_SIZE; count++) {
-		for (int bit = 7; bit >= 1; bit -= 2) {
+	for (int32_t count = 8; count < RAW_SECTOR_SIZE; count++) {
+		for (int32_t bit = 7; bit >= 1; bit -= 2) {
 			lastBit = thisBit;			
 			thisBit = encodedSector[count] & (1 << (bit-1));
 	
@@ -416,33 +421,33 @@ void encodeSector(const unsigned int trackNumber, const DiskSurface surface, con
 }
 
 // Find sectors within raw data read from the drive by searching bit-by-bit for the SYNC bytes
-void findSectors(const RawTrackData& track, unsigned int trackNumber, DiskSurface side, unsigned short trackSync, DecodedTrack& decodedTrack, bool ignoreHeaderChecksum) {
+void findSectors(const RawTrackData& track, uint32_t trackNumber, DiskSurface side, unsigned short trackSync, DecodedTrack& decodedTrack, bool ignoreHeaderChecksum) {
 	// Work out what we need to search for which is 2AAAAAAAsyncsync
 	//const unsigned long long search = (trackSync | (((DWORD)trackSync) << 16)) | (((long long)0x2AAAAAAA) << 32);
 	// For speed and to ignore some data errors, we now just search for syncsync and ignore the 2AAAAAAA part
 
 	// Work out what we need to search for which is syncsync
-	const unsigned long search = (trackSync | (((unsigned long)trackSync) << 16));
+	const uint32_t search = (trackSync | (((uint32_t)trackSync) << 16));
 
 	// Prepare our test buffer
-	unsigned long decoded = 0;
+	uint32_t decoded = 0;
 
 	// Keep runnign until we run out of data
-	unsigned int byteIndex = 0;
+	uint32_t byteIndex = 0;
 
-	int nextTrackBitCount = 0;
+	int32_t nextTrackBitCount = 0;
 
 	// run the entire track length
 	while (byteIndex < RAW_TRACKDATA_LENGTH) {
 
 		// Check each bit, the "decoded" variable slowly slides left providing a 64-bit wide "window" into the bitstream
-		for (int bitIndex = 7; bitIndex >= 0; bitIndex--) {
+		for (int32_t bitIndex = 7; bitIndex >= 0; bitIndex--) {
 			decoded <<= 1;   // shift off one bit to make room for the new bit
 			if (track[byteIndex] & (1 << bitIndex)) decoded |= 1;
 
 			// Have we matched the sync words correctly
 			++nextTrackBitCount;
-			int lastSectorNumber = -1;
+			int32_t lastSectorNumber = -1;
 			if (decoded == search) {
 				RawEncodedSector alignedSector;
 				
@@ -514,7 +519,7 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 	if (!messageOutput) return false;
 	if (!askQuestion) return false;
 
-	if (!askQuestion(false, "Please insert a disk in the drive.\r\nUse a disk that you don't mind being erased.\nThis disk must contain data/formatted as an AmigaDOS disk")) {
+	if (!askQuestion(false, "Please insert a *write protected* disk in the drive.\r\nUse a disk that you don't mind being erased.\nThis disk must contain data/formatted as an AmigaDOS disk")) {
 		messageOutput(true, "Diagnostics aborted");
 		return false;
 	}
@@ -596,6 +601,20 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 		messageOutput(false, "Read speed test passed.  USB to serial converter is functioning correctly!");
 	}
 
+
+	if ((version.major > 1) || ((version.major == 1) && (version.minor >= 8))) {
+		messageOutput(false, "Testing write-protect signal");
+		for (;;) {
+		
+			if (m_device.checkIfDiskIsWriteProtected(true) == DiagnosticResponse::drWriteProtected) break;
+
+			if (!askQuestion(false, "Inserted disk is not write protected. If it is, then check Arduino Pin A0. Please insert a write protected AmigaDOS disk in the drive")) {
+				messageOutput(true, "Diagnostics aborted");
+				return false;
+			}
+		}
+	}
+
 	// Functions to test
 	messageOutput(false, "Enabling the drive (please listen and watch the drive)");
 	r = m_device.enableReading(true, false);
@@ -607,6 +626,7 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 	// Ask the user for verification of the result
 	if (!askQuestion(true,"Did the floppy disk start spinning, and did the drive LED switch on?")) {
 		messageOutput(true, "Please check the drive has power and the following PINS on the Arduino: 5 and 11");
+		messageOutput(true, "It's possible you may also need need to provide a seperate 5V power supply for this drive.");
 		return false;
 	}
 
@@ -620,6 +640,7 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 		}
 		else {
 			messageOutput(true, "Please check the following PINS on the Arduino: 7");
+			messageOutput(true, "It's possible you may also need need to provide a seperate 5V power supply for this drive.");
 		}
 		return false;
 	}
@@ -634,11 +655,13 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 	r = m_device.selectTrack(70);
 	if (r != DiagnosticResponse::drOK) {
 		messageOutput(true, m_device.getLastErrorStr());
+		messageOutput(true, "There is also a strong possability that you may also need need to provide a seperate 5V power supply for this drive.");
 		return false;
 	}
 
 	if (!askQuestion(true,"Could you hear the head moving quite a distance?")) {
         messageOutput(true, "As we successfully found track 0, please check the following PINS on the Arduino: 6, 7");
+		messageOutput(true, "It's possible you may also need need to provide a seperate 5V power supply for this drive.");
 		return false;
 	}
 
@@ -687,21 +710,7 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 	if (r != DiagnosticResponse::drOK) {
 		messageOutput(true, m_device.getLastErrorStr());
 		return false;
-	}
-
-	for (;;) {
-		if (!askQuestion(false, "Please insert a write protected AmigaDOS disk in the drive")) {
-			messageOutput(true, "Diagnostics aborted");
-			return false;
-		}
-
-		if ((version.major > 1) || ((version.major == 1) && (version.minor >= 8))) {
-			if (m_device.checkIfDiskIsWriteProtected(true) == DiagnosticResponse::drWriteProtected) break;
-			messageOutput(true, "Disk is not write protected.");
-			messageOutput(true, "If it is, then check Arduin Pin A0");
-			return false;
-		}
-	}
+	}	
 
 	messageOutput(false, "Starting drive, and seeking to track 40.");
 	// Re-open the drive
@@ -742,10 +751,10 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 
 	messageOutput(false, "Attempting to read a track from the UPPER side of the disk");
 	ArduinoFloppyReader::RawTrackData data;
-	int counter;
+	int32_t counter;
 	bool tracksFound = false;
 
-	for (int a = 0; a < 10; a++) {
+	for (int32_t a = 0; a < 10; a++) {
 		r = m_device.readCurrentTrack(data, true);
 		if (r != DiagnosticResponse::drOK) {
 			messageOutput(true, m_device.getLastErrorStr());
@@ -757,7 +766,7 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 		findSectors(data, 40, ArduinoFloppyReader::DiskSurface::dsUpper, AMIGA_WORD_SYNC, trk1, true);
 		
 		counter=0; 
-		for (int sec=0; sec<NUM_SECTORS_PER_TRACK; sec++)
+		for (int32_t sec=0; sec<NUM_SECTORS_PER_TRACK; sec++)
 			if (trk1.invalidSectors[sec].size()) counter++;
 
 		if (counter + trk1.validSectors.size() > 0) {
@@ -770,7 +779,7 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 		findSectors(data, 40, ArduinoFloppyReader::DiskSurface::dsLower, AMIGA_WORD_SYNC, trk2, true);
 		
 		counter = 0;
-		for (int sec = 0; sec<NUM_SECTORS_PER_TRACK; sec++)
+		for (int32_t sec = 0; sec<NUM_SECTORS_PER_TRACK; sec++)
 			if (trk2.invalidSectors[sec].size()) counter++;
 
 		if (counter + trk2.validSectors.size() > 0) {
@@ -789,7 +798,7 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 	}
 	tracksFound = false;
 
-	for (int a = 0; a < 10; a++) {
+	for (int32_t a = 0; a < 10; a++) {
 		r = m_device.readCurrentTrack(data, true);
 		if (r != DiagnosticResponse::drOK) {
 			messageOutput(true, m_device.getLastErrorStr());
@@ -801,7 +810,7 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 		findSectors(data, 40, ArduinoFloppyReader::DiskSurface::dsLower, AMIGA_WORD_SYNC, trk1, true);
 
 		counter = 0;
-		for (int sec = 0; sec<NUM_SECTORS_PER_TRACK; sec++)
+		for (int32_t sec = 0; sec<NUM_SECTORS_PER_TRACK; sec++)
 			if (trk1.invalidSectors[sec].size()) counter++;
 
 		if (counter + trk1.validSectors.size() > 0) {
@@ -814,7 +823,7 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 		findSectors(data, 40, ArduinoFloppyReader::DiskSurface::dsUpper, AMIGA_WORD_SYNC, trk2, true);
 
 		counter = 0;
-		for (int sec = 0; sec<NUM_SECTORS_PER_TRACK; sec++)
+		for (int32_t sec = 0; sec<NUM_SECTORS_PER_TRACK; sec++)
 			if (trk2.invalidSectors[sec].size()) counter++;
 
 		if (counter + trk2.validSectors.size() > 0) {
@@ -834,7 +843,7 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 	}
 
 	// Now ask.
-	if (!askQuestion(true,"Would you like to test writing to a disk?  (please ensure the disk inserted is not important as data will be erased)")) {
+	if (!askQuestion(true,"Would you like to test writing to a disk?  Please insert a WRITE ENABLED disk that you *do not mind* being overwritten")) {
 		messageOutput(true, "Diagnostic aborted.");
 		return false;
 	}
@@ -856,6 +865,19 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 
 	} while (r == DiagnosticResponse::drWriteProtected);
 	// Writing is enabled.
+
+	if ((version.major > 1) || ((version.major == 1) && (version.minor >= 8))) {
+		for (;;) {
+
+			if (m_device.checkIfDiskIsWriteProtected(true) == DiagnosticResponse::drOK) break;
+
+			if (!askQuestion(false, "Inserted disk is write protected. If it isn't, then check Arduino Pin A0. Please insert a write *enabled* disk in the drive")) {
+				messageOutput(true, "Diagnostics aborted");
+				return false;
+			}
+		}
+	}
+
 	
 	// Goto 41, we'll write some stuff
 	r = m_device.selectTrack(41);
@@ -879,24 +901,108 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 	memset(disktrack.filler2, 0xAA, sizeof(disktrack.filler2));  // Pad with "0"s which as an MFM encoded byte is 0xAA
 
 	// Get length
-	int sequenceLength = strlen(TEST_BYTE_SEQUENCE);
+	int32_t sequenceLength = strlen(TEST_BYTE_SEQUENCE);
 	unsigned char lastByte = 0;
 
-	for (unsigned int sector = 0; sector < NUM_SECTORS_PER_TRACK; sector++) {
+	for (uint32_t sector = 0; sector < NUM_SECTORS_PER_TRACK; sector++) {
 
 		// Invent some track data
-		for (int bytePos = 0; bytePos < SECTOR_BYTES; bytePos++)
+		for (int32_t bytePos = 0; bytePos < SECTOR_BYTES; bytePos++)
 			track[sector][bytePos] = TEST_BYTE_SEQUENCE[(sector + bytePos) % sequenceLength];
 
 		encodeSector(41, ArduinoFloppyReader::DiskSurface::dsUpper, sector, track[sector], disktrack.sectors[sector], lastByte);
 	}
 
-	// Attempt to write 10 times, with verify
+	// Attempt to write, with verify
 	messageOutput(false, "Writing and Verifying Track 41 (Upper Side).");
 	bool writtenOK = false;
-	for (int a = 1; a <= 10; a++) {
+	for (int32_t a = 1; a <= 10; a++) {
 		
+		r = m_device.eraseCurrentTrack();
+		if (r != DiagnosticResponse::drOK) {
+			messageOutput(true, m_device.getLastErrorStr());
+			messageOutput(true, "This can also be caused by insufficient power to the drive");
+			return false;
+		}
+
 		r = m_device.writeCurrentTrack((const unsigned char*)(&disktrack), sizeof(disktrack), false);
+		if (r != DiagnosticResponse::drOK) {
+			messageOutput(true, m_device.getLastErrorStr());
+			messageOutput(true, "This can also be caused by insufficient power to the drive");
+			return false;
+		}
+		r = m_device.readCurrentTrack(data, false);
+		if (r != DiagnosticResponse::drOK) {
+			messageOutput(true, m_device.getLastErrorStr());
+			messageOutput(true, "This can also be caused by insufficient power to the drive");
+			return false;
+		}
+
+		// Data read.  See if any tracks were detected
+		DecodedTrack trk;
+		findSectors(data, 41, ArduinoFloppyReader::DiskSurface::dsUpper, AMIGA_WORD_SYNC, trk, true);
+		// Have a look at any of the found sectors and see if any are valid and matched the phrase we wrote onto the disk
+		for (const DecodedSector& sec : trk.validSectors) {
+			// See if we can find the sequence in here somewhere 
+			std::string s;
+			s.resize(SECTOR_BYTES);
+			memcpy(&s[0], sec.data, SECTOR_BYTES);
+
+			if (s.find(TEST_BYTE_SEQUENCE) != std::string::npos) {
+				// Excellent
+				writtenOK = true;
+				break;
+			}					
+		}
+		if (!writtenOK) {
+			// See if we can find the sequence in one of the partial sectors
+			for (int32_t sector = 0; sector < NUM_SECTORS_PER_TRACK; sector++) {
+				for (const DecodedSector& sec : trk.invalidSectors[sector]) {
+					// See if we can find the sequence in here somewhere 
+					std::string s;
+					s.resize(SECTOR_BYTES);
+					memcpy(&s[0], sec.data, SECTOR_BYTES);
+
+					if (s.find(TEST_BYTE_SEQUENCE) != std::string::npos) {
+						// Excellent
+						writtenOK = true;
+						break;
+					}
+				}
+				if (writtenOK) break;
+			}
+			if (writtenOK) break;
+		}
+		if (writtenOK) break;
+	}
+
+	// Final results
+	if (!writtenOK) {
+		messageOutput(true, "Unable to detect written track.  This could be for one of the following reasons:");
+		messageOutput(true, "1.  Please check the following PINS on the Arduino: 3, A0, A1");
+		messageOutput(true, "2.  Please check the Arduino IDE config has not been modified from stock.  This was tested using 1.8.4, compiler settings may affect performance");
+		messageOutput(true, "3.  Check for poor connections, typically on a breadboard they may be intermittent which may pass the above results but still not work.");
+		messageOutput(true, "4.  Check for an electrically noisy environment.  It is possible that electronic noise (eg: from a cell phone) may cause errors reading and writing to the disk");
+		messageOutput(true, "5.  Shorten the floppy disk cable to help reduce noise.");
+		messageOutput(true, "6.  Ensure your power supply is strong enough to power the floppy drive.  This drive may need too much power for the USB port");
+		messageOutput(true, "7.  You can contact me for help, but some basic electronics diagnostics will help, checkout YouTube for guides.");
+
+		m_device.enableWriting(false);
+		return false;
+	}
+
+	// Attempt to write, with verify
+	messageOutput(false, "Writing (Precomp) and Verifying Track 41 (Upper Side).");
+	writtenOK = false;
+	for (int32_t a = 1; a <= 10; a++) {
+
+		r = m_device.eraseCurrentTrack();
+		if (r != DiagnosticResponse::drOK) {
+			messageOutput(true, m_device.getLastErrorStr());
+			return false;
+		}
+
+		r = m_device.writeCurrentTrackPrecomp((const unsigned char*)(&disktrack), sizeof(disktrack), false, true);
 		if (r != DiagnosticResponse::drOK) {
 			messageOutput(true, m_device.getLastErrorStr());
 			return false;
@@ -921,11 +1027,11 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 				// Excellent
 				writtenOK = true;
 				break;
-			}					
+			}
 		}
 		if (!writtenOK) {
 			// See if we can find the sequence in one of the partial sectors
-			for (int sector = 0; sector < NUM_SECTORS_PER_TRACK; sector++) {
+			for (int32_t sector = 0; sector < NUM_SECTORS_PER_TRACK; sector++) {
 				for (const DecodedSector& sec : trk.invalidSectors[sector]) {
 					// See if we can find the sequence in here somewhere 
 					std::string s;
@@ -940,29 +1046,31 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 				}
 				if (writtenOK) break;
 			}
+			if (writtenOK) break;
 		}
+		if (writtenOK) break;
 	}
 
 	// Final results
 	if (!writtenOK) {
 		messageOutput(true, "Unable to detect written track.  This could be for one of the following reasons:");
 		messageOutput(true, "1.  Please check the following PINS on the Arduino: 3, A0, A1");
-		messageOutput(true, "2.  Please check the Ardiono IDE config has not been modified from stock.  This was tested using 1.8.4, compiler settings may affect performance");
+		messageOutput(true, "2.  Please check the Arduino IDE config has not been modified from stock.  This was tested using 1.8.4, compiler settings may affect performance");
 		messageOutput(true, "3.  Check for poor connections, typically on a breadboard they may be intermittent which may pass the above results but still not work.");
 		messageOutput(true, "4.  Check for an electrically noisy environment.  It is possible that electronic noise (eg: from a cell phone) may cause errors reading and writing to the disk");
-		messageOutput(true, "5.  Shorten the floppy disk cable to help reduce noise.");
-		messageOutput(true, "6.  Ensure your power supply is strong enough to power the floppy drive.  Don't rely on the USB port for the 5V for the floppy drive!");
-		messageOutput(true, "7.  You can contact me for help, but some basic electronics diagnostics will help, checkout YouTube for guides.");
+		messageOutput(true, "5.  Shorten the floppy disk cable to help reduce electrical noise.");
+		messageOutput(true, "6.  Ensure your power supply is strong enough to power the floppy drive.  This drive may need too much power for the USB port");
+		messageOutput(true, "7.  If you are using a USB hub, try connecting directly to the computer or a different USB port");
+		messageOutput(true, "8.  You can contact me for help, but some basic electronics diagnostics will help, checkout YouTube for guides.");
 
 		m_device.enableWriting(false);
 		return false;
 	}
-	else {
-		messageOutput(false, "Hurray! Writing was successful.  Your Arduino is ready for use! - Send us a photo!");
-		m_device.enableWriting(false);
-		return true;
-	}
-	
+
+	messageOutput(false, "Hurray! Writing was successful.  Your Arduino is ready for use! - Send us a photo");
+	messageOutput(false, "or join my Discord server at https://discord.gg/HctVgSFEXu");
+	m_device.enableWriting(false);
+	return true;
 }
 
 // Get the current firmware version.  Only valid if openPort is successful
@@ -972,7 +1080,7 @@ const FirmwareVersion ADFWriter::getFirwareVersion() const {
 
 // Writes an ADF file back to a floppy disk.  Return FALSE in the callback to abort this operation 
 // IF using precomp mode then DO NOT connect the Arduino via a USB hub, and try to plug it into a USB2 port
-ADFResult ADFWriter::ADFToDisk(const std::wstring& inputFile, bool verify, bool usePrecompMode, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const bool isVerifyError) > callback) {
+ADFResult ADFWriter::ADFToDisk(const std::wstring& inputFile, bool verify, bool usePrecompMode, std::function < WriteResponse(const int32_t currentTrack, const DiskSurface currentSide, const bool isVerifyError) > callback) {
 	if (!m_device.isOpen()) return ADFResult::adfrDriveError;
 
 	// Upgrade to writing mode
@@ -988,8 +1096,8 @@ ADFResult ADFWriter::ADFToDisk(const std::wstring& inputFile, bool verify, bool 
 #endif
 	if (!hADFFile.is_open()) return ADFResult::adfrFileError;
 
-	unsigned int currentTrack = 0;
-	unsigned int surfaceIndex = 0;
+	uint32_t currentTrack = 0;
+	uint32_t surfaceIndex = 0;
 
 	// Buffer to hold the track
 	RawDecodedTrack track;
@@ -1031,16 +1139,16 @@ ADFResult ADFWriter::ADFToDisk(const std::wstring& inputFile, bool verify, bool 
 
 		unsigned char lastByte = disktrack.filler1[sizeof(disktrack.filler1)-1];
 		// Now encode the sector into the output buffer
-		for (unsigned int sector = 0; sector < NUM_SECTORS_PER_TRACK; sector++)
+		for (uint32_t sector = 0; sector < NUM_SECTORS_PER_TRACK; sector++)
 			encodeSector(currentTrack, surface, sector, track[sector], disktrack.sectors[sector], lastByte);
 		if (lastByte & 1) disktrack.filler2[7] = 0x2F; else disktrack.filler2[7] = 0xFF;
 
 		// Keep looping until it wrote correctly
 		DecodedTrack trackRead;
 		trackRead.validSectors.clear();
-		for (unsigned int a = 0; a < NUM_SECTORS_PER_TRACK; a++) trackRead.invalidSectors[a].clear();
+		for (uint32_t a = 0; a < NUM_SECTORS_PER_TRACK; a++) trackRead.invalidSectors[a].clear();
 
-		int failCount = 0;
+		int32_t failCount = 0;
 		while (trackRead.validSectors.size()<NUM_SECTORS_PER_TRACK) {
 
 			DiagnosticResponse resp = m_device.writeCurrentTrackPrecomp((const unsigned char*)(&disktrack), sizeof(disktrack), false, (currentTrack >= 40) && usePrecompMode);
@@ -1055,7 +1163,7 @@ ADFResult ADFWriter::ADFToDisk(const std::wstring& inputFile, bool verify, bool 
 			}
 
 			if (verify) {				
-				for (int retries=0; retries<10; retries++) {
+				for (int32_t retries=0; retries<10; retries++) {
 					RawTrackData data;
 					// Read the track back
 					if (m_device.readCurrentTrack(data, false) == DiagnosticResponse::drOK) {
@@ -1067,8 +1175,8 @@ ADFResult ADFWriter::ADFToDisk(const std::wstring& inputFile, bool verify, bool 
 
 				// So we found all 11 sectors, but were they the ones we actually wrote!?
 				if (trackRead.validSectors.size() == NUM_SECTORS_PER_TRACK) {
-					int sectorsGood = 0;
-					for (int sector = 0; sector < NUM_SECTORS_PER_TRACK; sector++) {
+					int32_t sectorsGood = 0;
+					for (int32_t sector = 0; sector < NUM_SECTORS_PER_TRACK; sector++) {
 						auto index = std::find_if(trackRead.validSectors.begin(), trackRead.validSectors.end(), [sector](const DecodedSector& sectorfound) -> bool {
 							return (sectorfound.sectorNumber == sector);
 						});
@@ -1140,7 +1248,7 @@ struct SCPFileHeader {
 	unsigned char	bitcellEncoding;
 	unsigned char	numHeads;
 	unsigned char   timeBase;
-	unsigned long	checksum;
+	uint32_t	checksum;
 };
 
 struct SCPTrackHeader {
@@ -1149,9 +1257,9 @@ struct SCPTrackHeader {
 };
 
 struct SCPTrackRevolution {
-	unsigned long	indexTime;		// Time in NS/25 for this revolution
-	unsigned long	trackLength;	// Number of bit-cells in this revolution
-	unsigned long	dataOffset;		// From the start of SCPTrackHeader 
+	uint32_t	indexTime;		// Time in NS/25 for this revolution
+	uint32_t	trackLength;	// Number of bit-cells in this revolution
+	uint32_t	dataOffset;		// From the start of SCPTrackHeader 
 };
 
 // Track data is 16-bit value in NS/25.  If =0 means no flux transition for max time 
@@ -1171,7 +1279,7 @@ struct SCPTrackInMemory {
 // Reads the disk and write the data to the SCP file supplied.  The callback is for progress, and you can returns FALSE to abort the process
 // numTracks is the number of tracks to read.  Usually 80 (0..79), sometimes track 80 and 81 are needed. revolutions is hwo many revolutions of the disk to save (1-5)
 // SCP files are a low level flux record of the disk and usually can backup copy protected disks to.  Without special hardware they can't usually be written back to disks.
-ADFResult ADFWriter::DiskToSCP(const std::wstring& outputFile, const unsigned int numTracks, const unsigned char revolutions, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound)> callback) {
+ADFResult ADFWriter::DiskToSCP(const std::wstring& outputFile, const uint32_t numTracks, const unsigned char revolutions, std::function < WriteResponse(const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound)> callback) {
 	if (!m_device.isOpen()) return ADFResult::adfrDriveError;
 
 	FirmwareVersion v = m_device.getFirwareVersion();
@@ -1221,8 +1329,8 @@ ADFResult ADFWriter::DiskToSCP(const std::wstring& outputFile, const unsigned in
 	}
 
 	// Pad out the records.  Theres 4 bytes for each track
-	unsigned long notPresent = 0;
-	for (unsigned int a = 0; a <168; a++) {
+	uint32_t notPresent = 0;
+	for (uint32_t a = 0; a <168; a++) {
 		try {
 			hADFFile.write((const char*)&notPresent, sizeof(notPresent));
 		} catch (...) {
@@ -1236,7 +1344,7 @@ ADFResult ADFWriter::DiskToSCP(const std::wstring& outputFile, const unsigned in
 	RotationExtractor::MFMSample samples[RAW_TRACKDATA_LENGTH];
 
 	// Do all tracks
-	for (unsigned int currentTrack = 0; currentTrack < numTracks; currentTrack++) {
+	for (uint32_t currentTrack = 0; currentTrack < numTracks; currentTrack++) {
 
 		// Select the track we're working on
 		if (m_device.selectTrack(currentTrack) != DiagnosticResponse::drOK) {
@@ -1245,7 +1353,7 @@ ADFResult ADFWriter::DiskToSCP(const std::wstring& outputFile, const unsigned in
 		}
 
 		// Now select the side
-		for (unsigned int surfaceIndex = 0; surfaceIndex < 2; surfaceIndex++) {
+		for (uint32_t surfaceIndex = 0; surfaceIndex < 2; surfaceIndex++) {
 			// Surface 
 			const DiskSurface surface = (surfaceIndex == 1) ? DiskSurface::dsUpper : DiskSurface::dsLower;
 			track.revolution.clear();
@@ -1275,15 +1383,15 @@ ADFResult ADFWriter::DiskToSCP(const std::wstring& outputFile, const unsigned in
 
 			SCPTrackData currentRevData;
 
-			if (m_device.readRotation(extractor, RAW_TRACKDATA_LENGTH, samples, startPatterns, [this, &track, &currentRev, &currentRevData, revolutions](RotationExtractor::MFMSample** _mfmData, unsigned int dataLengthInBits)->bool {
+			if (m_device.readRotation(extractor, RAW_TRACKDATA_LENGTH, samples, startPatterns, [this, &track, &currentRev, &currentRevData, revolutions](RotationExtractor::MFMSample** _mfmData, uint32_t dataLengthInBits)->bool {
 				RotationExtractor::MFMSample* mfmData = *_mfmData;
-				unsigned int currentTime = 0;
-				unsigned int numBits = 0;
+				uint32_t currentTime = 0;
+				uint32_t numBits = 0;
 
-				for (unsigned int a = 0; a < dataLengthInBits; a++) {
-					const unsigned int bit = 7 - (a & 7);
+				for (uint32_t a = 0; a < dataLengthInBits; a++) {
+					const uint32_t bit = 7 - (a & 7);
 
-					currentTime += (unsigned int)mfmData->bittime[bit];
+					currentTime += (uint32_t)mfmData->bittime[bit];
 					numBits++;
 
 					// Bit found?
@@ -1330,7 +1438,7 @@ ADFResult ADFWriter::DiskToSCP(const std::wstring& outputFile, const unsigned in
 			}
 
 			// Get the current position
-			unsigned long currentPosition = (unsigned long)hADFFile.tellp();
+			uint32_t currentPosition = (uint32_t)hADFFile.tellp();
 
 			// Move to the beginning of the file, and write the offset for where this starts
 			hADFFile.seekp(sizeof(header) + (track.header.trackNumber * 4), std::fstream::beg);
@@ -1353,8 +1461,8 @@ ADFResult ADFWriter::DiskToSCP(const std::wstring& outputFile, const unsigned in
 			}
 
 			// Write out the revolution headers
-			unsigned int dataPos = sizeof(track.header) + (track.revolution.size() * sizeof(SCPTrackRevolution));
-			for (unsigned int a = 0; a < track.revolution.size(); a++) {
+			uint32_t dataPos = sizeof(track.header) + (track.revolution.size() * sizeof(SCPTrackRevolution));
+			for (uint32_t a = 0; a < track.revolution.size(); a++) {
 				track.revolution[a].dataOffset = dataPos;
 				try {
 					hADFFile.write((const char*)&track.revolution[a], sizeof(track.revolution[a]));
@@ -1366,7 +1474,7 @@ ADFResult ADFWriter::DiskToSCP(const std::wstring& outputFile, const unsigned in
 			}
 
 			// Now write out the data
-			for (unsigned int a = 0; a < track.revolutionData.size(); a++) {
+			for (uint32_t a = 0; a < track.revolutionData.size(); a++) {
 				try {
 					hADFFile.write((const char*)track.revolutionData[a].data(), track.revolutionData[a].size() * 2);
 				} catch (...) {
@@ -1379,12 +1487,12 @@ ADFResult ADFWriter::DiskToSCP(const std::wstring& outputFile, const unsigned in
 
 	// Compute the checksum
 	hADFFile.seekg(sizeof(header), std::fstream::beg);
-	unsigned int buffer[128];
+	uint32_t buffer[128];
 	
 	while (hADFFile.good()) {
 		try {
 			hADFFile.read((char*)buffer, sizeof(buffer));
-			const unsigned long read = sizeof(buffer) / 4;
+			const uint32_t read = sizeof(buffer) / 4;
 			for (size_t pos = 0; pos < read; pos++)
 				header.checksum += buffer[pos];
 		}
@@ -1409,7 +1517,7 @@ ADFResult ADFWriter::DiskToSCP(const std::wstring& outputFile, const unsigned in
 
 
 // Reads the disk and write the data to the ADF file supplied.  The callback is for progress, and you can returns FALSE to abort the process
-ADFResult ADFWriter::DiskToADF(const std::wstring& outputFile, const unsigned int numTracks, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound)> callback) {
+ADFResult ADFWriter::DiskToADF(const std::wstring& outputFile, const uint32_t numTracks, std::function < WriteResponse(const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound)> callback) {
 	if (!m_device.isOpen()) return ADFResult::adfrDriveError;
 
 	// Higher than this is not supported
@@ -1431,7 +1539,7 @@ ADFResult ADFWriter::DiskToADF(const std::wstring& outputFile, const unsigned in
 	bool includesBadSectors = false;
 
 	// Do all tracks
-	for (unsigned int currentTrack = 0; currentTrack < numTracks; currentTrack++) {
+	for (uint32_t currentTrack = 0; currentTrack < numTracks; currentTrack++) {
 
 		// Select the track we're working on
 		if (m_device.selectTrack(currentTrack) != DiagnosticResponse::drOK) {
@@ -1440,7 +1548,7 @@ ADFResult ADFWriter::DiskToADF(const std::wstring& outputFile, const unsigned in
 		}
 		
 		// Now select the side
-		for (unsigned int surfaceIndex = 0; surfaceIndex < 2; surfaceIndex++) {
+		for (uint32_t surfaceIndex = 0; surfaceIndex < 2; surfaceIndex++) {
 			// Surface 
 			const DiskSurface surface = (surfaceIndex == 1) ? DiskSurface::dsUpper : DiskSurface::dsLower;
 
@@ -1451,21 +1559,21 @@ ADFResult ADFWriter::DiskToADF(const std::wstring& outputFile, const unsigned in
 			}
 
 			// Reset the sectors list
-			for (unsigned int sector=0; sector<NUM_SECTORS_PER_TRACK; sector++)
+			for (uint32_t sector=0; sector<NUM_SECTORS_PER_TRACK; sector++)
 				track.invalidSectors[sector].clear();
 
 			track.validSectors.clear();
 
 			// Extract phase code
-			int failureTotal = 0;
+			int32_t failureTotal = 0;
 			bool ignoreChecksums = false;
 
 			// Repeat until we have all 11 sectors
 			while (track.validSectors.size() < NUM_SECTORS_PER_TRACK) {
 
 				if (callback) {
-					int total = 0;
-					for (unsigned int sector = 0; sector < NUM_SECTORS_PER_TRACK; sector++)
+					int32_t total = 0;
+					for (uint32_t sector = 0; sector < NUM_SECTORS_PER_TRACK; sector++)
 						if (track.invalidSectors[sector].size()) total++;
 
 					if ((failureTotal%6)==5) {
@@ -1518,7 +1626,7 @@ ADFResult ADFWriter::DiskToADF(const std::wstring& outputFile, const unsigned in
 
 				// If the user wants to skip invalid sectors and save them
 				if (ignoreChecksums) {
-					for (unsigned int sector = 0; sector < NUM_SECTORS_PER_TRACK; sector++)
+					for (uint32_t sector = 0; sector < NUM_SECTORS_PER_TRACK; sector++)
 						if (track.invalidSectors[sector].size()) {
 							includesBadSectors = true;
 							break;
@@ -1533,7 +1641,7 @@ ADFResult ADFWriter::DiskToADF(const std::wstring& outputFile, const unsigned in
 			});
 
 			// Now write all of them to disk
-			for (unsigned int sector = 0; sector < 11; sector++) {
+			for (uint32_t sector = 0; sector < 11; sector++) {
 				try {
 					hADFFile.write((const char*)track.validSectors[sector].data, 512);
 				}

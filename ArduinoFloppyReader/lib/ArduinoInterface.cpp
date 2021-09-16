@@ -36,6 +36,13 @@
 #include "RotationExtractor.h"
 #ifndef _WIN32
 #include <string.h>
+#include <stdint.h>
+#include <inttypes.h>
+#else
+typedef unsigned int uint32_t
+typedef int int32_t
+typedef unsigned long long uint64_t
+typedef long long int64_t
 #endif
 
 using namespace ArduinoFloppyReader;
@@ -52,6 +59,7 @@ using namespace ArduinoFloppyReader;
 #define COMMAND_WRITETRACK         '>'
 #define COMMAND_ENABLEWRITE        '~'
 #define COMMAND_DIAGNOSTICS        '&'
+#define COMMAND_ERASETRACK		   'X'
 #define COMMAND_SWITCHTO_DD		   'D'   // Requires Firmware V1.6
 #define COMMAND_SWITCHTO_HD		   'H'   // Requires Firmware V1.6
 #define COMMAND_DETECT_DISK_TYPE   'M'	 // currently not implemented here
@@ -63,6 +71,7 @@ using namespace ArduinoFloppyReader;
 #define COMMAND_ISWRITEPROTECTED   '$'    // Requires Firmware V1.8
 #define COMMAND_ENABLE_NOWAIT      '*'    // Requires Firmware V1.8
 #define COMMAND_GOTOTRACK_REPORT   '='	  // Requires Firmware V1.8
+#define COMMAND_DO_NOCLICK_SEEK    'O'    // Requires Firmware V1.8a
 
 #define SPECIAL_ABORT_CHAR		   'x'
 
@@ -84,6 +93,7 @@ std::string lastCommandToName(LastCommand cmd) {
 	case LastCommand::lcReadTrackStream: return "ReadTrackStream";
 	case LastCommand::lcCheckDiskInDrive: return "CheckDiskInDrive";
 	case LastCommand::lcCheckDiskWriteProtected: return "CheckDiskWriteProtected";
+	case LastCommand::lcEraseTrack: return "EraseTrack";
 
 	default:							return "Unknown";
 	}
@@ -262,9 +272,9 @@ DiagnosticResponse ArduinoInterface::testTransferSpeed() {
 
 	unsigned char buffer[256];
 	for (int a = 0; a <= 10; a++) {
-		unsigned long read;
+		uint32_t read;
 
-		read = m_comPort.read(buffer, sizeof(buffer));
+		read = m_comPort.read(buffer, (uint32_t) sizeof(buffer));
 
 		// With the timeouts we have this shouldn't happen
 		if (read != sizeof(buffer)) {
@@ -337,7 +347,7 @@ DiagnosticResponse ArduinoInterface::attemptToSync(std::string& versionString, S
 	buffer[0] = SPECIAL_ABORT_CHAR;
 	buffer[1] = COMMAND_VERSION;
 
-	unsigned long size = port.write(&buffer[0], 2);
+	uint32_t size = port.write(&buffer[0], 2);
 	if (size != 2) {
 		// Couldn't write to device
 		port.closePort();
@@ -459,7 +469,7 @@ DiagnosticResponse ArduinoInterface::openPort(const std::wstring& portName, bool
 	char buffer[2];
 	int counter = 0;
 	for (;;) {
-		unsigned long size = m_comPort.read(buffer, 1);
+		uint32_t size = m_comPort.read(buffer, 1);
 		if (size < 1)
 			if (counter++>=10) break;
 	}
@@ -627,6 +637,36 @@ DiagnosticResponse ArduinoInterface::setDiskCapacity(bool switchToHD_Disk) {
 	return m_lastError;
 }
 
+// If the drive is on track 0, this does a test seek to -1 if supported
+DiagnosticResponse ArduinoInterface::performNoClickSeek() {
+	// And send the command and track.  This is sent as ASCII text as a result of terminal testing.  Easier to see whats going on
+	bool isV18 = (m_version.major > 1) || ((m_version.major == 1) && (m_version.minor >= 8));
+	if (!isV18) return DiagnosticResponse::drOldFirmware;
+	if (!m_version.fullControlMod) return DiagnosticResponse::drOldFirmware;
+
+	m_lastError = runCommand(COMMAND_DO_NOCLICK_SEEK);
+	if (m_lastError == DiagnosticResponse::drOK) {
+		// Read extended data
+		char status;
+		if (!deviceRead(&status, 1, true)) {
+			m_lastError = DiagnosticResponse::drReadResponseFailed;
+			return m_lastError;
+		}
+		// 'x' means we didnt check it
+		if (status != 'x') m_diskInDrive = status == '1';
+
+		// Also read the write protect status
+		if (!deviceRead(&status, 1, true)) {
+			m_lastError = DiagnosticResponse::drReadResponseFailed;
+			return m_lastError;
+		}
+		m_isWriteProtected = status == '1';
+	}
+
+	return m_lastError;
+}
+
+
 // Select the track, this makes the motor seek to this position
 DiagnosticResponse ArduinoInterface::selectTrack(const unsigned char trackIndex, const TrackSearchSpeed searchSpeed, bool ignoreDiskInsertCheck) {
 	if (trackIndex > 81) {
@@ -703,6 +743,43 @@ DiagnosticResponse ArduinoInterface::selectTrack(const unsigned char trackIndex,
 	default:	m_lastCommand = LastCommand::lcGotoTrack;
 		m_lastError = DiagnosticResponse::drStatusError;
 		break;
+	}
+
+	return m_lastError;
+}
+
+// Erases the current track by writing 0xAA to it
+DiagnosticResponse ArduinoInterface::eraseCurrentTrack() {
+	m_lastError = runCommand(COMMAND_ERASETRACK);
+	if (m_lastError != DiagnosticResponse::drOK) {
+		m_lastCommand = LastCommand::lcEraseTrack;
+		return m_lastError;
+	}
+
+	char result;
+	if (!deviceRead(&result, 1, true)) {
+		m_lastCommand = LastCommand::lcEraseTrack;
+		m_lastError = DiagnosticResponse::drReadResponseFailed;
+		return m_lastError;
+	}
+
+	if (result == 'N') {
+		m_lastCommand = LastCommand::lcEraseTrack;
+		m_lastError = DiagnosticResponse::drWriteProtected;
+		return m_lastError;
+	}
+
+	// Check result
+	if (!deviceRead(&result, 1, true)) {
+		m_lastCommand = LastCommand::lcEraseTrack;
+		m_lastError = DiagnosticResponse::drReadResponseFailed;
+		return m_lastError;
+	}
+
+	if (result != '1') {
+		m_lastCommand = LastCommand::lcEraseTrack;
+		m_lastError = DiagnosticResponse::drError;
+		return m_lastError;
 	}
 
 	return m_lastError;
@@ -861,10 +938,10 @@ DiagnosticResponse ArduinoInterface::readRotation(RotationExtractor& extractor, 
 	for (;;) {
 
 		// More efficient to read several bytes in one go		
-		unsigned long bytesAvailable = m_comPort.getBytesWaiting();
+		uint32_t bytesAvailable = m_comPort.getBytesWaiting();
 		if (bytesAvailable < 1) bytesAvailable = 1;
 		if (bytesAvailable > sizeof(tempReadBuffer)) bytesAvailable = sizeof(tempReadBuffer);
-		unsigned long bytesRead = m_comPort.read(tempReadBuffer, m_abortSignalled ? 1 : bytesAvailable);
+		uint32_t bytesRead = m_comPort.read(tempReadBuffer, m_abortSignalled ? 1 : bytesAvailable);
 
 
 		for (size_t a = 0; a < bytesRead; a++) {
@@ -886,7 +963,7 @@ DiagnosticResponse ArduinoInterface::readRotation(RotationExtractor& extractor, 
 			}
 			else {
 				unsigned char byteRead = tempReadBuffer[a];
-				unsigned short readSpeed = (((unsigned long long)(64 + ((unsigned int)((byteRead & 0x07) * 16)) * 2000) / 128));
+				uint16_t readSpeed = (((uint64_t)(64 + ((uint32_t)((byteRead & 0x07) * 16)) * 2000) / 128));
 
 				unsigned char tmp;
 				RotationExtractor::MFMSequenceInfo sequence;
@@ -911,6 +988,8 @@ DiagnosticResponse ArduinoInterface::readRotation(RotationExtractor& extractor, 
 					unsigned int bits = 0;
 					// Go!
 					if (extractor.extractRotation(firstOutputBuffer, bits, maxOutputSize)) {
+						m_diskInDrive = true;
+
 						if (!onRotation(&firstOutputBuffer, bits)) {
 							// And if the callback says so we stop.
 							abortReadStreaming();
@@ -924,6 +1003,7 @@ DiagnosticResponse ArduinoInterface::readRotation(RotationExtractor& extractor, 
 						abortReadStreaming();
 						noDataCounter = 0;
 						timeout = true;
+						m_diskInDrive = false; // probably no disk
 					}
 			}
 		}
@@ -1254,7 +1334,7 @@ DiagnosticResponse ArduinoInterface::runCommand(const char command, const char p
 bool ArduinoInterface::deviceRead(void* target, const unsigned int numBytes, const bool failIfNotAllRead) {
 	if (!m_comPort.isPortOpen()) return false;
 
-	unsigned long read = m_comPort.read(target, numBytes);
+	uint32_t read = m_comPort.read(target, numBytes);
 
 	if (read < numBytes) {
 		if (failIfNotAllRead) return false;

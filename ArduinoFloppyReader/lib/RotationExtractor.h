@@ -53,7 +53,13 @@
 // Signal for index was not found
 #define INDEX_NOT_FOUND					0xFFFFFFFF
 
-
+#ifndef _WIN32
+#include <stdint.h>
+#include <inttypes.h>
+#else
+typedef unsigned int uint32_t
+typedef int int32_t
+#endif
 // Class to extract a single rotation from an incoming mfm data sequence.
 class RotationExtractor {
 public:
@@ -100,43 +106,43 @@ public:
 
 private:
 	// How long a revolution is
-	unsigned int m_revolutionTime = 0;
+	uint32_t m_revolutionTime = 0;
 	// An amount of time whereby we 'nearly' have a complete revolution of data
-	unsigned int m_revolutionTimeNearlyComplete = 0;
+	uint32_t m_revolutionTimeNearlyComplete = 0;
 	// Used while working out the above
-	unsigned int m_revolutionTimeCounting = 0;
+	uint32_t m_revolutionTimeCounting = 0;
 	// Where the first index pulse was discovered
-	unsigned int m_sequenceIndex = INDEX_NOT_FOUND;
+	uint32_t m_sequenceIndex = INDEX_NOT_FOUND;
 	// Where the second index pulse was discovered
-	unsigned int m_nextSequenceIndex = INDEX_NOT_FOUND;
+	uint32_t m_nextSequenceIndex = INDEX_NOT_FOUND;
 	// Where we were when we reached m_revolutionTime worth of data
-	unsigned int m_revolutionReadyAt = INDEX_NOT_FOUND;
+	uint32_t m_revolutionReadyAt = INDEX_NOT_FOUND;
 	// And a flag to set this as good
 	bool m_revolutionReady = false;
 	// If we should always use the index marker when finding revolutions
 	bool m_useIndex = false;
 	// Current amount of data in the buffer in ns
-	unsigned int m_currentTime = 0;
+	uint32_t m_currentTime = 0;
 	// Current position of the buffer
-	unsigned int m_sequencePos = 0;
+	uint32_t m_sequencePos = 0;
 	// Used to track exactly how much data has been submitted
-	unsigned int m_timeReceived = 0;
+	uint32_t m_timeReceived = 0;
 	// Sequences received thus far
 	MFMSequenceInfo m_sequences[MAX_REVOLUTION_SEQUENCES];
 	// In index mode, this holds the initial sequences before the first index marker
 	MFMSequenceInfo m_initialSequences[OVERLAP_SEQUENCE_MATCHES * OVERLAP_EXTRA_BUFFER];
 	// Length of the above datat in use
-	unsigned int m_initialSequencesLength = 0;
+	uint32_t m_initialSequencesLength = 0;
 	// Where we're writing to as its a circular buffer
-	unsigned int m_initialSequencesWritePos = 0;
+	uint32_t m_initialSequencesWritePos = 0;
 	// Sequences discovered around the index marker
 	IndexSequenceMarker m_indexSequence;
 
 	// Finds the overlap between the start of the data and where we currently are
-	unsigned int getOverlapPosition() const;
+	uint32_t getOverlapPosition() const;
 
 	// is almost identical
-	const unsigned int getTrueIndexPosition(const unsigned int revolutionEnd, const unsigned int startingPoint = INDEX_NOT_FOUND);
+	const uint32_t getTrueIndexPosition(const uint32_t revolutionEnd, const uint32_t startingPoint = INDEX_NOT_FOUND);
 public:
 	// Get and set the sequence identified as data round the INDEX pulse so that next time we get consistant revolution starting points
 	void setIndexSequence(const IndexSequenceMarker& sequence) { m_indexSequence = sequence; }
@@ -165,13 +171,13 @@ public:
 	}
 
 	// Return the current revolution time
-	inline unsigned int getRevolutionTime() const { return m_revolutionTime; };
+	inline uint32_t getRevolutionTime() const { return m_revolutionTime; };
 
 	// Set the current revolution time
-	inline void setRevolutionTime(const unsigned int time) { m_revolutionTime = time; m_revolutionTimeNearlyComplete = (unsigned int)(time * 0.9f); };
+	inline void setRevolutionTime(const uint32_t time) { m_revolutionTime = time; m_revolutionTimeNearlyComplete = (uint32_t)(time * 0.9f); };
 
 	// Return the total amount of time data received so far
-	inline unsigned int totalTimeReceived() const { return m_timeReceived; };
+	inline uint32_t totalTimeReceived() const { return m_timeReceived; };
 
 	// Returns TRUE if this has learnt the time of a disk revolution
 	inline bool hasLearntRotationSpeed() const { return m_revolutionTime > 150000000; };
@@ -193,7 +199,7 @@ public:
 
 	// Extracts a single rotation and updates the buffer to remove it.  Returns FALSE if no rotation is available
 	// If calculateSpeedFactor is true, we're in INDEX mode, and HIGH_RESOLUTION_MODE is defined then this will output time in NS rather than the speed factor value
-	bool extractRotation(MFMSample* output, unsigned int& outputBits, const unsigned int maxBufferSizeBytes);
+	bool extractRotation(MFMSample* output, uint32_t& outputBits, const uint32_t maxBufferSizeBytes);
 };
 
 
