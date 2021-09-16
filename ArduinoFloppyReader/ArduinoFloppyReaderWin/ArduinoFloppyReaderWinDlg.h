@@ -25,6 +25,7 @@
 #include "afxwin.h"
 #include "afxcmn.h"
 #include <thread>
+#include <string>
 
 
 // CArduinoFloppyReaderWinDlg dialog
@@ -103,4 +104,5 @@ protected:
 	afx_msg LRESULT OnDevicechange(WPARAM wParam, LPARAM lParam);
 public:
 
+	afx_msg void OnCbnSelchangeDiskformat();
 };
