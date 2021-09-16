@@ -25,9 +25,13 @@
 #include "ArduinoInterface.h"
 #ifdef _WIN32
 #include <conio.h>
+typedef unsigned int uint32_t
+typedef int int32_t
 #else
 #include <stdio.h>
 #include <termios.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 #ifndef _wcsupr
 #include <wctype.h>
@@ -86,7 +90,7 @@ void adf2Disk(const std::wstring& filename, bool verify) {
 	printf("\nWrite disk from ADF mode\n\n");
 	if (!verify) printf("WARNING: It is STRONGLY recommended to write with verify support turned on.\r\n\r\n");
 
-	ADFResult result = writer.ADFToDisk(filename,verify,true, [](const int currentTrack, const DiskSurface currentSide, bool isVerifyError) ->WriteResponse {
+	ADFResult result = writer.ADFToDisk(filename,verify,true, [](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError) ->WriteResponse {
 		if (isVerifyError) {
 			char input;
 			do {
@@ -162,7 +166,7 @@ void disk2ADF(const std::wstring& filename) {
 		}
 	}
 
-	auto callback = [isADF](const int currentTrack, const DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound) ->WriteResponse {
+	auto callback = [isADF](const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound) ->WriteResponse {
 		if (retryCounter > 20) {
 			char input;
 			do {
@@ -245,7 +249,7 @@ int wmain(int argc, wchar_t* argv[], wchar_t *envp[])
 int main(int argc, char* argv[], char *envp[])
 #endif
 {
-	printf("Arduino Amiga ADF & SCP Floppy Disk Reader/Writer V2.5, Copyright (C) 2017-2021 Robert Smith\r\n");
+	printf("Arduino Amiga ADF & SCP Floppy Disk Reader/Writer V2.6, Copyright (C) 2017-2021 Robert Smith\r\n");
 	printf("Full sourcecode and documentation at https://amiga.robsmithdev.co.uk\r\n");
 	printf("This is free software licenced under the GNU General Public Licence V3\r\n\r\n");
 
