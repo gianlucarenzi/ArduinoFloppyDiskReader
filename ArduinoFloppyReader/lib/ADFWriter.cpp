@@ -45,14 +45,10 @@
 #include <thread>
 #include <fstream>
 #include <iostream>
+#include <stdint.h>
 #ifndef _WIN32
 #include <string.h>
 #include <cstring>
-#include <stdint.h>
-#include <inttypes.h>
-#else
-typedef unsigned int uint32_t
-typedef int int32_t
 #endif
 
 using namespace ArduinoFloppyReader;

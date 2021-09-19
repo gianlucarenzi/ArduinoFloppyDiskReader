@@ -406,8 +406,12 @@ SerialIO::Response SerialIO::configurePort(const Configuration& configuration) {
 	term.c_oflag &= ~OFILL;
 #endif
 
-	term.c_cc[VMIN] = 0;
-	term.c_cc[VTIME] = 0;
+	// As explained here:
+	// http://unixwiz.net/techtips/termios-vmin-vtime.html
+	// VMIN minimum amount of data/characters we hope to get
+	term.c_cc[VMIN] = 1;
+	// VTIME tenths of a second elapses between bytes (300ms)
+	term.c_cc[VTIME] = 3;
 
 	int ctsRtsFlags = 0;
 #ifdef CRTSCTS

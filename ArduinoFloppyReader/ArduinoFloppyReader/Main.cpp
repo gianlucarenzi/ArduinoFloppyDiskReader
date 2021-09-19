@@ -23,15 +23,12 @@
 
 #include "ADFWriter.h"
 #include "ArduinoInterface.h"
+#include <stdint.h>
 #ifdef _WIN32
 #include <conio.h>
-typedef unsigned int uint32_t
-typedef int int32_t
 #else
 #include <stdio.h>
 #include <termios.h>
-#include <stdint.h>
-#include <inttypes.h>
 
 #ifndef _wcsupr
 #include <wctype.h>

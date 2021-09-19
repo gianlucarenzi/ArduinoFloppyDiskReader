@@ -38,11 +38,7 @@
 
 #include "RotationExtractor.h"
 #include "ArduinoInterface.h"
-
-#ifndef _WIN32
 #include <stdint.h>
-#include <inttypes.h>
-#endif
 
 namespace ArduinoFloppyReader {
 

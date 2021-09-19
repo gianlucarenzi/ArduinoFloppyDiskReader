@@ -53,13 +53,8 @@
 // Signal for index was not found
 #define INDEX_NOT_FOUND					0xFFFFFFFF
 
-#ifndef _WIN32
 #include <stdint.h>
-#include <inttypes.h>
-#else
-typedef unsigned int uint32_t
-typedef int int32_t
-#endif
+
 // Class to extract a single rotation from an incoming mfm data sequence.
 class RotationExtractor {
 public:
