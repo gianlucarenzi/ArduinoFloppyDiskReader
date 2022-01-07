@@ -8,11 +8,17 @@
 #include "ui_mainwindow.h"
 #include <stdio.h>
 #include <QString>
+#include <QFont>
 #include "qtdrawbridge.h"
 
 MainWindow::MainWindow(QWidget *parent)
 : QMainWindow(parent),
-  ui(new Ui::MainWindow)
+  ui(new Ui::MainWindow),
+  track(-1),
+  side(-1),
+  status(-1),
+  readInProgress(false),
+  writeInProgress(false)
 {
     ui->setupUi(this);
     // Connection when click actions
@@ -20,16 +26,52 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->startRead, SIGNAL(emitClick()), SLOT(checkStartRead()));
     // Prepare all squares for tracks
     prepareTracks();
-    demoTimer = new QTimer(this);
-    demoTimer->setInterval(250);
-    demoTimer->setSingleShot(false);
-//    connect(demoTimer, SIGNAL(timeout()), SLOT(checkStartWrite()));
+    prepareTracksPosition();
 #ifdef _WIN32
     // In Windows the first available COM port is 1.
     ui->serial->setMinimum(1);
 #endif
+    watcher = new QFileSystemWatcher(this);
+    fileList.append(TRACKFILE);
+    fileList.append(SIDEFILE);
+    fileList.append(STATUSFILE);
+    watcher->addPaths(fileList);
+    connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(progressChange(QString)));
     amigaBridge = new QtDrawBridge();
     connect(amigaBridge, SIGNAL(finished()), SLOT(doneWork()));
+    ui->scrollText->setStyleSheet("color: rgb(255,255,255)");
+    QString empty = "                                                ";
+    stext += empty;
+    stext += empty;
+    stext += empty;
+    // The following QString should be localized
+    QString sctext = tr("The essential USB floppy drive for the real Amiga user."
+    "It allows you to read and write ADF and, thanks to a specific version of UAE Emulator, "
+    "it works like a real Amiga drive allowing you to directly read and write your floppies! "
+    "The package contains the black or white Waffle, a USB cable with the possibility of "
+    "double powering if the USB port of the PC is not very powerful and a USB stick "
+    "with all the necessary software to use the Waffle immediately.");
+    stext += sctext;
+    stext += empty;
+    ui->scrollText->setText(stext);
+    scrollTimer = new QTimer();
+    scrollTimer->setInterval(60);
+    scrollTimer->setSingleShot(false);
+    scrollTimer->start();
+    connect(scrollTimer, SIGNAL(timeout()), this, SLOT(doScroll()));
+    ui->stopButton->hide(); // The stop button will be visible only when running disk copy
+    connect(ui->stopButton, SIGNAL(clicked()), this, SLOT(stopClicked()));
+    connect(ui->copyCompleted, SIGNAL(clicked()), this, SLOT(done()));
+    connect(ui->copyError, SIGNAL(clicked()), this, SLOT(done()));
+    ui->copyCompleted->hide();
+    ui->copyError->hide();
+    // Busy background is invisible now
+    ui->busy->raise();
+    ui->busy->hide();
+    ui->stopButton->raise();
+    ui->stopButton->hide();
+    ui->showError->raise();
+    ui->showError->hide();
 }
 
 MainWindow::~MainWindow()
@@ -37,7 +79,67 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::doneWork(void)
+{
+    prepareTracksPosition();
+    if (status != 0) {
+        ui->copyError->show();
+        ui->copyError->raise();
+    } else {
+        ui->copyCompleted->show();
+        ui->copyCompleted->raise();
+    }
+}
+
+void MainWindow::done(void)
+{
+    ui->copyCompleted->hide();
+    ui->copyError->hide();
+    ui->busy->hide();
+    ui->stopButton->hide();
+    prepareTracksPosition();
+}
+
+void MainWindow::stopClicked(void)
+{
+    ui->stopButton->hide();
+    amigaBridge->terminate();
+}
+
+void MainWindow::doScroll(void)
+{
+#define ArraySize(a) (sizeof(a) / sizeof(a[0]))
+
+    int sinetab[] = { 0, -1, -3, -5, -7, -9, -11, -13, -12, -10, -8, -6, -4, -2, 0 };
+    static int p = 0;
+    static int ypos = ui->scrollText->pos().y();
+    static unsigned int slt = 0;
+    int i = stext.length();
+    QString textToScroll;
+    textToScroll = stext.mid(p); // From p to the end of string
+    ui->scrollText->setText(textToScroll);
+    p++;
+    if (p >= i)
+        p = 0;
+    int y = ypos + sinetab[ slt ];
+    //qDebug() << "Y: " << y;
+    ui->scrollText->setGeometry(ui->scrollText->pos().x(), y,
+                                ui->scrollText->width(), ui->scrollText->height());
+    slt++;
+    if (slt >= ArraySize(sinetab))
+        slt = 0;
+}
+
 void MainWindow::prepareTracks(void)
+{
+    for (int j = 0; j < 82; j++)
+    {
+       upperTrack[j] = new QLabel(this);
+       lowerTrack[j] = new QLabel(this);
+    }
+}
+
+void MainWindow::prepareTracksPosition(void)
 {
     int counter = 0;
     int j;
@@ -55,10 +157,10 @@ void MainWindow::prepareTracks(void)
     };
     for (j = 0; j < 82; j++)
     {
-       upperTrack[counter] = new QLabel(this);
        upperTrack[counter]->hide();
        upperTrack[counter]->setGeometry(ut[j][0], ut[j][1], 16, 16);
-       upperTrack[counter]->setStyleSheet("background-color: rgb(0,255,0)");
+       // All blacks
+       upperTrack[counter]->setStyleSheet("background-color: rgb(0,0,0)");
        counter++;
     }
     // lut lower side track
@@ -76,12 +178,13 @@ void MainWindow::prepareTracks(void)
     counter = 0;
     for (j = 0; j < 82; j++)
     {
-       lowerTrack[counter] = new QLabel(this);
        lowerTrack[counter]->hide();
        lowerTrack[counter]->setGeometry(lt[j][0], lt[j][1], 16, 16);
-       lowerTrack[counter]->setStyleSheet("background-color: rgb(255,255,0)");
+       // All blacks
+       lowerTrack[counter]->setStyleSheet("background-color: rgb(0,0,0)");
        counter++;
     }
+    ui->stopButton->hide();
 }
 
 void MainWindow::checkStartWrite(void)
@@ -90,6 +193,7 @@ void MainWindow::checkStartWrite(void)
     if (ui->getADFFileName->text().isEmpty())
     {
         qDebug() << "NEED ADF FILENAME First to write to floppy";
+        showError("NEED ADF FILENAME FIRST TO WRITE TO FLOPPY");
         return;
     }
     QString port =
@@ -112,6 +216,19 @@ void MainWindow::checkStartWrite(void)
     startWrite();
 }
 
+void MainWindow::showError(QString err)
+{
+    ui->showError->setText(err);
+    ui->showError->show();
+    QElapsedTimer timer;
+    timer.start();
+    while (timer.elapsed() < 5000)
+    {
+        qApp->processEvents();
+    }
+    ui->showError->hide();
+}
+
 void MainWindow::checkStartRead(void)
 {
     qDebug() << "CHECK FOR READ";
@@ -120,6 +237,7 @@ void MainWindow::checkStartRead(void)
     if (ui->setADFFileName->text().isEmpty())
     {
         qDebug() << "NEED ADF FILENAME First to write to disk from floppy";
+        showError("NEED ADF FILENAME FIRST TO WRITE TO DISK FROM FLOPPY");
         return;
     }
     QString port =
@@ -138,7 +256,6 @@ void MainWindow::checkStartRead(void)
     qDebug() << "COMMAND: " << command;
 
     amigaBridge->setup(port, filename, command);
-
     startRead();
 }
 
@@ -146,41 +263,84 @@ void MainWindow::startWrite(void)
 {
     QApplication::processEvents();
     amigaBridge->start();
-#if 0
-    static int counter = 0;
-    static bool toShow = true;
-    qDebug() << "START WRITE DISK";
-    // This should start the writing of the ADF File to WAFFLE in a Thread
-    qDebug() << "UpperTrack " << counter << "ToShow:" << toShow << upperTrack[counter]->x() << upperTrack[counter]->y();
-    qDebug() << "LowerTrack " << counter << "ToShow:" << toShow << lowerTrack[counter]->x() << lowerTrack[counter]->y();
-    if (toShow) {
-        upperTrack[counter]->show();
-        lowerTrack[counter]->show();
-    }
-    else
-    {
-        upperTrack[counter]->hide();
-        lowerTrack[counter]->hide();
-    }
-
-    counter++;
-    if (counter > 81)
-    {
-        counter = 0;
-        toShow = !toShow;
-        demoTimer->stop();
-    }
-    else
-    {
-        demoTimer->start();
-    }
-#endif
+    ui->busy->show();
+    ui->stopButton->show();
 }
 
 void MainWindow::startRead(void)
 {
     QApplication::processEvents();
     amigaBridge->start();
+    ui->busy->show();
+    ui->stopButton->show();
+}
+
+void MainWindow::progressChange(QString s)
+{
+    QFile file;
+    bool toShow = false;
+
+    if (s == TRACKFILE)
+    {
+        file.setFileName(TRACKFILE);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+            return;
+        QByteArray qbaTrack = file.readLine();
+        QString t = qbaTrack.data();
+        track = t.toInt();
+        // Now we have the track!
+        toShow = true;
+    }
+    else
+    if (s == SIDEFILE)
+    {
+        file.setFileName(SIDEFILE);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+            return;
+        QByteArray qbaSide = file.readLine();
+        QString t = qbaSide.data();
+        side = t.toInt();
+        // Now we have the side!
+        toShow = true;
+    }
+    else
+    if (s == STATUSFILE)
+    {
+        file.setFileName(STATUSFILE);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+            return;
+        QByteArray qbaStatus = file.readLine();
+        QString t = qbaStatus.data();
+        status = t.toInt();
+        // Now we have the status!
+        toShow = true;
+    }
+    else
+    {
+        qDebug() << "Nothing to do";
+    }
+    //qDebug() << "TRACK: " << track << "SIDE: " << side << "STATUS: " << status;
+    if (toShow)
+    {
+        // Error = red squares. good green or yellow if verify
+        switch(side)
+        {
+        case 0: // Lower Side
+            if (status != 0)
+                lowerTrack[track]->setStyleSheet("background-color: rgb(255,0,0)");
+            else
+                lowerTrack[track]->setStyleSheet("background-color: rgb(0,255,0)");
+            lowerTrack[track]->show();
+            break;
+        case 1:
+            if (status != 0)
+                upperTrack[track]->setStyleSheet("background-color: rgb(255,0,0)");
+            else
+                upperTrack[track]->setStyleSheet("background-color: rgb(0,255,0)");
+            upperTrack[track]->show();
+            break;
+        }
+    }
 }
 
 void MainWindow::on_fileReadADF_clicked()
@@ -190,7 +350,7 @@ void MainWindow::on_fileReadADF_clicked()
                                                     tr("ADF Files(*.adf)"));
     if (!fileName.isEmpty())
         ui->getADFFileName->setText(fileName);
-    demoTimer->start();
+ //   demoTimer->start();
 }
 
 void MainWindow::on_fileSaveADF_clicked()
@@ -200,5 +360,5 @@ void MainWindow::on_fileSaveADF_clicked()
                                                     tr("ADF Files(*.adf)"));
     if (!fileName.isEmpty())
         ui->setADFFileName->setText(fileName);
-    demoTimer->start();
+//    demoTimer->start();
 }
