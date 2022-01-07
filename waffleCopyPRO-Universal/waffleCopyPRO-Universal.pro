@@ -27,6 +27,7 @@ HEADERS += \
 	inc/mainwindow.h \
 	 \
     inc/qtdrawbridge.h \
+    inc/waffleconfig.h \
 	lib/ADFWriter.h \
 	lib/ArduinoInterface.h \
 	lib/RotationExtractor.h \

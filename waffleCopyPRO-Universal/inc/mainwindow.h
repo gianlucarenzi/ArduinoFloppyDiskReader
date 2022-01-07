@@ -4,7 +4,13 @@
 #include <QMainWindow>
 #include <clicklabel.h>
 #include <QTimer>
-#include <qtdrawbridge.h>
+#include <QString>
+#include <QStringList>
+#include <QFileSystemWatcher>
+#include <QFont>
+#include <QFontDatabase>
+#include "qtdrawbridge.h"
+#include "waffleconfig.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -20,23 +26,35 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    int track;
+    int side;
+    int status;
     QLabel *upperTrack[82];
     QLabel *lowerTrack[82];
     void prepareTracks(void);
-    QTimer *demoTimer;
+    void prepareTracksPosition(void);
+    QTimer *scrollTimer;
     QtDrawBridge *amigaBridge;
-
+    QFileSystemWatcher *watcher;
+    QStringList fileList; // This file list is shared with the QThread for READING/WRITING from Waffle
+    QString stext;
+    bool readInProgress;
+    bool writeInProgress;
 
 private:
     void startWrite(void);
     void startRead(void);
+    void showError(QString err);
 
 private slots:
     void checkStartWrite(void);
     void checkStartRead(void);
-
+    void progressChange(QString s);
     void on_fileReadADF_clicked();
     void on_fileSaveADF_clicked();
-
+    void doneWork();
+    void doScroll();
+    void stopClicked(void);
+    void done(void);
 };
 #endif // MAINWINDOW_H

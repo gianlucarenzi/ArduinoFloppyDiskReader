@@ -54,6 +54,9 @@
       <height>594</height>
      </size>
     </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
     <property name="text">
      <string/>
     </property>
@@ -80,43 +83,42 @@
    <widget class="QSpinBox" name="serial">
     <property name="geometry">
      <rect>
-      <x>180</x>
+      <x>220</x>
       <y>510</y>
       <width>45</width>
       <height>21</height>
      </rect>
     </property>
    </widget>
-   <widget class="ClickLabel" name="writeVerify">
-    <property name="geometry">
-     <rect>
-      <x>60</x>
-      <y>280</y>
-      <width>111</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-    <property name="pixmap">
-     <pixmap>WaffleUI/nVerifyWrite.png</pixmap>
-    </property>
-   </widget>
    <widget class="ClickLabel" name="startWrite">
     <property name="geometry">
      <rect>
-      <x>210</x>
+      <x>120</x>
       <y>280</y>
-      <width>71</width>
+      <width>91</width>
       <height>31</height>
      </rect>
     </property>
-    <property name="text">
-     <string/>
+    <property name="font">
+     <font>
+      <family>Topaz a500a1000a2000</family>
+     </font>
     </property>
-    <property name="pixmap">
-     <pixmap>WaffleUI/nStart.png</pixmap>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(249, 240, 107);
+background-color: rgb(61, 56, 70);</string>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::Panel</enum>
+    </property>
+    <property name="text">
+     <string>START WRITE</string>
+    </property>
+    <property name="textFormat">
+     <enum>Qt::PlainText</enum>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
     </property>
    </widget>
    <widget class="QLabel" name="leftLogo">
@@ -135,52 +137,35 @@
      <pixmap>WaffleUI/leftLogo.png</pixmap>
     </property>
    </widget>
-   <widget class="QLabel" name="portSel">
-    <property name="geometry">
-     <rect>
-      <x>30</x>
-      <y>510</y>
-      <width>141</width>
-      <height>19</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-    <property name="pixmap">
-     <pixmap>WaffleUI/SerialPort.png</pixmap>
-    </property>
-   </widget>
-   <widget class="ClickLabel" name="runDiagnostic">
-    <property name="geometry">
-     <rect>
-      <x>240</x>
-      <y>510</y>
-      <width>151</width>
-      <height>19</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-    <property name="pixmap">
-     <pixmap>WaffleUI/RunDiagnostic.png</pixmap>
-    </property>
-   </widget>
    <widget class="ClickLabel" name="startRead">
     <property name="geometry">
      <rect>
-      <x>150</x>
+      <x>118</x>
       <y>450</y>
-      <width>71</width>
+      <width>91</width>
       <height>31</height>
      </rect>
     </property>
-    <property name="text">
-     <string/>
+    <property name="font">
+     <font>
+      <family>Topaz a500a1000a2000</family>
+     </font>
     </property>
-    <property name="pixmap">
-     <pixmap>WaffleUI/nStart.png</pixmap>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(249, 240, 107);
+background-color: rgb(61, 56, 70);</string>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::Panel</enum>
+    </property>
+    <property name="text">
+     <string>START READ</string>
+    </property>
+    <property name="textFormat">
+     <enum>Qt::PlainText</enum>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
     </property>
    </widget>
    <widget class="QLabel" name="mainTitle">
@@ -257,6 +242,206 @@
      <string>...</string>
     </property>
    </widget>
+   <widget class="QLabel" name="scrollText">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>550</y>
+      <width>961</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Topaz a500a1000a2000</family>
+     </font>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::NoFrame</enum>
+    </property>
+    <property name="textFormat">
+     <enum>Qt::PlainText</enum>
+    </property>
+   </widget>
+   <widget class="QLabel" name="portSelection">
+    <property name="geometry">
+     <rect>
+      <x>50</x>
+      <y>510</y>
+      <width>161</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Topaz a500a1000a2000</family>
+      <stylestrategy>PreferAntialias</stylestrategy>
+      <kerning>true</kerning>
+     </font>
+    </property>
+    <property name="autoFillBackground">
+     <bool>false</bool>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(249, 240, 107);
+background-color: rgb(0, 0, 0);</string>
+    </property>
+    <property name="text">
+     <string>WAFFLE DRIVE USB PORT</string>
+    </property>
+    <property name="textFormat">
+     <enum>Qt::PlainText</enum>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="stopButton">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>460</x>
+      <y>510</y>
+      <width>82</width>
+      <height>27</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Topaz a500a1000a2000</family>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(61, 56, 70);
+color: rgb(248, 228, 92);</string>
+    </property>
+    <property name="text">
+     <string>STOP</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="busy">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>1024</width>
+      <height>594</height>
+     </rect>
+    </property>
+    <property name="autoFillBackground">
+     <bool>false</bool>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(0, 0, 0, 75);</string>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="text">
+     <string notr="true"/>
+    </property>
+    <property name="textFormat">
+     <enum>Qt::PlainText</enum>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="copyCompleted">
+    <property name="geometry">
+     <rect>
+      <x>330</x>
+      <y>240</y>
+      <width>311</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Topaz a500a1000a2000</family>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(249, 240, 107);
+background-color: rgb(61, 56, 70);</string>
+    </property>
+    <property name="text">
+     <string>AMIGA DISK COPY COMPLETED</string>
+    </property>
+    <property name="flat">
+     <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="copyError">
+    <property name="geometry">
+     <rect>
+      <x>330</x>
+      <y>240</y>
+      <width>311</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Topaz a500a1000a2000</family>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(224, 27, 36);
+background-color: rgb(61, 56, 70);</string>
+    </property>
+    <property name="text">
+     <string>AMIGA DISK COPY ERROR</string>
+    </property>
+    <property name="flat">
+     <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="showError">
+    <property name="geometry">
+     <rect>
+      <x>230</x>
+      <y>240</y>
+      <width>601</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Topaz a500a1000a2000</family>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(255, 120, 0);
+background-color: rgb(61, 56, 70);</string>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+    <property name="flat">
+     <bool>false</bool>
+    </property>
+   </widget>
+   <zorder>busy</zorder>
+   <zorder>background</zorder>
+   <zorder>stopButton</zorder>
+   <zorder>startWrite</zorder>
+   <zorder>startRead</zorder>
+   <zorder>setADFFileName</zorder>
+   <zorder>serial</zorder>
+   <zorder>scrollText</zorder>
+   <zorder>rightLogo</zorder>
+   <zorder>portSelection</zorder>
+   <zorder>mainTitle</zorder>
+   <zorder>leftLogo</zorder>
+   <zorder>getADFFileName</zorder>
+   <zorder>fileSaveADF</zorder>
+   <zorder>fileReadADF</zorder>
+   <zorder>copyCompleted</zorder>
+   <zorder>copyError</zorder>
+   <zorder>showError</zorder>
   </widget>
  </widget>
  <customwidgets>
