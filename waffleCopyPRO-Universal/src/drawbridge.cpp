@@ -24,6 +24,7 @@
 #include "ADFWriter.h"
 #include "ArduinoInterface.h"
 #include <stdint.h>
+#include "waffleconfig.h"
 #ifdef _WIN32
 #include <conio.h>
 #else
@@ -89,15 +90,9 @@ ADFWriter writer;
 static void prepareUIFiles(void)
 {
     int zero = 0;
-#ifndef _WIN32
-    trackFile = fopen("/tmp/.track", "w+b");
-    sideFile  = fopen("/tmp/.side", "w+b");
-    badFile   = fopen("/tmp/.bad", "w+b");
-#else
-    trackFile = fopen("C:\.track", "w+b");
-    sideFile  = fopen("C:\.side", "w+b");
-    badFile   = fopen("C:\.bad", "w+b");
-#endif
+    trackFile = fopen(TRACKFILE, "w+b");
+    sideFile  = fopen(SIDEFILE, "w+b");
+    badFile   = fopen(STATUSFILE, "w+b");
     fprintf(trackFile, "%d", zero);
     fprintf(sideFile, "%d", zero);
     fprintf(badFile, "%d", zero);
@@ -105,9 +100,12 @@ static void prepareUIFiles(void)
 
 static void removeUIFiles(void)
 {
-    fclose(trackFile);
-    fclose(sideFile);
-    fclose(badFile);
+    if (trackFile)
+        fclose(trackFile);
+    if (sideFile)
+        fclose(sideFile);
+    if (badFile)
+        fclose(badFile);
 }
 
 // Read an ADF file and write it to disk
@@ -339,9 +337,9 @@ int wmain(QStringList list)
             prepareUIFiles();
             if (writeMode) adf2Disk(filename.c_str(), verify); else disk2ADF(filename.c_str());
 			writer.closeDevice();
+            removeUIFiles();
 		}
 	}
-    removeUIFiles();
 	printf("\r\n\r\n");
     return 0;
 }
