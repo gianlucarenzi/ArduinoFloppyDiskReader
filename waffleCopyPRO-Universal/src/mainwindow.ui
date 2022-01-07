@@ -337,7 +337,7 @@ color: rgb(248, 228, 92);</string>
      <bool>false</bool>
     </property>
     <property name="styleSheet">
-     <string notr="true">background-color: rgb(0, 0, 0, 75);</string>
+     <string notr="true">background-color: rgba(0, 0, 0, 75);</string>
     </property>
     <property name="frameShape">
      <enum>QFrame::StyledPanel</enum>
