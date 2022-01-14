@@ -23,31 +23,33 @@ INCLUDEPATH += \
 
 # Input
 HEADERS += \
-	inc/clicklabel.h \
-	inc/mainwindow.h \
-	 \
+    inc/clicklabel.h \
+    inc/mainwindow.h \
     inc/qtdrawbridge.h \
     inc/waffleconfig.h \
-	lib/ADFWriter.h \
-	lib/ArduinoInterface.h \
-	lib/RotationExtractor.h \
-	lib/SerialIO.h
+    lib/ADFWriter.h \
+    lib/ArduinoInterface.h \
+    lib/RotationExtractor.h \
+    lib/SerialIO.h \
+    \
 	
 FORMS += \
-	src/mainwindow.ui \
-	
+    src/mainwindow.ui \
+    \
 	
 SOURCES += \
-	lib/ADFWriter.cpp \
-	lib/ArduinoInterface.cpp \
-	lib/RotationExtractor.cpp \
-	lib/SerialIO.cpp \
-	src/clicklabel.cpp \
-	src/drawbridge.cpp \
-	src/main.cpp \
-	src/mainwindow.cpp \
-	 \
-	src/qtdrawbridge.cpp
-	
+    lib/ADFWriter.cpp \
+    lib/ArduinoInterface.cpp \
+    lib/RotationExtractor.cpp \
+    lib/SerialIO.cpp \
+    \
+
+SOURCES += \
+    src/clicklabel.cpp \
+    src/drawbridge.cpp \
+    src/main.cpp \
+    src/mainwindow.cpp \
+    src/qtdrawbridge.cpp \
+    \
 
 DEFINES += __USE_GUI__
