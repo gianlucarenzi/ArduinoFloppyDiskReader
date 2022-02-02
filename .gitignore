@@ -37,3 +37,6 @@ CVS
 /waffleCopyPRO-Universal/qtdrawbridge.o
 /waffleCopyPRO-Universal/ui_mainwindow.h
 /waffleCopyPRO-Universal/Makefile
+/ArduinoFloppyReader/ArduinoFloppyReader/ArduinoReaderWriter
+/waffleCopyPRO-Universal/debug/
+/waffleCopyPRO-Universal/release/
