@@ -6,7 +6,9 @@
 #
 
 # define the C compiler to use
-CC = g++
+CROSS_COMPILE =
+
+CC = $(CROSS_COMPILE)g++
 
 # define any compile-time flags
 CFLAGS = -Wall -std=c++14 -Wno-psabi -O3
