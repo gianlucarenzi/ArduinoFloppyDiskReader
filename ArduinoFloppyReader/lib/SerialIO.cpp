@@ -25,8 +25,8 @@
 #include "SerialIO.h"
 
 #ifdef _WIN32
-#include <SetupAPI.h>
-#include <Devpropdef.h>
+#include <setupapi.h>
+#include <devpropdef.h>
 #include "RotationExtractor.h"
 #pragma comment(lib, "setupapi.lib")
 static const DEVPROPKEY DEVPKEY_Device_BusReportedDeviceDesc2 = { {0x540b947e, 0x8b40, 0x45bc, 0xa8, 0xa2, 0x6a, 0x0b, 0x89, 0x4c, 0xbd, 0xa2}, 4 };
