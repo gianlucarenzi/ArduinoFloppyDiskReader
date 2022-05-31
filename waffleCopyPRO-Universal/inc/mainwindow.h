@@ -11,6 +11,7 @@
 #include <QFontDatabase>
 #include "qtdrawbridge.h"
 #include "waffleconfig.h"
+#include <QCursor>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -40,6 +41,7 @@ private:
     QString stext;
     bool readInProgress;
     bool writeInProgress;
+    QCursor cursor;
 
 private:
     void startWrite(void);
