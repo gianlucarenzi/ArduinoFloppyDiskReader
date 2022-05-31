@@ -10,6 +10,7 @@
 #include <QString>
 #include <QFont>
 #include "qtdrawbridge.h"
+#include <QCursor>
 
 MainWindow::MainWindow(QWidget *parent)
 : QMainWindow(parent),
@@ -21,6 +22,8 @@ MainWindow::MainWindow(QWidget *parent)
   writeInProgress(false)
 {
     ui->setupUi(this);
+    cursor = QCursor(QPixmap("WaffleUI/cursor.png"));
+    this->setCursor(cursor);
     // Connection when click actions
     connect(ui->startWrite, SIGNAL(emitClick()), SLOT(checkStartWrite()));
     connect(ui->startRead, SIGNAL(emitClick()), SLOT(checkStartRead()));
