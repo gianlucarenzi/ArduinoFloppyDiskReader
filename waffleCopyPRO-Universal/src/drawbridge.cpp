@@ -109,11 +109,11 @@ static void removeUIFiles(void)
 }
 
 // Read an ADF file and write it to disk
-void adf2Disk(const std::wstring& filename, bool verify) {
+void adf2Disk(const std::wstring& filename, bool verify, bool preComp) {
 	printf("\nWrite disk from ADF mode\n\n");
 	if (!verify) printf("WARNING: It is STRONGLY recommended to write with verify support turned on.\r\n\r\n");
 
-	ADFResult result = writer.ADFToDisk(filename,verify,true, [](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError) ->WriteResponse {
+    ADFResult result = writer.ADFToDisk(filename,verify,preComp, [](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError) ->WriteResponse {
 		if (isVerifyError) {
 			char input;
 			do {
@@ -317,6 +317,7 @@ int wmain(QStringList list)
 {
     bool writeMode = list.contains("WRITE");
     bool verify = list.contains("VERIFY");
+    bool preComp = list.contains("PRECOMP");
 
     std::wstring port = list.at(0).toStdWString();
     std::wstring filename = list.at(1).toStdWString();;
@@ -326,6 +327,7 @@ int wmain(QStringList list)
 
     qDebug() << "writeMode" << writeMode;
     qDebug() << "verify" << verify;
+    qDebug() << "preComp" << preComp;
 
     if (list.contains("DIAGNOSTIC")) {
             runDiagnostics(port);
@@ -335,7 +337,7 @@ int wmain(QStringList list)
 		}
 		else {
             prepareUIFiles();
-            if (writeMode) adf2Disk(filename.c_str(), verify); else disk2ADF(filename.c_str());
+            if (writeMode) adf2Disk(filename.c_str(), verify, preComp); else disk2ADF(filename.c_str());
 			writer.closeDevice();
             removeUIFiles();
 		}
