@@ -19,7 +19,9 @@ MainWindow::MainWindow(QWidget *parent)
   side(-1),
   status(-1),
   readInProgress(false),
-  writeInProgress(false)
+  writeInProgress(false),
+  preComp(true),
+  doRefresh(true)
 {
     ui->setupUi(this);
     cursor = QCursor(QPixmap("WaffleUI/cursor.png"));
@@ -49,7 +51,7 @@ MainWindow::MainWindow(QWidget *parent)
     stext += empty;
     // The following QString should be localized
     QString sctext = tr("The essential USB floppy drive for the real Amiga user."
-    "It allows you to read and write ADF and, thanks to a specific version of UAE Emulator, "
+    "It allows you to read and write ADF and, thanks to a specific version of AmiBerry (C) MiDWan, "
     "it works like a real Amiga drive allowing you to directly read and write your floppies! "
     "The package contains the black or white Waffle, a USB cable with the possibility of "
     "double powering if the USB port of the PC is not very powerful and a USB stick "
@@ -66,6 +68,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->stopButton, SIGNAL(clicked()), this, SLOT(stopClicked()));
     connect(ui->copyCompleted, SIGNAL(clicked()), this, SLOT(done()));
     connect(ui->copyError, SIGNAL(clicked()), this, SLOT(done()));
+    connect(ui->preCompSelection, SIGNAL(clicked()), this, SLOT(togglePreComp()));
     ui->copyCompleted->hide();
     ui->copyError->hide();
     // Busy background is invisible now
@@ -75,11 +78,18 @@ MainWindow::MainWindow(QWidget *parent)
     ui->stopButton->hide();
     ui->showError->raise();
     ui->showError->hide();
+    ui->preCompSelection->setFont(this->font());
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::togglePreComp(void)
+{
+    preComp = !preComp;
+    qDebug() << "PRECOMP" << preComp;
 }
 
 void MainWindow::doneWork(void)
@@ -131,6 +141,10 @@ void MainWindow::doScroll(void)
     slt++;
     if (slt >= ArraySize(sinetab))
         slt = 0;
+    if (doRefresh) {
+        ui->preCompSelection->setFont(this->font());
+        doRefresh = ! doRefresh;
+    }
 }
 
 void MainWindow::prepareTracks(void)
@@ -210,7 +224,10 @@ void MainWindow::checkStartWrite(void)
     port += QString::number(value);
 
     QString filename = ui->getADFFileName->text();
-    QString command = " READ"; // Should be WRITE
+    QStringList command;
+    command.append("WRITE");
+    command.append("VERIFY");
+    command.append("PRECOMP");
     qDebug() << "PORT: " << port;
     qDebug() << "FILENAME: " << filename;
     qDebug() << "COMMAND: " << command;
@@ -253,7 +270,8 @@ void MainWindow::checkStartRead(void)
     port += QString::number(value);
 
     QString filename = ui->setADFFileName->text();
-    QString command = " READ";
+    QStringList command;
+    command.append("READ");
     qDebug() << "PORT: " << port;
     qDebug() << "FILENAME: " << filename;
     qDebug() << "COMMAND: " << command;

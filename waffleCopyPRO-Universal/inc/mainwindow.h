@@ -42,6 +42,8 @@ private:
     bool readInProgress;
     bool writeInProgress;
     QCursor cursor;
+    bool preComp;
+    bool doRefresh;
 
 private:
     void startWrite(void);
@@ -58,5 +60,6 @@ private slots:
     void doScroll();
     void stopClicked(void);
     void done(void);
+    void togglePreComp(void);
 };
 #endif // MAINWINDOW_H

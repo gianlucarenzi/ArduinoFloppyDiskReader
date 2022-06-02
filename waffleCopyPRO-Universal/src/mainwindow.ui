@@ -424,6 +424,22 @@ background-color: rgb(61, 56, 70);</string>
      <bool>false</bool>
     </property>
    </widget>
+   <widget class="QRadioButton" name="preCompSelection">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>210</y>
+      <width>51</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>PCW</string>
+    </property>
+   </widget>
    <zorder>busy</zorder>
    <zorder>background</zorder>
    <zorder>stopButton</zorder>
@@ -442,6 +458,7 @@ background-color: rgb(61, 56, 70);</string>
    <zorder>copyCompleted</zorder>
    <zorder>copyError</zorder>
    <zorder>showError</zorder>
+   <zorder>preCompSelection</zorder>
   </widget>
  </widget>
  <customwidgets>
