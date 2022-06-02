@@ -8,7 +8,7 @@ QtDrawBridge::QtDrawBridge()
     qDebug() << __PRETTY_FUNCTION__ << "Called";
 }
 
-void QtDrawBridge::setup(QString port, QString filename, QString command)
+void QtDrawBridge::setup(QString port, QString filename, QStringList command)
 {
     qDebug() << __PRETTY_FUNCTION__ << "Called" << "Port" << port << "Filename" << filename << "command" << command;
     m_filename = filename;
