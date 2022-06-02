@@ -3,18 +3,19 @@
 
 #include <QThread>
 #include <QString>
+#include <QStringList>
 
 class QtDrawBridge : public QThread
 {
 public:
     QtDrawBridge();
     virtual void run();
-    void setup(QString port, QString filename, QString command);
+    void setup(QString port, QString filename, QStringList command);
 
 private:
     QString m_port;
     QString m_filename;
-    QString m_command;
+    QStringList m_command;
 };
 
 #endif // QTDRAWBRIDGE_H
