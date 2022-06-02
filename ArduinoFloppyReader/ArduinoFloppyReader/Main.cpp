@@ -83,11 +83,11 @@ ADFWriter writer;
 
 
 // Read an ADF file and write it to disk
-void adf2Disk(const std::wstring& filename, bool verify) {
+void adf2Disk(const std::wstring& filename, bool verify, bool precomp) {
 	printf("\nWrite disk from ADF mode\n\n");
 	if (!verify) printf("WARNING: It is STRONGLY recommended to write with verify support turned on.\r\n\r\n");
 
-	ADFResult result = writer.ADFToDisk(filename,verify,true, [](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError) ->WriteResponse {
+	ADFResult result = writer.ADFToDisk(filename,verify, precomp, [](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError) ->WriteResponse {
 		if (isVerifyError) {
 			char input;
 			do {
@@ -107,7 +107,7 @@ void adf2Disk(const std::wstring& filename, bool verify) {
 		}
 		printf("\rWriting Track %i, %s side     ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
 #ifndef _WIN32
-		fflush(stdout);		
+		fflush(stdout);
 #endif		
 		return WriteResponse::wrContinue;
 	});
@@ -274,6 +274,9 @@ int main(int argc, char* argv[], char *envp[])
 #ifdef _WIN32	
 	bool writeMode = (argc > 3) && (iequals(argv[3], L"WRITE"));
 	bool verify = (argc > 4) && (iequals(argv[4], L"VERIFY"));
+	bool preComp = true;
+	if (argc > 5) 
+		preComp = (iequals(argv[5], L"PRECOMP"));
 	if (argc >= 2) {
 		std::wstring port = argv[1];
 		std::wstring filename = argv[2];
@@ -282,6 +285,9 @@ int main(int argc, char* argv[], char *envp[])
 #else
 	bool writeMode = (argc > 3) && (iequals(argv[3], "WRITE"));
 	bool verify = (argc > 4) && (iequals(argv[4], "VERIFY"));
+	bool preComp = true;
+	if (argc > 5) 
+		preComp = (iequals(argv[5], "PRECOMP"));
 	if (argc >= 2) {
 		std::wstring port = atw(argv[1]);
 		std::wstring filename = atw(argv[2]);
@@ -293,7 +299,11 @@ int main(int argc, char* argv[], char *envp[])
 			printf("\rError opening COM port: %s  ", writer.getLastError().c_str());
 		}
 		else {
-			if (writeMode) adf2Disk(filename.c_str(), verify); else disk2ADF(filename.c_str());
+			printf("\nAsking to %s Verify: %s - PreComp: %s\n",
+				writeMode ? "WRITE" : "READ",
+				verify ? "TRUE" : "FALSE",
+				preComp ? "PRECOMP" : "QUICK");
+			if (writeMode) adf2Disk(filename.c_str(), verify, preComp); else disk2ADF(filename.c_str());
 			writer.closeDevice();
 		}
 	}
