@@ -47,7 +47,7 @@ MainWindow::MainWindow(QWidget *parent)
     stext += empty;
     // The following QString should be localized
     QString sctext = tr("The essential USB floppy drive for the real Amiga user."
-    "It allows you to read and write ADF and, thanks to a specific version of AmiBerry (C) MiDWan, "
+    "It allows you to read and write ADF and, thanks to a specific version Amiga Emulator, like WinUAE or AmiBerry by MiDWaN, "
     "it works like a real Amiga drive allowing you to directly read and write your floppies! "
     "The package contains the black or white Waffle, a USB cable with the possibility of "
     "double powering if the USB port of the PC is not very powerful and a USB stick "
