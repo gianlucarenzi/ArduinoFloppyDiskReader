@@ -11,6 +11,7 @@
 #include <QFont>
 #include "qtdrawbridge.h"
 #include <QCursor>
+#include <QElapsedTimer>
 
 MainWindow::MainWindow(QWidget *parent)
 : QMainWindow(parent),
