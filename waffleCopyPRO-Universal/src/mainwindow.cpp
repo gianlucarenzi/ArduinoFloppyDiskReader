@@ -37,12 +37,7 @@ MainWindow::MainWindow(QWidget *parent)
     // In Windows the first available COM port is 1.
     ui->serial->setMinimum(1);
 #endif
-    watcher = new QFileSystemWatcher(this);
-    fileList.append(TRACKFILE);
-    fileList.append(SIDEFILE);
-    fileList.append(STATUSFILE);
-    watcher->addPaths(fileList);
-    connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(progressChange(QString)));
+    prepareFileSet();
     amigaBridge = new QtDrawBridge();
     connect(amigaBridge, SIGNAL(finished()), SLOT(doneWork()));
     ui->scrollText->setStyleSheet("color: rgb(255,255,255)");
@@ -85,6 +80,43 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::prepareFileSet(void)
+{
+    // First create empty files
+    QFile file;
+    if (!file.exists(TRACKFILE)) {
+        //qDebug() << "File " << TRACKFILE << "Not Exists. Creating...";
+        file.setFileName((TRACKFILE));
+        file.open(QIODevice::ReadWrite | QIODevice::Text);
+        file.seek(0);
+        file.write("0", 1);
+        file.close();
+    }
+    if (!file.exists(SIDEFILE)) {
+        //qDebug() << "File " << SIDEFILE << "Not Exists. Creating...";
+        file.setFileName((SIDEFILE));
+        file.open(QIODevice::ReadWrite | QIODevice::Text);
+        file.seek(0);
+        file.write("0", 1);
+        file.close();
+    }
+    if (!file.exists(STATUSFILE)) {
+        //qDebug() << "File " << STATUSFILE << "Not Exists. Creating...";
+        file.setFileName((STATUSFILE));
+        file.open(QIODevice::ReadWrite | QIODevice::Text);
+        file.seek(0);
+        file.write("0", 1);
+        file.close();
+    }
+    watcher = new QFileSystemWatcher(this);
+    fileList.append(TRACKFILE);
+    fileList.append(SIDEFILE);
+    fileList.append(STATUSFILE);
+    watcher->addPaths(fileList);
+    //qDebug() << "FileList: " << fileList;
+    connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(progressChange(QString)));
 }
 
 void MainWindow::togglePreComp(void)
@@ -304,6 +336,7 @@ void MainWindow::progressChange(QString s)
 
     if (s == TRACKFILE)
     {
+        //qDebug() << "TRACKFILE" << s;
         file.setFileName(TRACKFILE);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
             return;
@@ -316,6 +349,7 @@ void MainWindow::progressChange(QString s)
     else
     if (s == SIDEFILE)
     {
+        //qDebug() << "SIDEFILE" << s;
         file.setFileName(SIDEFILE);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
             return;
@@ -328,6 +362,7 @@ void MainWindow::progressChange(QString s)
     else
     if (s == STATUSFILE)
     {
+        //qDebug() << "STATUSFILE" << s;
         file.setFileName(STATUSFILE);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
             return;
@@ -339,9 +374,9 @@ void MainWindow::progressChange(QString s)
     }
     else
     {
-        qDebug() << "Nothing to do";
+        qDebug() << "Passed" << s << "Nothing to do";
     }
-    //qDebug() << "TRACK: " << track << "SIDE: " << side << "STATUS: " << status;
+    //qDebug() << "TRACK: " << track << "SIDE: " << side << "STATUS: " << status << "toShow" << toShow;
     if (toShow)
     {
         // Error = red squares. good green or yellow if verify

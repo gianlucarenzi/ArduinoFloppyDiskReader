@@ -49,6 +49,7 @@ private:
     void startWrite(void);
     void startRead(void);
     void showError(QString err);
+    void prepareFileSet(void);
 
 private slots:
     void checkStartWrite(void);

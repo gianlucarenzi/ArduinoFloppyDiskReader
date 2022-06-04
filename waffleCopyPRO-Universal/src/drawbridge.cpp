@@ -96,6 +96,9 @@ static void prepareUIFiles(void)
     fprintf(trackFile, "%d", zero);
     fprintf(sideFile, "%d", zero);
     fprintf(badFile, "%d", zero);
+    fflush(trackFile);
+    fflush(sideFile);
+    fflush(badFile);
 }
 
 static void removeUIFiles(void)
@@ -137,14 +140,21 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp) {
 		}
 #ifdef __USE_GUI__
         if (trackFile) {
+            //fprintf(stdout, "%s trackFile %d\n", __PRETTY_FUNCTION__, currentTrack);
             fseek(trackFile, 0, SEEK_SET);
             fprintf(trackFile, "%d", currentTrack);
             fflush(trackFile);
+        } else {
+            fprintf(stderr, "%s trackFile NOT Valid\n", __PRETTY_FUNCTION__);
         }
         if (sideFile) {
+            //fprintf(stdout, "%s SideFile %s\n", __PRETTY_FUNCTION__,
+            //        (currentSide == DiskSurface::dsUpper) ? "UPPER" : "LOWER");
             fseek(sideFile, 0, SEEK_SET);
             fprintf(sideFile, "%d", (currentSide == DiskSurface::dsUpper) ? 1 : 0);
             fflush(sideFile);
+        } else {
+            fprintf(stderr, "%s SideFile NOT Valid\n", __PRETTY_FUNCTION__);
         }
 #else
         printf("\rWriting Track %i, %s side     ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
@@ -231,19 +241,29 @@ void disk2ADF(const std::wstring& filename) {
 
 #ifdef __USE_GUI__
         if (trackFile) {
+            //fprintf(stdout, "%s TrackFile %d\n", __PRETTY_FUNCTION__, currentTrack);
             fseek(trackFile, 0, SEEK_SET);
             fprintf(trackFile, "%d", currentTrack);
             fflush(trackFile);
+        } else {
+            fprintf(stderr, "%s TrackFile NOT Valid\n", __PRETTY_FUNCTION__);
         }
         if (sideFile) {
+            //fprintf(stdout, "%s SideFile %s\n", __PRETTY_FUNCTION__,
+            //        (currentSide == DiskSurface::dsUpper) ? "UPPER" : "LOWER");
             fseek(sideFile, 0, SEEK_SET);
             fprintf(sideFile, "%d", (currentSide == DiskSurface::dsUpper) ? 1 : 0);
             fflush(sideFile);
+        } else {
+            fprintf(stderr, "%s SideFile NOT Valid\n", __PRETTY_FUNCTION__);
         }
         if (badFile) {
+            //fprintf(stdout, "%s BadFile %d\n", __PRETTY_FUNCTION__, badSectorsFound);
             fseek(badFile, 0, SEEK_SET);
             fprintf(badFile, "%d", badSectorsFound);
             fflush(badFile);
+        } else {
+            fprintf(stderr, "%s BadFile NOT Valid\n", __PRETTY_FUNCTION__);
         }
 #else
         if (isADF) {
