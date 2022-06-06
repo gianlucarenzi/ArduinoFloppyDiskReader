@@ -74,7 +74,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->stopButton->hide();
     ui->showError->raise();
     ui->showError->hide();
-    ui->preCompSelection->setFont(this->font());
 }
 
 MainWindow::~MainWindow()
@@ -260,7 +259,8 @@ void MainWindow::checkStartWrite(void)
     QStringList command;
     command.append("WRITE");
     command.append("VERIFY");
-    command.append("PRECOMP");
+    if (preComp)
+        command.append("PRECOMP");
     qDebug() << "PORT: " << port;
     qDebug() << "FILENAME: " << filename;
     qDebug() << "COMMAND: " << command;

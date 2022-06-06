@@ -439,6 +439,9 @@ background-color: rgb(61, 56, 70);</string>
     <property name="text">
      <string>PCW</string>
     </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
    </widget>
    <zorder>busy</zorder>
    <zorder>background</zorder>
