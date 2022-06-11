@@ -25,13 +25,14 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+#define MAX_TRACKS 84
 private:
     Ui::MainWindow *ui;
     int track;
     int side;
     int status;
-    QLabel *upperTrack[82];
-    QLabel *lowerTrack[82];
+    QLabel *upperTrack[MAX_TRACKS];
+    QLabel *lowerTrack[MAX_TRACKS];
     void prepareTracks(void);
     void prepareTracksPosition(void);
     QTimer *scrollTimer;
@@ -43,6 +44,8 @@ private:
     bool writeInProgress;
     QCursor cursor;
     bool preComp;
+    bool eraseBeforeWrite;
+    bool tracks82;
     bool doRefresh;
 
 private:
@@ -62,5 +65,7 @@ private slots:
     void stopClicked(void);
     void done(void);
     void togglePreComp(void);
+    void toggleEraseBeforeWrite(void);
+    void toggleNumTracks(void);
 };
 #endif // MAINWINDOW_H

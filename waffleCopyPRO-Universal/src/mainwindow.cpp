@@ -22,6 +22,8 @@ MainWindow::MainWindow(QWidget *parent)
   readInProgress(false),
   writeInProgress(false),
   preComp(true),
+  eraseBeforeWrite(false),
+  tracks82(false),
   doRefresh(true)
 {
     ui->setupUi(this);
@@ -65,6 +67,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->copyCompleted, SIGNAL(clicked()), this, SLOT(done()));
     connect(ui->copyError, SIGNAL(clicked()), this, SLOT(done()));
     connect(ui->preCompSelection, SIGNAL(clicked()), this, SLOT(togglePreComp()));
+    connect(ui->eraseBeforeWrite, SIGNAL(clicked()), this, SLOT(toggleEraseBeforeWrite()));
+    connect(ui->numTracks, SIGNAL(clicked()), this, SLOT(toggleNumTracks()));
     ui->copyCompleted->hide();
     ui->copyError->hide();
     // Busy background is invisible now
@@ -122,6 +126,24 @@ void MainWindow::togglePreComp(void)
 {
     preComp = !preComp;
     qDebug() << "PRECOMP" << preComp;
+    ui->preCompSelection->setChecked(preComp);
+}
+
+void MainWindow::toggleEraseBeforeWrite(void)
+{
+    eraseBeforeWrite = !eraseBeforeWrite;
+    qDebug() << "ERASE BEFORE WRITE" << eraseBeforeWrite;
+    ui->eraseBeforeWrite->setChecked(eraseBeforeWrite);
+}
+
+void MainWindow::toggleNumTracks(void)
+{
+    tracks82 = !tracks82;
+    if (tracks82)
+        qDebug() << "82 TRACKS";
+    else
+        qDebug() << "80 Tracks";
+    ui->numTracks->setChecked(tracks82);
 }
 
 void MainWindow::doneWork(void)
@@ -175,13 +197,15 @@ void MainWindow::doScroll(void)
         slt = 0;
     if (doRefresh) {
         ui->preCompSelection->setFont(this->font());
+        ui->eraseBeforeWrite->setFont(this->font());
+        ui->numTracks->setFont(this->font());
         doRefresh = ! doRefresh;
     }
 }
 
 void MainWindow::prepareTracks(void)
 {
-    for (int j = 0; j < 82; j++)
+    for (int j = 0; j < MAX_TRACKS; j++)
     {
        upperTrack[j] = new QLabel(this);
        lowerTrack[j] = new QLabel(this);
@@ -193,7 +217,7 @@ void MainWindow::prepareTracksPosition(void)
     int counter = 0;
     int j;
     // lut upper side track
-    int ut[82][2] = {
+    int ut[MAX_TRACKS][2] = {
         /* 0 */{394,240},{422,240},{450,240},{478,240},{505,240},{533,240},{561,240},{589,240},{617,240},{644,240},
         /* 1 */{394,267},{422,267},{450,267},{478,267},{505,267},{533,267},{561,267},{589,267},{617,267},{644,267},
         /* 2 */{394,295},{422,295},{450,295},{478,295},{505,295},{533,295},{561,295},{589,295},{617,295},{644,295},
@@ -202,9 +226,9 @@ void MainWindow::prepareTracksPosition(void)
         /* 5 */{394,379},{422,379},{450,379},{478,379},{505,379},{533,379},{561,379},{589,379},{617,379},{644,379},
         /* 6 */{394,406},{422,406},{450,406},{478,406},{505,406},{533,406},{561,406},{589,406},{617,406},{644,406},
         /* 7 */{394,434},{422,434},{450,434},{478,434},{505,434},{533,434},{561,434},{589,434},{617,434},{644,434},
-        /* 8 */{394,461},{422,461}
+        /* 8 */{394,461},{422,461},{450,461},{478,461},
     };
-    for (j = 0; j < 82; j++)
+    for (j = 0; j < MAX_TRACKS; j++)
     {
        upperTrack[counter]->hide();
        upperTrack[counter]->setGeometry(ut[j][0], ut[j][1], 16, 16);
@@ -213,7 +237,7 @@ void MainWindow::prepareTracksPosition(void)
        counter++;
     }
     // lut lower side track
-    int lt[82][2] = {
+    int lt[MAX_TRACKS][2] = {
         /* 0 */{723,240},{751,240},{779,240},{807,240},{834,240},{862,240},{890,240},{918,240},{945,240},{973,240},
         /* 1 */{723,267},{751,267},{779,267},{807,267},{834,267},{862,267},{890,267},{918,267},{945,267},{973,267},
         /* 2 */{723,295},{751,295},{779,295},{807,295},{834,295},{862,295},{890,295},{918,295},{945,295},{973,295},
@@ -222,10 +246,10 @@ void MainWindow::prepareTracksPosition(void)
         /* 5 */{723,379},{751,379},{779,379},{807,379},{834,379},{862,379},{890,379},{918,379},{945,379},{973,379},
         /* 6 */{723,406},{751,406},{779,406},{807,406},{834,406},{862,406},{890,406},{918,406},{945,406},{973,406},
         /* 7 */{723,434},{751,434},{779,434},{807,434},{834,434},{862,434},{890,434},{918,434},{945,434},{973,434},
-        /* 8 */{723,461},{751,461}
+        /* 8 */{723,461},{751,461},{779,461},{807,461},
     };
     counter = 0;
-    for (j = 0; j < 82; j++)
+    for (j = 0; j < MAX_TRACKS; j++)
     {
        lowerTrack[counter]->hide();
        lowerTrack[counter]->setGeometry(lt[j][0], lt[j][1], 16, 16);
@@ -259,8 +283,13 @@ void MainWindow::checkStartWrite(void)
     QStringList command;
     command.append("WRITE");
     command.append("VERIFY");
+
     if (preComp)
         command.append("PRECOMP");
+
+    if (eraseBeforeWrite)
+        command.append("ERASEBEFOREWRITE");
+
     qDebug() << "PORT: " << port;
     qDebug() << "FILENAME: " << filename;
     qDebug() << "COMMAND: " << command;
@@ -305,6 +334,8 @@ void MainWindow::checkStartRead(void)
     QString filename = ui->setADFFileName->text();
     QStringList command;
     command.append("READ");
+    if (tracks82)
+        command.append("TRACKSNUM82");
     qDebug() << "PORT: " << port;
     qDebug() << "FILENAME: " << filename;
     qDebug() << "COMMAND: " << command;

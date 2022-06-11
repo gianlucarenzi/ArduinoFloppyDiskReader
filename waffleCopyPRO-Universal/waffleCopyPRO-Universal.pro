@@ -32,7 +32,13 @@ HEADERS += \
     lib/RotationExtractor.h \
     lib/SerialIO.h \
     \
-	
+	 \
+    lib/capsapi/CapsAPI.h \
+    lib/capsapi/CapsLib.h \
+    lib/capsapi/CapsPlug.h \
+    lib/capsapi/Comtype.h \
+    lib/ftdi.h \
+    lib/pll.h
 FORMS += \
     src/mainwindow.ui \
     \
@@ -43,6 +49,9 @@ SOURCES += \
     lib/RotationExtractor.cpp \
     lib/SerialIO.cpp \
     \
+    lib/capsapi/CapsPlug.cpp \
+    lib/ftdi.cpp \
+    lib/pll.cpp
 
 SOURCES += \
     src/clicklabel.cpp \
@@ -53,3 +62,5 @@ SOURCES += \
     \
 
 DEFINES += __USE_GUI__
+
+LIBS += -ldl

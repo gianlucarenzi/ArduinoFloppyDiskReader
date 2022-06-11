@@ -112,11 +112,22 @@ static void removeUIFiles(void)
 }
 
 // Read an ADF file and write it to disk
-void adf2Disk(const std::wstring& filename, bool verify, bool preComp) {
-	printf("\nWrite disk from ADF mode\n\n");
-	if (!verify) printf("WARNING: It is STRONGLY recommended to write with verify support turned on.\r\n\r\n");
+void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eraseFirst) {
+    bool hdMode = false;
+    bool isSCP = true;
+    bool isIPF = false;
+    bool writeFromIndex = true;
 
-    ADFResult result = writer.ADFToDisk(filename,verify,preComp, [](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError) ->WriteResponse {
+    printf("\nWrite disk from ADF mode\n\n");
+    if (isIPF) printf("\nWrite disk from IPF mode\n\n"); else
+    if (isSCP) printf("\nWrite disk from SCP mode\n\n"); else {
+        printf("\nWrite disk from ADF mode\n\n");
+        if (!verify) printf("WARNING: It is STRONGLY recommended to write with verify support turned on.\r\n\r\n");
+    }
+
+    //ADFResult ADFToDisk(const std::wstring& inputFile, const bool inHDMode, bool verify, bool usePrecompMode, bool eraseFirst, bool writeFromIndex, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const bool isVerifyError, const CallbackOperation operation) > callback);
+    // To be sure erase first of writing with NO PRECOMP
+    ADFResult result = writer.ADFToDisk(filename, hdMode, verify, preComp, eraseFirst, writeFromIndex, [](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
 		if (isVerifyError) {
 			char input;
 			do {
@@ -191,7 +202,7 @@ bool iequals(const std::string& a, const std::string& b) {
 }
 
 // Read a disk and save it to ADF or SCP files
-void disk2ADF(const std::wstring& filename) {
+void disk2ADF(const std::wstring& filename, int numTracks) {
 	const wchar_t* extension = wcsrchr(filename.c_str(), L'.');
 	bool isADF = true;
 
@@ -216,7 +227,9 @@ void disk2ADF(const std::wstring& filename) {
 		}
 	}
 
-	auto callback = [isADF](const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound) ->WriteResponse {
+    bool hdMode = false;
+
+    auto callback = [isADF](const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound, const int totalSectors, const CallbackOperation operation) ->WriteResponse {
 		if (retryCounter > 20) {
 			char input;
 			do {
@@ -282,7 +295,10 @@ void disk2ADF(const std::wstring& filename) {
 
 	ADFResult result;
 	
-	if (isADF) result = writer.DiskToADF(filename, 80, callback); else result = writer.DiskToSCP(filename, 80, 3, callback);
+    if (numTracks > 83)
+        numTracks = 83;
+
+    if (isADF) result = writer.DiskToADF(filename, hdMode, numTracks, callback); else result = writer.DiskToSCP(filename, hdMode, numTracks, 3, callback);
 
 	switch (result) {
 	case ADFResult::adfrComplete:					printf("\rFile created successfully.                                                     "); break;
@@ -338,6 +354,12 @@ int wmain(QStringList list)
     bool writeMode = list.contains("WRITE");
     bool verify = list.contains("VERIFY");
     bool preComp = list.contains("PRECOMP");
+    bool eraseBeforeWrite = list.contains("ERASEBEFOREWRITE");
+    bool num82Tracks = list.contains("TRACKSNUM82");
+    int numTracks = 80;
+
+    if (num82Tracks)
+        numTracks = 82;
 
     std::wstring port = list.at(0).toStdWString();
     std::wstring filename = list.at(1).toStdWString();;
@@ -348,6 +370,8 @@ int wmain(QStringList list)
     qDebug() << "writeMode" << writeMode;
     qDebug() << "verify" << verify;
     qDebug() << "preComp" << preComp;
+    qDebug() << "eraseBeforeWrite" << eraseBeforeWrite;
+    qDebug() << "TRACKS" << numTracks;
 
     if (list.contains("DIAGNOSTIC")) {
             runDiagnostics(port);
@@ -357,7 +381,7 @@ int wmain(QStringList list)
 		}
 		else {
             prepareUIFiles();
-            if (writeMode) adf2Disk(filename.c_str(), verify, preComp); else disk2ADF(filename.c_str());
+            if (writeMode) adf2Disk(filename.c_str(), verify, preComp, eraseBeforeWrite); else disk2ADF(filename.c_str(), numTracks);
 			writer.closeDevice();
             removeUIFiles();
 		}
