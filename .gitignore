@@ -40,3 +40,6 @@ CVS
 /ArduinoFloppyReader/ArduinoFloppyReader/ArduinoReaderWriter
 /waffleCopyPRO-Universal/debug/
 /waffleCopyPRO-Universal/release/
+/waffleCopyPRO-Universal/CapsPlug.o
+/waffleCopyPRO-Universal/ftdi.o
+/waffleCopyPRO-Universal/pll.o
