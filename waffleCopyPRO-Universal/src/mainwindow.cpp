@@ -38,6 +38,7 @@ MainWindow::MainWindow(QWidget *parent)
 #ifdef _WIN32
     // In Windows the first available COM port is 1.
     ui->serial->setMinimum(1);
+    ui->portSelection->setText("WAFFLE DRIVE COM PORT");
 #endif
     prepareFileSet();
     amigaBridge = new QtDrawBridge();
@@ -49,8 +50,8 @@ MainWindow::MainWindow(QWidget *parent)
     stext += empty;
     // The following QString should be localized
     QString sctext = tr("The essential USB floppy drive for the real Amiga user."
-    "It allows you to read and write ADF and, thanks to a specific version Amiga Emulator, like WinUAE or AmiBerry by MiDWaN, "
-    "it works like a real Amiga drive allowing you to directly read and write your floppies! "
+    "It allows you to write from ADF files, to read floppy disks as ADF, IPF and SCP format and, thanks to a specific version Amiga Emulator, like WinUAE (by Toni Wilen) or AmiBerry (by MiDWaN), "
+    "it works like a real Amiga disk drive allowing you to directly read and write your floppies through an emulator! "
     "The package contains the black or white Waffle, a USB cable with the possibility of "
     "double powering if the USB port of the PC is not very powerful and a USB stick "
     "with all the necessary software to use the Waffle immediately.");
