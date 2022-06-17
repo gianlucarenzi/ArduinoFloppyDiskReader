@@ -187,7 +187,7 @@ void programmeSetting(const std::wstring& port, const std::wstring& settingName,
 
 
 // Read an ADF/SCP/IPF file and write it to disk
-void adf2Disk(const std::wstring& filename, bool verify) {
+void adf2Disk(const std::wstring& filename, bool verify, bool noPreComp, bool extraErases) {
 
 	bool hdMode = false;
 	bool isSCP = true;
@@ -218,9 +218,11 @@ void adf2Disk(const std::wstring& filename, bool verify) {
 	}
 
 	ADFResult result;
+	//bool extraErases = false;	// write empty track before write
+	//bool noPreComp = true;	// noPreComp -> fast system, otherwise slow system
 	
 	if (isIPF) {
-		result = writer.IPFToDisk(filename, false, [](const int currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
+		result = writer.IPFToDisk(filename, extraErases, [](const int currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
 			if (isVerifyError) {
 				char input;
 				do {
@@ -247,7 +249,7 @@ void adf2Disk(const std::wstring& filename, bool verify) {
 	}
 	else 
 	if (isSCP) {
-		result = writer.SCPToDisk(filename, false, [](const int currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
+		result = writer.SCPToDisk(filename, extraErases, [](const int currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
 			if (isVerifyError) {
 				char input;
 				do {
@@ -265,14 +267,14 @@ void adf2Disk(const std::wstring& filename, bool verify) {
 				case 'A': return WriteResponse::wrAbort;
 				}
 			}
-			printf("\nWriting Track %i, %s side     ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
+			printf("\rWriting Track %i, %s side     ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
 #ifndef _WIN32
-			//fflush(stdout);
+			fflush(stdout);
 #endif		
 			return WriteResponse::wrContinue;
 			});
 	} else {
-		result = writer.ADFToDisk(filename, hdMode, verify, true, false, true, [](const int currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
+		result = writer.ADFToDisk(filename, hdMode, verify, noPreComp, extraErases, true, [](const int currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
 			if (isVerifyError) {
 				char input;
 				do {
@@ -290,9 +292,9 @@ void adf2Disk(const std::wstring& filename, bool verify) {
 				case 'A': return WriteResponse::wrAbort;
 				}
 			}
-			printf("\nWriting Track %i, %s side     ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
+			printf("\rWriting Track %i, %s side     ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
 #ifndef _WIN32
-			//fflush(stdout);
+			fflush(stdout);
 #endif		
 			return WriteResponse::wrContinue;
 			});
@@ -517,14 +519,16 @@ int main(int argc, char* argv[], char *envp[])
 #ifdef _WIN32	
 	bool writeMode = (argc > 3) && (iequals(argv[3], L"WRITE"));
 	bool verify = (argc > 4) && (iequals(argv[4], L"VERIFY"));
-	bool preComp = (argc > 5) && (iequals(argv[5], L"PRECOMP"));
+	bool noPreComp = (argc > 5) && (iequals(argv[5], L"NOPRECOMP"));
+	bool extraErases = (argc > 6) && (iequals(argv[6], L"EXTRAERASES"));
 	if (argc >= 2) {
 		std::wstring port = argv[1];
 		std::wstring filename = argv[2];
 #else
 	bool writeMode = (argc > 3) && (iequals(argv[3], "WRITE"));
 	bool verify = (argc > 4) && (iequals(argv[4], "VERIFY"));
-	bool preComp = (argc > 5) && (iequals(argv[5], "PRECOMP"));
+	bool noPreComp = (argc > 5) && (iequals(argv[5], "NOPRECOMP"));
+	bool extraErases = (argc > 6) && (iequals(argv[6], "EXTRAERASES"));
 	if (argc >= 2) {
 		std::wstring filename = atw(argv[2]);
 #endif
@@ -535,7 +539,7 @@ int main(int argc, char* argv[], char *envp[])
 			printf("\rError opening COM port: %s  ", writer.getLastError().c_str());
 		}
 		else {
-			if (writeMode) adf2Disk(filename.c_str(), verify); else disk2ADF(filename.c_str());
+			if (writeMode) adf2Disk(filename.c_str(), verify, noPreComp, extraErases); else disk2ADF(filename.c_str());
 			writer.closeDevice();
 		}
 	}
