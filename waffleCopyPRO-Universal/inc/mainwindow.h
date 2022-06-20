@@ -53,6 +53,9 @@ private:
     void startRead(void);
     void showError(QString err);
     void prepareFileSet(void);
+    QString m_track;
+    QString m_side;
+    QString m_status;
 
 private slots:
     void checkStartWrite(void);
