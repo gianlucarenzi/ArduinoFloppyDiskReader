@@ -1,4 +1,5 @@
 #include "qtdrawbridge.h"
+#include "compilerdefs.h"
 #include <QDebug>
 
 extern int wmain(QStringList list);

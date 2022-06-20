@@ -24,6 +24,7 @@ INCLUDEPATH += \
 # Input
 HEADERS += \
     inc/clicklabel.h \
+    inc/compilerdefs.h \
     inc/mainwindow.h \
     inc/qtdrawbridge.h \
     inc/waffleconfig.h \

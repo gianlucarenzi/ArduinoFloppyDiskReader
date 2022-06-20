@@ -25,6 +25,7 @@
 #include "ArduinoInterface.h"
 #include <stdint.h>
 #include "waffleconfig.h"
+#include "compilerdefs.h"
 #ifdef _WIN32
 #include <conio.h>
 #else
