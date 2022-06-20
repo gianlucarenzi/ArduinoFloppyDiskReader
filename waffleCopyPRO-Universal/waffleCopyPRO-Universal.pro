@@ -64,4 +64,6 @@ SOURCES += \
 
 DEFINES += __USE_GUI__
 
-LIBS += -ldl
+unix {
+    LIBS += -ldl
+}
