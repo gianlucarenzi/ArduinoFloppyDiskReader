@@ -67,3 +67,7 @@ DEFINES += __USE_GUI__
 unix {
     LIBS += -ldl
 }
+
+win32-msvc* {
+    LIBS += -lAdvapi32
+}
