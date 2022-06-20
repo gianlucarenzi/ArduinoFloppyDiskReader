@@ -487,6 +487,25 @@ background-color: rgb(61, 56, 70);</string>
      <string notr="true">Tracks: 82</string>
     </property>
    </widget>
+   <widget class="QLabel" name="version">
+    <property name="geometry">
+     <rect>
+      <x>850</x>
+      <y>510</y>
+      <width>111</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(248, 228, 92);</string>
+    </property>
+    <property name="text">
+     <string>Version</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
    <zorder>busy</zorder>
    <zorder>background</zorder>
    <zorder>stopButton</zorder>
@@ -508,6 +527,7 @@ background-color: rgb(61, 56, 70);</string>
    <zorder>preCompSelection</zorder>
    <zorder>eraseBeforeWrite</zorder>
    <zorder>numTracks</zorder>
+   <zorder>version</zorder>
   </widget>
  </widget>
  <customwidgets>

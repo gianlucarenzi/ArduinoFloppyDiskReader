@@ -88,12 +88,27 @@ using namespace ArduinoFloppyReader;
 
 ADFWriter writer;
 
-static void prepareUIFiles(void)
+static void prepareUIFiles(const char *tFile, const char *sFile, const char *bFile)
 {
     int zero = 0;
-    trackFile = fopen(TRACKFILE, "w+b");
-    sideFile  = fopen(SIDEFILE, "w+b");
-    badFile   = fopen(STATUSFILE, "w+b");
+    if (tFile == NULL)
+    {
+        fprintf(stderr, "tFile is NULL\n");
+        exit(1);
+    }
+    if (sFile == NULL)
+    {
+        fprintf(stderr, "sFile is NULL\n");
+        exit(1);
+    }
+    if (bFile == NULL)
+    {
+        fprintf(stderr, "bFile is NULL\n");
+        exit(1);
+    }
+    trackFile = fopen(tFile, "w+b");
+    sideFile  = fopen(sFile, "w+b");
+    badFile   = fopen(bFile, "w+b");
     fprintf(trackFile, "%d", zero);
     fprintf(sideFile, "%d", zero);
     fprintf(badFile, "%d", zero);
@@ -350,7 +365,7 @@ void runDiagnostics(const std::wstring& port) {
 #include <QTemporaryFile>
 #include <QFile>
 
-int wmain(QStringList list)
+int wmain(QStringList list, QString track, QString side, QString status)
 {
     bool writeMode = list.contains("WRITE");
     bool verify = list.contains("VERIFY");
@@ -381,7 +396,11 @@ int wmain(QStringList list)
 			printf("\rError opening COM port: %s  ", writer.getLastError().c_str());
 		}
 		else {
-            prepareUIFiles();
+            char *fTrack = track.toLatin1().data();
+            char *fSide = side.toLatin1().data();
+            char *fStatus = status.toLatin1().data();
+            qDebug() << "TrackFile: " << fTrack << "SideFile: " << fSide << "StatusFile: " << fStatus;
+            prepareUIFiles(fTrack, fSide, fStatus);
             if (writeMode) adf2Disk(filename.c_str(), verify, preComp, eraseBeforeWrite); else disk2ADF(filename.c_str(), numTracks);
 			writer.closeDevice();
             removeUIFiles();
