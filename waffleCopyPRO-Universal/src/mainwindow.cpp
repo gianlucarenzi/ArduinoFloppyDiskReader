@@ -12,6 +12,7 @@
 #include "qtdrawbridge.h"
 #include <QCursor>
 #include <QElapsedTimer>
+#include <QStandardPaths>
 
 MainWindow::MainWindow(QWidget *parent)
 : QMainWindow(parent),
@@ -79,6 +80,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->stopButton->hide();
     ui->showError->raise();
     ui->showError->hide();
+    ui->version->setText(WAFFLE_VERSION);
+    ui->version->show();
 }
 
 MainWindow::~MainWindow()
@@ -88,36 +91,45 @@ MainWindow::~MainWindow()
 
 void MainWindow::prepareFileSet(void)
 {
+    // Those functions should returns the location of some place to write or read files
+    m_track = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "_track";
+    m_side = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "_side";
+    m_status = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "_status";
+
+    qDebug() << "Track: " << m_track;
+    qDebug() << "Side: " << m_side;
+    qDebug() << "Status: " << m_status;
+
     // First create empty files
     QFile file;
-    if (!file.exists(TRACKFILE)) {
+    if (!file.exists(m_track)) {
         //qDebug() << "File " << TRACKFILE << "Not Exists. Creating...";
-        file.setFileName((TRACKFILE));
+        file.setFileName(m_track);
         file.open(QIODevice::ReadWrite | QIODevice::Text);
         file.seek(0);
         file.write("0", 1);
         file.close();
     }
-    if (!file.exists(SIDEFILE)) {
+    if (!file.exists(m_side)) {
         //qDebug() << "File " << SIDEFILE << "Not Exists. Creating...";
-        file.setFileName((SIDEFILE));
+        file.setFileName(m_side);
         file.open(QIODevice::ReadWrite | QIODevice::Text);
         file.seek(0);
         file.write("0", 1);
         file.close();
     }
-    if (!file.exists(STATUSFILE)) {
+    if (!file.exists(m_status)) {
         //qDebug() << "File " << STATUSFILE << "Not Exists. Creating...";
-        file.setFileName((STATUSFILE));
+        file.setFileName(m_status);
         file.open(QIODevice::ReadWrite | QIODevice::Text);
         file.seek(0);
         file.write("0", 1);
         file.close();
     }
     watcher = new QFileSystemWatcher(this);
-    fileList.append(TRACKFILE);
-    fileList.append(SIDEFILE);
-    fileList.append(STATUSFILE);
+    fileList.append(m_track);
+    fileList.append(m_side);
+    fileList.append(m_status);
     watcher->addPaths(fileList);
     //qDebug() << "FileList: " << fileList;
     connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(progressChange(QString)));
@@ -200,6 +212,11 @@ void MainWindow::doScroll(void)
         ui->preCompSelection->setFont(this->font());
         ui->eraseBeforeWrite->setFont(this->font());
         ui->numTracks->setFont(this->font());
+        ui->startRead->setFont(this->font());
+        ui->startWrite->setFont(this->font());
+        ui->stopButton->setFont(this->font());
+        ui->portSelection->setFont(this->font());
+        ui->version->setFont(this->font());
         doRefresh = ! doRefresh;
     }
 }
@@ -295,7 +312,11 @@ void MainWindow::checkStartWrite(void)
     qDebug() << "FILENAME: " << filename;
     qDebug() << "COMMAND: " << command;
 
-    amigaBridge->setup(port, filename, command);
+    qDebug() << "Track: " << m_track;
+    qDebug() << "Side: " << m_side;
+    qDebug() << "Status: " << m_status;
+
+    amigaBridge->setup(port, filename, command, m_track, m_side, m_status);
     startWrite();
 }
 
@@ -337,11 +358,16 @@ void MainWindow::checkStartRead(void)
     command.append("READ");
     if (tracks82)
         command.append("TRACKSNUM82");
+
     qDebug() << "PORT: " << port;
     qDebug() << "FILENAME: " << filename;
     qDebug() << "COMMAND: " << command;
 
-    amigaBridge->setup(port, filename, command);
+    qDebug() << "Track: " << m_track;
+    qDebug() << "Side: " << m_side;
+    qDebug() << "Status: " << m_status;
+
+    amigaBridge->setup(port, filename, command, m_track, m_side, m_status);
     startRead();
 }
 
@@ -366,10 +392,10 @@ void MainWindow::progressChange(QString s)
     QFile file;
     bool toShow = false;
 
-    if (s == TRACKFILE)
+    if (s == m_track)
     {
         //qDebug() << "TRACKFILE" << s;
-        file.setFileName(TRACKFILE);
+        file.setFileName(m_track);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
             return;
         QByteArray qbaTrack = file.readLine();
@@ -379,10 +405,10 @@ void MainWindow::progressChange(QString s)
         toShow = true;
     }
     else
-    if (s == SIDEFILE)
+    if (s == m_side)
     {
         //qDebug() << "SIDEFILE" << s;
-        file.setFileName(SIDEFILE);
+        file.setFileName(m_side);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
             return;
         QByteArray qbaSide = file.readLine();
@@ -392,10 +418,10 @@ void MainWindow::progressChange(QString s)
         toShow = true;
     }
     else
-    if (s == STATUSFILE)
+    if (s == m_status)
     {
         //qDebug() << "STATUSFILE" << s;
-        file.setFileName(STATUSFILE);
+        file.setFileName(m_status);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
             return;
         QByteArray qbaStatus = file.readLine();
