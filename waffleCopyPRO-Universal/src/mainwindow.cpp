@@ -49,13 +49,13 @@ MainWindow::MainWindow(QWidget *parent)
     stext += empty;
     stext += empty;
     stext += empty;
+    QString sctext;
     // The following QString should be localized
-    QString sctext = tr("The essential USB floppy drive for the real Amiga user."
+    sctext = tr("The essential USB floppy drive solution for the real Amiga user."
     "It allows you to write from ADF files, to read floppy disks as ADF, IPF and SCP format and, thanks to a specific version Amiga Emulator, like WinUAE (by Toni Wilen) or AmiBerry (by MiDWaN), "
     "it works like a real Amiga disk drive allowing you to directly read and write your floppies through an emulator! "
-    "The package contains the black or white Waffle, a USB cable with the possibility of "
-    "double powering if the USB port of the PC is not very powerful and a USB stick "
-    "with all the necessary software to use the Waffle immediately.");
+    "Sometime you may need a special USB cable (Y-Type) with the possibility of "
+    "double powering if the USB port of the PC is not powerful enough.");
     stext += sctext;
     stext += empty;
     ui->scrollText->setText(stext);
@@ -218,10 +218,10 @@ void MainWindow::doScroll(void)
         ui->stopButton->setFont(this->font());
         ui->portSelection->setFont(this->font());
         ui->version->setFont(this->font());
-        ui->scrollText->setFont(this->font());
         ui->showError->setFont(this->font());
         ui->copyCompleted->setFont(this->font());
         ui->copyError->setFont(this->font());
+        ui->scrollText->setFont(this->font());
         doRefresh = ! doRefresh;
     }
 }
