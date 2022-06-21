@@ -70,5 +70,6 @@ private slots:
     void togglePreComp(void);
     void toggleEraseBeforeWrite(void);
     void toggleNumTracks(void);
+    void manageError(void);
 };
 #endif // MAINWINDOW_H
