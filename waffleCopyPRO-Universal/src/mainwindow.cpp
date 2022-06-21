@@ -71,6 +71,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->preCompSelection, SIGNAL(clicked()), this, SLOT(togglePreComp()));
     connect(ui->eraseBeforeWrite, SIGNAL(clicked()), this, SLOT(toggleEraseBeforeWrite()));
     connect(ui->numTracks, SIGNAL(clicked()), this, SLOT(toggleNumTracks()));
+    connect(ui->showError, SIGNAL(clicked()), this, SLOT(manageError()));
     ui->copyCompleted->hide();
     ui->copyError->hide();
     // Busy background is invisible now
@@ -335,6 +336,12 @@ void MainWindow::showError(QString err)
     {
         qApp->processEvents();
     }
+    ui->showError->hide();
+}
+
+void MainWindow::manageError(void)
+{
+    // Simply hide error window
     ui->showError->hide();
 }
 
