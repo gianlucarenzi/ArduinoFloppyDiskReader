@@ -261,7 +261,7 @@ background-color: rgb(61, 56, 70);</string>
      <enum>Qt::PlainText</enum>
     </property>
     <property name="alignment">
-     <set>Qt::AlignCenter</set>
+     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
     </property>
    </widget>
    <widget class="QLabel" name="portSelection">
