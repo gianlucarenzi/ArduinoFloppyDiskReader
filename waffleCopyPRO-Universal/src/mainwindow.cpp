@@ -28,7 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
   doRefresh(true)
 {
     ui->setupUi(this);
-    cursor = QCursor(QPixmap("WaffleUI/cursor.png"));
+    cursor = QCursor(QPixmap("WaffleUI/cursor.png"), 0, 0);
     this->setCursor(cursor);
     // Connection when click actions
     connect(ui->startWrite, SIGNAL(emitClick()), SLOT(checkStartWrite()));
