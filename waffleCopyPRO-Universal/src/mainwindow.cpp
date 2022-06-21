@@ -208,6 +208,7 @@ void MainWindow::doScroll(void)
     slt++;
     if (slt >= ArraySize(sinetab))
         slt = 0;
+    // One time - setFont() attribute on the widgets
     if (doRefresh) {
         ui->preCompSelection->setFont(this->font());
         ui->eraseBeforeWrite->setFont(this->font());
@@ -217,6 +218,10 @@ void MainWindow::doScroll(void)
         ui->stopButton->setFont(this->font());
         ui->portSelection->setFont(this->font());
         ui->version->setFont(this->font());
+        ui->scrollText->setFont(this->font());
+        ui->showError->setFont(this->font());
+        ui->copyCompleted->setFont(this->font());
+        ui->copyError->setFont(this->font());
         doRefresh = ! doRefresh;
     }
 }
