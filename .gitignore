@@ -43,3 +43,7 @@ CVS
 /waffleCopyPRO-Universal/CapsPlug.o
 /waffleCopyPRO-Universal/ftdi.o
 /waffleCopyPRO-Universal/pll.o
+/waffleCopyPRO-Universal/.qtc_clangd/
+/waffleCopyPRO-Universal/windows/
+/waffleCopyPRO-Universal/Makefile.Debug
+/waffleCopyPRO-Universal/Makefile.Release
