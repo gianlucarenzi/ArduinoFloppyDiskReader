@@ -32,14 +32,15 @@ HEADERS += \
     lib/ArduinoInterface.h \
     lib/RotationExtractor.h \
     lib/SerialIO.h \
-    \
-	 \
+    lib/ftdi.h \
+    lib/pll.h \
     lib/capsapi/CapsAPI.h \
     lib/capsapi/CapsLib.h \
     lib/capsapi/CapsPlug.h \
     lib/capsapi/Comtype.h \
-    lib/ftdi.h \
-    lib/pll.h
+    \
+
+
 FORMS += \
     src/mainwindow.ui \
     \
@@ -49,10 +50,11 @@ SOURCES += \
     lib/ArduinoInterface.cpp \
     lib/RotationExtractor.cpp \
     lib/SerialIO.cpp \
-    \
-    lib/capsapi/CapsPlug.cpp \
     lib/ftdi.cpp \
-    lib/pll.cpp
+    lib/pll.cpp \
+    lib/capsapi/CapsPlug.cpp \
+    \
+
 
 SOURCES += \
     src/clicklabel.cpp \
@@ -61,6 +63,7 @@ SOURCES += \
     src/mainwindow.cpp \
     src/qtdrawbridge.cpp \
     \
+
 
 DEFINES += __USE_GUI__
 
