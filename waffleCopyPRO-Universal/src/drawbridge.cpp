@@ -79,10 +79,17 @@ std::wstring atw(const std::string& str) {
 }
 #endif
 
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+
 // declaration of file pointers
-static FILE *trackFile = NULL;
-static FILE *sideFile = NULL;
-static FILE *badFile = NULL;
+static int fd_trackFile = -1;
+static int fd_sideFile = -1;
+static int fd_statusFile = -1;
 
 using namespace ArduinoFloppyReader;
 
@@ -90,7 +97,7 @@ ADFWriter writer;
 
 static void prepareUIFiles(const char *tFile, const char *sFile, const char *bFile)
 {
-    int zero = 0;
+    char zero[1] = { '0' };
     if (tFile == NULL)
     {
         fprintf(stderr, "tFile is NULL\n");
@@ -106,25 +113,29 @@ static void prepareUIFiles(const char *tFile, const char *sFile, const char *bFi
         fprintf(stderr, "bFile is NULL\n");
         exit(1);
     }
-    trackFile = fopen(tFile, "w+b");
-    sideFile  = fopen(sFile, "w+b");
-    badFile   = fopen(bFile, "w+b");
-    fprintf(trackFile, "%d", zero);
-    fprintf(sideFile, "%d", zero);
-    fprintf(badFile, "%d", zero);
-    fflush(trackFile);
-    fflush(sideFile);
-    fflush(badFile);
+    //fprintf(stdout, "prepareUIFiles TrackFile: %s\n", tFile);
+    //fprintf(stdout, "prepareUIFiles SideFile: %s\n", sFile);
+    //fprintf(stdout, "prepareUIFiles StatusFile: %s\n", bFile);
+    fflush(stdout);
+    fd_trackFile  = open(tFile, O_RDWR);
+    fd_sideFile   = open(sFile, O_RDWR);
+    fd_statusFile = open(bFile, O_RDWR);
+    write(fd_trackFile, zero, 1);
+    write(fd_sideFile, zero, 1);
+    write(fd_statusFile, zero, 1);
 }
 
 static void removeUIFiles(void)
 {
-    if (trackFile)
-        fclose(trackFile);
-    if (sideFile)
-        fclose(sideFile);
-    if (badFile)
-        fclose(badFile);
+    if (fd_trackFile)
+        close(fd_trackFile);
+    if (fd_sideFile)
+        close(fd_sideFile);
+    if (fd_statusFile)
+        close(fd_statusFile);
+    fd_trackFile = -1;
+    fd_sideFile = -1;
+    fd_statusFile = -1;
 }
 
 // Read an ADF file and write it to disk
@@ -166,20 +177,22 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 			}
 		}
 #ifdef __USE_GUI__
-        if (trackFile) {
-            //fprintf(stdout, "%s trackFile %d\n", __PRETTY_FUNCTION__, currentTrack);
-            fseek(trackFile, 0, SEEK_SET);
-            fprintf(trackFile, "%d", currentTrack);
-            fflush(trackFile);
+        if (fd_trackFile > 0) {
+            //fprintf(stdout, "ADF2Disk trackFile %d\n", currentTrack);
+            lseek(fd_trackFile, 0L, SEEK_SET);
+            char tr[4];
+            sprintf(tr, "%03d", currentTrack);
+            write(fd_trackFile, tr, 3);
         } else {
-            fprintf(stderr, "%s trackFile NOT Valid\n", __PRETTY_FUNCTION__);
+            fprintf(stderr, "ADF2Disk trackFile NOT Valid\n");
         }
-        if (sideFile) {
-            //fprintf(stdout, "%s SideFile %s\n", __PRETTY_FUNCTION__,
+        if (fd_sideFile > 0) {
+            //fprintf(stdout, "ADF2Disk SideFile %s\n",
             //        (currentSide == DiskSurface::dsUpper) ? "UPPER" : "LOWER");
-            fseek(sideFile, 0, SEEK_SET);
-            fprintf(sideFile, "%d", (currentSide == DiskSurface::dsUpper) ? 1 : 0);
-            fflush(sideFile);
+            lseek(fd_sideFile, 0L, SEEK_SET);
+            char side[3];
+            sprintf(side, "%02d", (currentSide == DiskSurface::dsUpper) ? 1 : 0);
+            write(fd_sideFile, side, 2);
         } else {
             fprintf(stderr, "%s SideFile NOT Valid\n", __PRETTY_FUNCTION__);
         }
@@ -269,30 +282,33 @@ void disk2ADF(const std::wstring& filename, int numTracks) {
 		}
 
 #ifdef __USE_GUI__
-        if (trackFile) {
-            //fprintf(stdout, "%s TrackFile %d\n", __PRETTY_FUNCTION__, currentTrack);
-            fseek(trackFile, 0, SEEK_SET);
-            fprintf(trackFile, "%d", currentTrack);
-            fflush(trackFile);
+        if (fd_trackFile > 0) {
+            //fprintf(stdout, "ADF2Disk trackFile %d -- %d\n", fd_trackFile, currentTrack);
+            lseek(fd_trackFile, 0L, SEEK_SET);
+            char tr[4];
+            sprintf(tr, "%03d", currentTrack);
+            write(fd_trackFile, tr, 3);
         } else {
-            fprintf(stderr, "%s TrackFile NOT Valid\n", __PRETTY_FUNCTION__);
+            fprintf(stderr, "ADF2Disk trackFile NOT Valid\n");
         }
-        if (sideFile) {
-            //fprintf(stdout, "%s SideFile %s\n", __PRETTY_FUNCTION__,
+        if (fd_sideFile > 0) {
+            //fprintf(stdout, "ADF2Disk SideFile %s\n",
             //        (currentSide == DiskSurface::dsUpper) ? "UPPER" : "LOWER");
-            fseek(sideFile, 0, SEEK_SET);
-            fprintf(sideFile, "%d", (currentSide == DiskSurface::dsUpper) ? 1 : 0);
-            fflush(sideFile);
+            lseek(fd_sideFile, 0L, SEEK_SET);
+            char side[3];
+            sprintf(side, "%02d", (currentSide == DiskSurface::dsUpper) ? 1 : 0);
+            write(fd_sideFile, side, 2);
         } else {
             fprintf(stderr, "%s SideFile NOT Valid\n", __PRETTY_FUNCTION__);
         }
-        if (badFile) {
-            //fprintf(stdout, "%s BadFile %d\n", __PRETTY_FUNCTION__, badSectorsFound);
-            fseek(badFile, 0, SEEK_SET);
-            fprintf(badFile, "%d", badSectorsFound);
-            fflush(badFile);
+        if (fd_statusFile) {
+            //fprintf(stdout, "Disk2ADF statusFile %d\n", badSectorsFound);
+            lseek(fd_statusFile, 0L, SEEK_SET);
+            char status[3];
+            sprintf(status, "%02d", badSectorsFound);
+            write(fd_statusFile, status, 2);
         } else {
-            fprintf(stderr, "%s BadFile NOT Valid\n", __PRETTY_FUNCTION__);
+            fprintf(stderr, "Disk2ADF statusFile NOT Valid\n");
         }
 #else
         if (isADF) {
@@ -396,10 +412,13 @@ int wmain(QStringList list, QString track, QString side, QString status)
 			printf("\rError opening COM port: %s  ", writer.getLastError().c_str());
 		}
 		else {
-            char *fTrack = track.toLatin1().data();
-            char *fSide = side.toLatin1().data();
-            char *fStatus = status.toLatin1().data();
-            qDebug() << "TrackFile: " << fTrack << "SideFile: " << fSide << "StatusFile: " << fStatus;
+            QByteArray tr = track.toLocal8Bit();
+            char *fTrack = tr.data();
+            QByteArray sd = side.toLocal8Bit();
+            char *fSide = sd.data();
+            QByteArray st = status.toLocal8Bit();
+            char *fStatus = st.data();
+            //qDebug() << "TrackFile: " << fTrack << "SideFile: " << fSide << "StatusFile: " << fStatus;
             prepareUIFiles(fTrack, fSide, fStatus);
             if (writeMode) adf2Disk(filename.c_str(), verify, preComp, eraseBeforeWrite); else disk2ADF(filename.c_str(), numTracks);
 			writer.closeDevice();

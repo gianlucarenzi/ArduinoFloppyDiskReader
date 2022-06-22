@@ -101,38 +101,14 @@ void MainWindow::prepareFileSet(void)
     qDebug() << "Side: " << m_side;
     qDebug() << "Status: " << m_status;
 
-    // First create empty files
-    QFile file;
-    if (!file.exists(m_track)) {
-        //qDebug() << "File " << TRACKFILE << "Not Exists. Creating...";
-        file.setFileName(m_track);
-        file.open(QIODevice::ReadWrite | QIODevice::Text);
-        file.seek(0);
-        file.write("0", 1);
-        file.close();
-    }
-    if (!file.exists(m_side)) {
-        //qDebug() << "File " << SIDEFILE << "Not Exists. Creating...";
-        file.setFileName(m_side);
-        file.open(QIODevice::ReadWrite | QIODevice::Text);
-        file.seek(0);
-        file.write("0", 1);
-        file.close();
-    }
-    if (!file.exists(m_status)) {
-        //qDebug() << "File " << STATUSFILE << "Not Exists. Creating...";
-        file.setFileName(m_status);
-        file.open(QIODevice::ReadWrite | QIODevice::Text);
-        file.seek(0);
-        file.write("0", 1);
-        file.close();
-    }
     watcher = new QFileSystemWatcher(this);
-    fileList.append(m_track);
-    fileList.append(m_side);
-    fileList.append(m_status);
-    watcher->addPaths(fileList);
-    //qDebug() << "FileList: " << fileList;
+    if (!watcher->addPath(m_track))
+        qDebug() << "Error ADDING " << m_track;
+    if (!watcher->addPath(m_side))
+        qDebug() << "Error ADDING " << m_side;
+    if (!watcher->addPath(m_status))
+        qDebug() << "Error ADDING " << m_status;
+    //qDebug() << __PRETTY_FUNCTION__ << "Watch on: " << watcher->files();
     connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(progressChange(QString)));
 }
 
@@ -401,16 +377,17 @@ void MainWindow::startRead(void)
 
 void MainWindow::progressChange(QString s)
 {
-    QFile file;
     bool toShow = false;
 
+    //qDebug() << __PRETTY_FUNCTION__ << "called with" << s;
     if (s == m_track)
     {
-        //qDebug() << "TRACKFILE" << s;
-        file.setFileName(m_track);
+        //qDebug() << __PRETTY_FUNCTION__ << "TRACKFILE" << s << "changed";
+        QFile file(m_track);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
             return;
         QByteArray qbaTrack = file.readLine();
+        file.close();
         QString t = qbaTrack.data();
         track = t.toInt();
         // Now we have the track!
@@ -419,11 +396,12 @@ void MainWindow::progressChange(QString s)
     else
     if (s == m_side)
     {
-        //qDebug() << "SIDEFILE" << s;
-        file.setFileName(m_side);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        //qDebug() << __PRETTY_FUNCTION__ << "SIDEFILE" << s << "changed";
+        QFile file(m_side);
+        if (!file.open(QIODevice::ReadWrite | QIODevice::Text))
             return;
         QByteArray qbaSide = file.readLine();
+        file.close();
         QString t = qbaSide.data();
         side = t.toInt();
         // Now we have the side!
@@ -432,11 +410,12 @@ void MainWindow::progressChange(QString s)
     else
     if (s == m_status)
     {
-        //qDebug() << "STATUSFILE" << s;
-        file.setFileName(m_status);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        //qDebug() << __PRETTY_FUNCTION__ << "STATUSFILE" << s << "changed";
+        QFile file(m_status);
+        if (!file.open(QIODevice::ReadWrite | QIODevice::Text))
             return;
         QByteArray qbaStatus = file.readLine();
+        file.close();
         QString t = qbaStatus.data();
         status = t.toInt();
         // Now we have the status!
@@ -446,7 +425,7 @@ void MainWindow::progressChange(QString s)
     {
         qDebug() << "Passed" << s << "Nothing to do";
     }
-    //qDebug() << "TRACK: " << track << "SIDE: " << side << "STATUS: " << status << "toShow" << toShow;
+    //qDebug() << __PRETTY_FUNCTION__ << "TRACK: " << track << "SIDE: " << side << "STATUS: " << status << "toShow" << toShow;
     if (toShow)
     {
         // Error = red squares. good green or yellow if verify
@@ -467,6 +446,8 @@ void MainWindow::progressChange(QString s)
             upperTrack[track]->show();
             break;
         }
+    } else {
+        qDebug() << "Nothing to show...";
     }
 }
 
