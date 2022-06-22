@@ -36,6 +36,7 @@ private:
     void prepareTracks(void);
     void prepareTracksPosition(void);
     QTimer *scrollTimer;
+    QTimer *wSysTimer;
     QtDrawBridge *amigaBridge;
     QFileSystemWatcher *watcher;
     QStringList fileList; // This file list is shared with the QThread for READING/WRITING from Waffle
@@ -53,9 +54,11 @@ private:
     void startRead(void);
     void showError(QString err);
     void prepareFileSet(void);
+    void resetFileCounters(void);
     QString m_track;
     QString m_side;
     QString m_status;
+    QString m_folder;
 
 private slots:
     void checkStartWrite(void);
@@ -71,5 +74,6 @@ private slots:
     void toggleEraseBeforeWrite(void);
     void toggleNumTracks(void);
     void manageError(void);
+    void wSysWatcher(void);
 };
 #endif // MAINWINDOW_H

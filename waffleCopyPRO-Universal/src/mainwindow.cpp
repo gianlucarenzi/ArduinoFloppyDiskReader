@@ -83,6 +83,12 @@ MainWindow::MainWindow(QWidget *parent)
     ui->showError->hide();
     ui->version->setText(WAFFLE_VERSION);
     ui->version->show();
+    // It seems something wrong with the QFileSystemWatcher on Windows
+    // so let's use a very annoying timer...
+    wSysTimer = new QTimer();
+    wSysTimer->setInterval(50);
+    wSysTimer->setSingleShot(false);
+    connect(wSysTimer, SIGNAL(timeout()), this, SLOT(wSysWatcher()));
 }
 
 MainWindow::~MainWindow()
@@ -93,14 +99,47 @@ MainWindow::~MainWindow()
 void MainWindow::prepareFileSet(void)
 {
     // Those functions should returns the location of some place to write or read files
-    m_track = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "_track";
-    m_side = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "_side";
-    m_status = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "_status";
+    m_folder = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    m_track = m_folder + "/track";
+    m_side = m_folder + "/side";
+    m_status = m_folder + "/status";
 
     qDebug() << "Track: " << m_track;
     qDebug() << "Side: " << m_side;
     qDebug() << "Status: " << m_status;
 
+    QDir dir(m_folder);
+    if (!dir.exists()) {
+        qDebug() << "Create Folder" << m_folder;
+        dir.mkdir(m_folder);
+    }
+
+    QFile file;
+    file.setFileName(m_track);
+    if (!file.exists()) {
+        qDebug() << "Create Track" << m_track;
+        file.open(QIODevice::ReadWrite | QIODevice::Text);
+        file.write("000");
+        file.close();
+    }
+    file.setFileName(m_side);
+    if (!file.exists()) {
+        qDebug() << "Create Side" << m_side;
+        file.open(QIODevice::ReadWrite | QIODevice::Text);
+        file.write("0");
+        file.close();
+    }
+    file.setFileName(m_status);
+    if (!file.exists()) {
+        qDebug() << "Create Status" << m_status;
+        file.open(QIODevice::ReadWrite | QIODevice::Text);
+        file.write("00");
+        file.close();
+    }
+
+#ifndef _WIN32
+    // On Windows seems to be problematic/erratic the filesystemwatcher
+    // Use timer
     watcher = new QFileSystemWatcher(this);
     if (!watcher->addPath(m_track))
         qDebug() << "Error ADDING " << m_track;
@@ -110,6 +149,7 @@ void MainWindow::prepareFileSet(void)
         qDebug() << "Error ADDING " << m_status;
     //qDebug() << __PRETTY_FUNCTION__ << "Watch on: " << watcher->files();
     connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(progressChange(QString)));
+#endif
 }
 
 void MainWindow::togglePreComp(void)
@@ -138,7 +178,10 @@ void MainWindow::toggleNumTracks(void)
 
 void MainWindow::doneWork(void)
 {
+    if (wSysTimer->isActive())
+        wSysTimer->stop();
     prepareTracksPosition();
+    qDebug() << "doneWork";
     if (status != 0) {
         ui->copyError->show();
         ui->copyError->raise();
@@ -150,15 +193,20 @@ void MainWindow::doneWork(void)
 
 void MainWindow::done(void)
 {
+    if (wSysTimer->isActive())
+        wSysTimer->stop();
     ui->copyCompleted->hide();
     ui->copyError->hide();
     ui->busy->hide();
     ui->stopButton->hide();
     prepareTracksPosition();
+    qDebug() << "DONE";
 }
 
 void MainWindow::stopClicked(void)
 {
+    if (wSysTimer->isActive())
+        wSysTimer->stop();
     ui->stopButton->hide();
     amigaBridge->terminate();
 }
@@ -296,14 +344,21 @@ void MainWindow::checkStartWrite(void)
 
     qDebug() << "Track: " << m_track;
     qDebug() << "Side: " << m_side;
-    qDebug() << "Status: " << m_status;
+    qDebug() << "Status: " << m_status << "NEED TO WRITE";
 
+    resetFileCounters();
+    prepareTracksPosition();
     amigaBridge->setup(port, filename, command, m_track, m_side, m_status);
     startWrite();
+#ifdef _WIN32
+    wSysTimer->start();
+#endif
 }
 
 void MainWindow::showError(QString err)
 {
+    if (wSysTimer->isActive())
+        wSysTimer->stop();
     ui->showError->setText(err);
     ui->showError->show();
     QElapsedTimer timer;
@@ -318,6 +373,8 @@ void MainWindow::showError(QString err)
 void MainWindow::manageError(void)
 {
     // Simply hide error window
+    if (wSysTimer->isActive())
+        wSysTimer->stop();
     ui->showError->hide();
 }
 
@@ -353,10 +410,15 @@ void MainWindow::checkStartRead(void)
 
     qDebug() << "Track: " << m_track;
     qDebug() << "Side: " << m_side;
-    qDebug() << "Status: " << m_status;
+    qDebug() << "Status: " << m_status << "NEED TO READ";
 
+    resetFileCounters();
+    prepareTracksPosition();
     amigaBridge->setup(port, filename, command, m_track, m_side, m_status);
     startRead();
+#ifdef _WIN32
+    wSysTimer->start();
+#endif
 }
 
 void MainWindow::startWrite(void)
@@ -375,12 +437,18 @@ void MainWindow::startRead(void)
     ui->stopButton->show();
 }
 
+void MainWindow::wSysWatcher(void)
+{
+    //qDebug() << "TIMER FIRE!";
+    progressChange("Timer");
+}
+
 void MainWindow::progressChange(QString s)
 {
     bool toShow = false;
 
     //qDebug() << __PRETTY_FUNCTION__ << "called with" << s;
-    if (s == m_track)
+    if (s == m_track || s == "Timer" )
     {
         //qDebug() << __PRETTY_FUNCTION__ << "TRACKFILE" << s << "changed";
         QFile file(m_track);
@@ -393,8 +461,8 @@ void MainWindow::progressChange(QString s)
         // Now we have the track!
         toShow = true;
     }
-    else
-    if (s == m_side)
+
+    if (s == m_side || s == "Timer" )
     {
         //qDebug() << __PRETTY_FUNCTION__ << "SIDEFILE" << s << "changed";
         QFile file(m_side);
@@ -407,8 +475,8 @@ void MainWindow::progressChange(QString s)
         // Now we have the side!
         toShow = true;
     }
-    else
-    if (s == m_status)
+
+    if (s == m_status || s == "Timer" )
     {
         //qDebug() << __PRETTY_FUNCTION__ << "STATUSFILE" << s << "changed";
         QFile file(m_status);
@@ -421,10 +489,7 @@ void MainWindow::progressChange(QString s)
         // Now we have the status!
         toShow = true;
     }
-    else
-    {
-        qDebug() << "Passed" << s << "Nothing to do";
-    }
+
     //qDebug() << __PRETTY_FUNCTION__ << "TRACK: " << track << "SIDE: " << side << "STATUS: " << status << "toShow" << toShow;
     if (toShow)
     {
@@ -450,6 +515,29 @@ void MainWindow::progressChange(QString s)
         qDebug() << "Nothing to show...";
     }
 }
+void MainWindow::resetFileCounters(void)
+{
+    qDebug() << "RESET FILE COUNTERS";
+
+    QFile file;
+    file.setFileName(m_track);
+    qDebug() << "ZERO Track" << m_track;
+    file.open(QIODevice::ReadWrite | QIODevice::Text);
+    file.write("000");
+    file.close();
+
+    file.setFileName(m_side);
+    qDebug() << "ZERO Side" << m_side;
+    file.open(QIODevice::ReadWrite | QIODevice::Text);
+    file.write("00");
+    file.close();
+
+    file.setFileName(m_status);
+    qDebug() << "ZERO Status" << m_status;
+    file.open(QIODevice::ReadWrite | QIODevice::Text);
+    file.write("0");
+    file.close();
+}
 
 void MainWindow::on_fileReadADF_clicked()
 {
@@ -458,7 +546,7 @@ void MainWindow::on_fileReadADF_clicked()
                                                     tr("ADF Files(*.adf)"));
     if (!fileName.isEmpty())
         ui->getADFFileName->setText(fileName);
- //   demoTimer->start();
+
 }
 
 void MainWindow::on_fileSaveADF_clicked()
@@ -468,5 +556,5 @@ void MainWindow::on_fileSaveADF_clicked()
                                                     tr("ADF Files(*.adf)"));
     if (!fileName.isEmpty())
         ui->setADFFileName->setText(fileName);
-//    demoTimer->start();
+
 }
