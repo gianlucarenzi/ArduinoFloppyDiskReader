@@ -54,7 +54,7 @@ const long long StreamMax = std::numeric_limits<std::streamsize>::max();
 #endif
 
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 #pragma comment(lib,"Ws2_32.lib")
 #else
 #include <algorithm>
