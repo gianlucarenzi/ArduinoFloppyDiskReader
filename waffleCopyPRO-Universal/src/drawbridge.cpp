@@ -23,13 +23,14 @@
 
 #include "ADFWriter.h"
 #include "ArduinoInterface.h"
+#include <stdio.h>
 #include <stdint.h>
 #include "waffleconfig.h"
 #include "compilerdefs.h"
 #ifdef _WIN32
 #include <conio.h>
+#include <io.h>
 #else
-#include <stdio.h>
 #include <termios.h>
 
 #ifndef _wcsupr
