@@ -12,6 +12,7 @@
 #include "qtdrawbridge.h"
 #include "waffleconfig.h"
 #include <QCursor>
+#include <QSettings>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -59,6 +60,8 @@ private:
     QString m_side;
     QString m_status;
     QString m_folder;
+    QSettings settings;
+    int serialPort;
 
 private slots:
     void checkStartWrite(void);
@@ -75,5 +78,6 @@ private slots:
     void toggleNumTracks(void);
     void manageError(void);
     void wSysWatcher(void);
+    void manageSerialPort(int p);
 };
 #endif // MAINWINDOW_H

@@ -13,6 +13,7 @@
 #include <QCursor>
 #include <QElapsedTimer>
 #include <QStandardPaths>
+#include <QSettings>
 
 MainWindow::MainWindow(QWidget *parent)
 : QMainWindow(parent),
@@ -25,7 +26,8 @@ MainWindow::MainWindow(QWidget *parent)
   preComp(true),
   eraseBeforeWrite(false),
   tracks82(false),
-  doRefresh(true)
+  doRefresh(true),
+  serialPort(1)
 {
     ui->setupUi(this);
     cursor = QCursor(QPixmap("WaffleUI/cursor.png"), 0, 0);
@@ -72,6 +74,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->eraseBeforeWrite, SIGNAL(clicked()), this, SLOT(toggleEraseBeforeWrite()));
     connect(ui->numTracks, SIGNAL(clicked()), this, SLOT(toggleNumTracks()));
     connect(ui->showError, SIGNAL(clicked()), this, SLOT(manageError()));
+    connect(ui->serial, SIGNAL(valueChanged(int)), this, SLOT(manageSerialPort(int)));
     ui->copyCompleted->hide();
     ui->copyError->hide();
     // Busy background is invisible now
@@ -89,6 +92,29 @@ MainWindow::MainWindow(QWidget *parent)
     wSysTimer->setInterval(50);
     wSysTimer->setSingleShot(false);
     connect(wSysTimer, SIGNAL(timeout()), this, SLOT(wSysWatcher()));
+    // Settings
+    // If not exists default is true
+    qDebug() << "BEFORE PRECOMP" << preComp;
+    qDebug() << "BEFORE ERASEBEFOREWRITE" << eraseBeforeWrite;
+    qDebug() << "BEFORE TRACKS82" << tracks82;
+    qDebug() << "BEFORE COM PORT" << serialPort;
+
+    preComp = settings.value("PRECOMP", true).toBool();
+    eraseBeforeWrite = settings.value("ERASEBEFOREWRITE", false).toBool();
+    tracks82 = settings.value("TRACKS82", false).toBool();
+    serialPort = settings.value("SERIALPORT", 1).toInt();
+
+    // Adapt the correct value to the ui
+    ui->preCompSelection->setChecked(preComp);
+    ui->eraseBeforeWrite->setChecked(eraseBeforeWrite);
+    ui->numTracks->setChecked(tracks82);
+    ui->serial->setValue(serialPort);
+
+    qDebug() << "AFTER PRECOMP" << preComp;
+    qDebug() << "AFTER ERASEBEFOREWRITE" << eraseBeforeWrite;
+    qDebug() << "AFTER TRACKS82" << tracks82;
+    qDebug() << "AFTER COM PORT" << serialPort;
+
 }
 
 MainWindow::~MainWindow()
@@ -152,11 +178,21 @@ void MainWindow::prepareFileSet(void)
 #endif
 }
 
+void MainWindow::manageSerialPort(int p)
+{
+    qDebug() << "SERIAL" << p;
+    settings.setValue("SERIALPORT", p);
+    settings.sync();
+}
+
 void MainWindow::togglePreComp(void)
 {
     preComp = !preComp;
     qDebug() << "PRECOMP" << preComp;
     ui->preCompSelection->setChecked(preComp);
+    // Store preComp into settings
+    settings.setValue("PRECOMP", preComp);
+    settings.sync();
 }
 
 void MainWindow::toggleEraseBeforeWrite(void)
@@ -164,6 +200,8 @@ void MainWindow::toggleEraseBeforeWrite(void)
     eraseBeforeWrite = !eraseBeforeWrite;
     qDebug() << "ERASE BEFORE WRITE" << eraseBeforeWrite;
     ui->eraseBeforeWrite->setChecked(eraseBeforeWrite);
+    settings.setValue("ERASEBEFOREWRITE", eraseBeforeWrite);
+    settings.sync();
 }
 
 void MainWindow::toggleNumTracks(void)
@@ -174,6 +212,8 @@ void MainWindow::toggleNumTracks(void)
     else
         qDebug() << "80 Tracks";
     ui->numTracks->setChecked(tracks82);
+    settings.setValue("TRACKS82", tracks82);
+    settings.sync();
 }
 
 void MainWindow::doneWork(void)
@@ -397,6 +437,7 @@ void MainWindow::checkStartRead(void)
 #endif
     int value = ui->serial->value();
     port += QString::number(value);
+    settings.setValue("SERIALPORT", port);
 
     QString filename = ui->setADFFileName->text();
     QStringList command;
