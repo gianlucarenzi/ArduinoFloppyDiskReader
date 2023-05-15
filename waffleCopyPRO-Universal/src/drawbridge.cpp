@@ -84,7 +84,9 @@ std::wstring atw(const std::string& str) {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <string.h>
 
 // declaration of file pointers
