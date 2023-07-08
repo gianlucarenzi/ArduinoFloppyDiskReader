@@ -180,7 +180,7 @@ void MainWindow::prepareFileSet(void)
 
 void MainWindow::manageSerialPort(int p)
 {
-    qDebug() << "SERIAL" << p;
+    qDebug() << "WRITE SETTINGS SERIAL" << p;
     settings.setValue("SERIALPORT", p);
     settings.sync();
 }
@@ -188,7 +188,7 @@ void MainWindow::manageSerialPort(int p)
 void MainWindow::togglePreComp(void)
 {
     preComp = !preComp;
-    qDebug() << "PRECOMP" << preComp;
+    qDebug() << "WRITE SETTINGS PRECOMP" << preComp;
     ui->preCompSelection->setChecked(preComp);
     // Store preComp into settings
     settings.setValue("PRECOMP", preComp);
@@ -198,7 +198,7 @@ void MainWindow::togglePreComp(void)
 void MainWindow::toggleEraseBeforeWrite(void)
 {
     eraseBeforeWrite = !eraseBeforeWrite;
-    qDebug() << "ERASE BEFORE WRITE" << eraseBeforeWrite;
+    qDebug() << "WRITE SETTINGS ERASE BEFORE WRITE" << eraseBeforeWrite;
     ui->eraseBeforeWrite->setChecked(eraseBeforeWrite);
     settings.setValue("ERASEBEFOREWRITE", eraseBeforeWrite);
     settings.sync();
@@ -208,9 +208,9 @@ void MainWindow::toggleNumTracks(void)
 {
     tracks82 = !tracks82;
     if (tracks82)
-        qDebug() << "82 TRACKS";
+        qDebug() << "WRITE SETTINGS 82 TRACKS";
     else
-        qDebug() << "80 Tracks";
+        qDebug() << "WRITE SETTINGS 80 Tracks";
     ui->numTracks->setChecked(tracks82);
     settings.setValue("TRACKS82", tracks82);
     settings.sync();
@@ -437,7 +437,8 @@ void MainWindow::checkStartRead(void)
 #endif
     int value = ui->serial->value();
     port += QString::number(value);
-    settings.setValue("SERIALPORT", port);
+    qDebug() << "WRITE SETTINGS SERIALPORT " << value;
+    settings.setValue("SERIALPORT", value);
 
     QString filename = ui->setADFFileName->text();
     QStringList command;
