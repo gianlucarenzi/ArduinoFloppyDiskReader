@@ -174,8 +174,8 @@ background-color: rgb(61, 56, 70);</string>
    <widget class="QLabel" name="mainTitle">
     <property name="geometry">
      <rect>
-      <x>170</x>
-      <y>20</y>
+      <x>180</x>
+      <y>30</y>
       <width>681</width>
       <height>131</height>
      </rect>
@@ -504,6 +504,83 @@ background-color: rgb(61, 56, 70);</string>
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
+   <widget class="QWidget" name="errorDialog" native="true">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>10</y>
+      <width>512</width>
+      <height>128</height>
+     </rect>
+    </property>
+    <property name="autoFillBackground">
+     <bool>false</bool>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(255, 120, 0);background-color: rgb(61, 56, 70);</string>
+    </property>
+    <widget class="QWidget" name="verticalLayoutWidget">
+     <property name="geometry">
+      <rect>
+       <x>-1</x>
+       <y>-1</y>
+       <width>511</width>
+       <height>51</height>
+      </rect>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <widget class="QLabel" name="errorMessage">
+        <property name="autoFillBackground">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>Disk Error!</string>
+        </property>
+        <property name="scaledContents">
+         <bool>true</bool>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+    <widget class="QWidget" name="horizontalLayoutWidget">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>50</y>
+       <width>511</width>
+       <height>61</height>
+      </rect>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QPushButton" name="retryButton">
+        <property name="text">
+         <string>Retry</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="skipButton">
+        <property name="text">
+         <string>Skip</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="cancelButton">
+        <property name="text">
+         <string>Cancel</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </widget>
    <zorder>busy</zorder>
    <zorder>background</zorder>
    <zorder>stopButton</zorder>
@@ -526,6 +603,7 @@ background-color: rgb(61, 56, 70);</string>
    <zorder>eraseBeforeWrite</zorder>
    <zorder>numTracks</zorder>
    <zorder>version</zorder>
+   <zorder>errorDialog</zorder>
   </widget>
  </widget>
  <customwidgets>
