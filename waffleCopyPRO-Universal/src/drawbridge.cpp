@@ -93,12 +93,13 @@ std::wstring atw(const std::string& str) {
 static int fd_trackFile = -1;
 static int fd_sideFile = -1;
 static int fd_statusFile = -1;
+static int fd_errorFile = -1;
 
 using namespace ArduinoFloppyReader;
 
 ADFWriter writer;
 
-static void prepareUIFiles(const char *tFile, const char *sFile, const char *bFile)
+static void prepareUIFiles(const char *tFile, const char *sFile, const char *bFile, const char *eFile)
 {
     char zero[1] = { '0' };
     if (tFile == NULL)
@@ -116,16 +117,24 @@ static void prepareUIFiles(const char *tFile, const char *sFile, const char *bFi
         fprintf(stderr, "bFile is NULL\n");
         exit(1);
     }
+    if (eFile == NULL)
+    {
+        fprintf(stderr, "eFile is NULL\n");
+        exit(1);
+    }
     //fprintf(stdout, "prepareUIFiles TrackFile: %s\n", tFile);
     //fprintf(stdout, "prepareUIFiles SideFile: %s\n", sFile);
     //fprintf(stdout, "prepareUIFiles StatusFile: %s\n", bFile);
+    //fprintf(stdout, "prepareUIFiles ErrorFile: %s\n", eFile);
     fflush(stdout);
     fd_trackFile  = open(tFile, O_RDWR);
     fd_sideFile   = open(sFile, O_RDWR);
     fd_statusFile = open(bFile, O_RDWR);
+    fd_errorFile  = open(eFile, O_RDWR);
     write(fd_trackFile, zero, 1);
     write(fd_sideFile, zero, 1);
     write(fd_statusFile, zero, 1);
+    write(fd_errorFile, zero, 1);
 }
 
 static void removeUIFiles(void)
@@ -136,9 +145,87 @@ static void removeUIFiles(void)
         close(fd_sideFile);
     if (fd_statusFile)
         close(fd_statusFile);
+    if (fd_errorFile)
+        close(fd_errorFile);
     fd_trackFile = -1;
     fd_sideFile = -1;
     fd_statusFile = -1;
+    fd_errorFile = -1;
+}
+
+static char userInput = 'Z';
+static bool userInputDone = false;
+static char wait_user_input(void);
+
+/* Global function. It will be called by GUI */
+void set_user_input(char uinput);
+
+void set_user_input(char uinput)
+{
+    userInput = uinput;
+    userInputDone = true;
+}
+
+char wait_user_input(void)
+{
+    for (;;)
+    {
+        if (userInputDone != false)
+            break;
+        usleep(50 * 1000L);
+    }
+    userInputDone = false; // Valid for the next time
+    return userInput;
+}
+
+static void update_error_file(int err)
+{
+    if (fd_errorFile > 0) {
+        //fprintf(stdout, "ADF2Disk ErrorFile %s\n", err);
+        lseek(fd_errorFile, 0L, SEEK_SET);
+        char errS[2];
+        sprintf(errS, "%01d", err);
+        write(fd_errorFile, errS, 1);
+    } else {
+        fprintf(stderr, "ADF2Disk errorFile NOT Valid\n");
+    }
+}
+
+static void update_gui_writing(int32_t currentTrack, DiskSurface currentSide)
+{
+    if (fd_trackFile > 0) {
+        //fprintf(stdout, "ADF2Disk trackFile %d -- %d\n", fd_trackFile, currentTrack);
+        lseek(fd_trackFile, 0L, SEEK_SET);
+        char tr[4];
+        sprintf(tr, "%03d", currentTrack);
+        write(fd_trackFile, tr, 3);
+    } else {
+        fprintf(stderr, "ADF2Disk trackFile NOT Valid\n");
+    }
+    if (fd_sideFile > 0) {
+        //fprintf(stdout, "ADF2Disk SideFile %s\n",
+        //        (currentSide == DiskSurface::dsUpper) ? "UPPER" : "LOWER");
+        lseek(fd_sideFile, 0L, SEEK_SET);
+        char side[3];
+        sprintf(side, "%02d", (currentSide == DiskSurface::dsUpper) ? 1 : 0);
+        write(fd_sideFile, side, 2);
+    } else {
+        fprintf(stderr, "%s SideFile NOT Valid\n", __PRETTY_FUNCTION__);
+    }
+}
+
+static void update_gui_reading(int32_t currentTrack, DiskSurface currentSide, int32_t badSectorsFound)
+{
+    update_gui_writing(currentTrack, currentSide);
+    if (fd_statusFile) {
+        //fprintf(stdout, "Disk2ADF statusFile %d\n", badSectorsFound);
+        lseek(fd_statusFile, 0L, SEEK_SET);
+        char status[3];
+        sprintf(status, "%02d", badSectorsFound);
+        write(fd_statusFile, status, 2);
+    } else {
+        fprintf(stderr, "Disk2ADF statusFile NOT Valid\n");
+    }
 }
 
 // Read an ADF file and write it to disk
@@ -163,7 +250,7 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 			do {
 				printf("\rDisk write verify error on track %i, %s side. [R]etry, [S]kip, [A]bort?                                   ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
 #ifdef __USE_GUI__
-                    input = 'S';
+                    update_error_file(1); fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __PRETTY_FUNCTION__); fflush(stderr); input = wait_user_input();
 #else
     #ifdef _WIN32
                     input = toupper(_getch());
@@ -175,30 +262,12 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 			
 			switch (input) {
 			case 'R': return WriteResponse::wrRetry;
-			case 'I': return WriteResponse::wrSkipBadChecksums;
+            case 'S': return WriteResponse::wrSkipBadChecksums;
 			case 'A': return WriteResponse::wrAbort;
 			}
 		}
 #ifdef __USE_GUI__
-        if (fd_trackFile > 0) {
-            //fprintf(stdout, "ADF2Disk trackFile %d\n", currentTrack);
-            lseek(fd_trackFile, 0L, SEEK_SET);
-            char tr[4];
-            sprintf(tr, "%03d", currentTrack);
-            write(fd_trackFile, tr, 3);
-        } else {
-            fprintf(stderr, "ADF2Disk trackFile NOT Valid\n");
-        }
-        if (fd_sideFile > 0) {
-            //fprintf(stdout, "ADF2Disk SideFile %s\n",
-            //        (currentSide == DiskSurface::dsUpper) ? "UPPER" : "LOWER");
-            lseek(fd_sideFile, 0L, SEEK_SET);
-            char side[3];
-            sprintf(side, "%02d", (currentSide == DiskSurface::dsUpper) ? 1 : 0);
-            write(fd_sideFile, side, 2);
-        } else {
-            fprintf(stderr, "%s SideFile NOT Valid\n", __PRETTY_FUNCTION__);
-        }
+        update_gui_writing(currentTrack, currentSide);
 #else
         printf("\rWriting Track %i, %s side     ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
 #endif
@@ -267,7 +336,8 @@ void disk2ADF(const std::wstring& filename, int numTracks) {
 			do {
                 // Disk has checksum errors/missing data. Skip Bad checksum always
 #ifdef __USE_GUI__
-                    input = 'I';
+                    // Now we have to inform the GUI Thread we have an error, and we need to decide how to proceed
+                    update_error_file(1); fprintf(stderr, "\r\n %s READ ERROR NOW WAIT USER INPUT \r\n", __PRETTY_FUNCTION__); fflush(stderr); input = wait_user_input();
 #else
     #ifdef _WIN32
                     input = toupper(_getch());
@@ -276,43 +346,16 @@ void disk2ADF(const std::wstring& filename, int numTracks) {
     #endif
 #endif
 
-			} while ((input != 'R') && (input != 'I') && (input != 'A'));
+            } while ((input != 'R') && (input != 'S') && (input != 'A'));
 			switch (input) {
 			case 'R': return WriteResponse::wrRetry;
-			case 'I': return WriteResponse::wrSkipBadChecksums;
+            case 'S': return WriteResponse::wrSkipBadChecksums;
 			case 'A': return WriteResponse::wrAbort;
 			}
 		}
 
 #ifdef __USE_GUI__
-        if (fd_trackFile > 0) {
-            //fprintf(stdout, "ADF2Disk trackFile %d -- %d\n", fd_trackFile, currentTrack);
-            lseek(fd_trackFile, 0L, SEEK_SET);
-            char tr[4];
-            sprintf(tr, "%03d", currentTrack);
-            write(fd_trackFile, tr, 3);
-        } else {
-            fprintf(stderr, "ADF2Disk trackFile NOT Valid\n");
-        }
-        if (fd_sideFile > 0) {
-            //fprintf(stdout, "ADF2Disk SideFile %s\n",
-            //        (currentSide == DiskSurface::dsUpper) ? "UPPER" : "LOWER");
-            lseek(fd_sideFile, 0L, SEEK_SET);
-            char side[3];
-            sprintf(side, "%02d", (currentSide == DiskSurface::dsUpper) ? 1 : 0);
-            write(fd_sideFile, side, 2);
-        } else {
-            fprintf(stderr, "%s SideFile NOT Valid\n", __PRETTY_FUNCTION__);
-        }
-        if (fd_statusFile) {
-            //fprintf(stdout, "Disk2ADF statusFile %d\n", badSectorsFound);
-            lseek(fd_statusFile, 0L, SEEK_SET);
-            char status[3];
-            sprintf(status, "%02d", badSectorsFound);
-            write(fd_statusFile, status, 2);
-        } else {
-            fprintf(stderr, "Disk2ADF statusFile NOT Valid\n");
-        }
+        update_gui_reading( currentTrack, currentSide, badSectorsFound );
 #else
         if (isADF) {
             printf("\rReading Track %i, %s side (retry: %i) - Got %i/11 sectors (%i bad found)   ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower", retryCounter, sectorsFound, badSectorsFound);
@@ -383,8 +426,9 @@ void runDiagnostics(const std::wstring& port) {
 #include <QDebug>
 #include <QTemporaryFile>
 #include <QFile>
+#include <qtdrawbridge.h>
 
-int wmain(QStringList list, QString track, QString side, QString status)
+int wmain(QStringList list, QString track, QString side, QString status, QString error)
 {
     bool writeMode = list.contains("WRITE");
     bool verify = list.contains("VERIFY");
@@ -408,6 +452,8 @@ int wmain(QStringList list, QString track, QString side, QString status)
     qDebug() << "eraseBeforeWrite" << eraseBeforeWrite;
     qDebug() << "TRACKS" << numTracks;
 
+    userInputDone = false; // It will be changed by the user on errors
+
     if (list.contains("DIAGNOSTIC")) {
             runDiagnostics(port);
     } else {
@@ -421,8 +467,10 @@ int wmain(QStringList list, QString track, QString side, QString status)
             char *fSide = sd.data();
             QByteArray st = status.toLocal8Bit();
             char *fStatus = st.data();
-            //qDebug() << "TrackFile: " << fTrack << "SideFile: " << fSide << "StatusFile: " << fStatus;
-            prepareUIFiles(fTrack, fSide, fStatus);
+            QByteArray er = error.toLocal8Bit();
+            char *fError = er.data();
+            //qDebug() << "TrackFile: " << fTrack << "SideFile: " << fSide << "StatusFile: " << fStatus << "ErrorFile: " << fError;
+            prepareUIFiles(fTrack, fSide, fStatus, fError);
             if (writeMode) adf2Disk(filename.c_str(), verify, preComp, eraseBeforeWrite); else disk2ADF(filename.c_str(), numTracks);
 			writer.closeDevice();
             removeUIFiles();
