@@ -6,6 +6,7 @@
 #include <QPaintEvent>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "ui_errordialog.h"
 #include <stdio.h>
 #include <QString>
 #include <QFont>
@@ -21,6 +22,7 @@ MainWindow::MainWindow(QWidget *parent)
   track(-1),
   side(-1),
   status(-1),
+  err(-1),
   readInProgress(false),
   writeInProgress(false),
   preComp(true),
@@ -115,7 +117,13 @@ MainWindow::MainWindow(QWidget *parent)
     qDebug() << "AFTER TRACKS82" << tracks82;
     qDebug() << "AFTER COM PORT" << serialPort;
 
+    ui->errorDialog->hide();
+    ui->errorDialog->raise();
+    connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(errorDialog_CancelClicked()));
+    connect(ui->skipButton, SIGNAL(clicked()), this, SLOT(errorDialog_SkipClicked()));
+    connect(ui->retryButton, SIGNAL(clicked()), this, SLOT(errorDialog_RetryClicked()));
 }
+
 
 MainWindow::~MainWindow()
 {
@@ -129,10 +137,12 @@ void MainWindow::prepareFileSet(void)
     m_track = m_folder + "/track";
     m_side = m_folder + "/side";
     m_status = m_folder + "/status";
+    m_error = m_folder + "/error";
 
-    qDebug() << "Track: " << m_track;
-    qDebug() << "Side: " << m_side;
+    qDebug() << "Track:  " << m_track;
+    qDebug() << "Side:   " << m_side;
     qDebug() << "Status: " << m_status;
+    qDebug() << "Error:  " << m_error;
 
     QDir dir(m_folder);
     if (!dir.exists()) {
@@ -162,6 +172,13 @@ void MainWindow::prepareFileSet(void)
         file.write("00");
         file.close();
     }
+    file.setFileName(m_error);
+    if (!file.exists()) {
+        qDebug() << "Create Error" << m_error;
+        file.open(QIODevice::ReadWrite | QIODevice::Text);
+        file.write("0");
+        file.close();
+    }
 
 #ifndef _WIN32
     // On Windows seems to be problematic/erratic the filesystemwatcher
@@ -173,6 +190,8 @@ void MainWindow::prepareFileSet(void)
         qDebug() << "Error ADDING " << m_side;
     if (!watcher->addPath(m_status))
         qDebug() << "Error ADDING " << m_status;
+    if (!watcher->addPath(m_error))
+        qDebug() << "Error ADDING " << m_error;
     //qDebug() << __PRETTY_FUNCTION__ << "Watch on: " << watcher->files();
     connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(progressChange(QString)));
 #endif
@@ -287,6 +306,11 @@ void MainWindow::doScroll(void)
         ui->copyCompleted->setFont(this->font());
         ui->copyError->setFont(this->font());
         ui->scrollText->setFont(this->font());
+        ui->errorDialog->setFont(this->font());
+        ui->retryButton->setFont(this->font());
+        ui->cancelButton->setFont(this->font());
+        ui->skipButton->setFont(this->font());
+        ui->errorMessage->setFont(this->font());
         doRefresh = ! doRefresh;
     }
 }
@@ -354,7 +378,7 @@ void MainWindow::checkStartWrite(void)
     if (ui->getADFFileName->text().isEmpty())
     {
         qDebug() << "NEED ADF FILENAME First to write to floppy";
-        showError("NEED ADF FILENAME FIRST TO WRITE TO FLOPPY");
+        showSetupError("NEED ADF FILENAME FIRST TO WRITE TO FLOPPY");
         return;
     }
     QString port =
@@ -388,14 +412,14 @@ void MainWindow::checkStartWrite(void)
 
     resetFileCounters();
     prepareTracksPosition();
-    amigaBridge->setup(port, filename, command, m_track, m_side, m_status);
+    amigaBridge->setup(port, filename, command, m_track, m_side, m_status, m_error);
     startWrite();
 #ifdef _WIN32
     wSysTimer->start();
 #endif
 }
 
-void MainWindow::showError(QString err)
+void MainWindow::showSetupError(QString err)
 {
     if (wSysTimer->isActive())
         wSysTimer->stop();
@@ -426,7 +450,7 @@ void MainWindow::checkStartRead(void)
     if (ui->setADFFileName->text().isEmpty())
     {
         qDebug() << "NEED ADF FILENAME First to write to disk from floppy";
-        showError("NEED ADF FILENAME FIRST TO WRITE TO DISK FROM FLOPPY");
+        showSetupError("NEED ADF FILENAME FIRST TO WRITE TO DISK FROM FLOPPY");
         return;
     }
     QString port =
@@ -456,7 +480,7 @@ void MainWindow::checkStartRead(void)
 
     resetFileCounters();
     prepareTracksPosition();
-    amigaBridge->setup(port, filename, command, m_track, m_side, m_status);
+    amigaBridge->setup(port, filename, command, m_track, m_side, m_status, m_error);
     startRead();
 #ifdef _WIN32
     wSysTimer->start();
@@ -532,6 +556,20 @@ void MainWindow::progressChange(QString s)
         toShow = true;
     }
 
+    if (s == m_error || s == "Timer" )
+    {
+        //qDebug() << __PRETTY_FUNCTION__ << "ERRORFILE" << s << "changed";
+        QFile file(m_error);
+        if (!file.open(QIODevice::ReadWrite | QIODevice::Text))
+            return;
+        QByteArray qbaError = file.readLine();
+        file.close();
+        QString t = qbaError.data();
+        err = t.toInt();
+        // Now we have the error!
+        if (err == 1) ui->errorDialog->show(); else ui->errorDialog->hide();
+    }
+
     //qDebug() << __PRETTY_FUNCTION__ << "TRACK: " << track << "SIDE: " << side << "STATUS: " << status << "toShow" << toShow;
     if (toShow)
     {
@@ -599,4 +637,28 @@ void MainWindow::on_fileSaveADF_clicked()
     if (!fileName.isEmpty())
         ui->setADFFileName->setText(fileName);
 
+}
+
+extern void set_user_input(char data);
+
+void MainWindow::errorDialog_SkipClicked(void)
+{
+    qDebug() << __PRETTY_FUNCTION__ << "SKIP Clicked";
+    set_user_input('S'); // Skip
+    ui->errorDialog->hide();
+}
+
+void MainWindow::errorDialog_CancelClicked(void)
+{
+    qDebug() << __PRETTY_FUNCTION__ << "ABORT Clicked";
+    set_user_input('A'); // Abort
+    ui->errorDialog->hide();
+    stopClicked();
+}
+
+void MainWindow::errorDialog_RetryClicked(void)
+{
+    qDebug() << __PRETTY_FUNCTION__ << "RETRY Clicked";
+    set_user_input('R'); // Retry
+    ui->errorDialog->hide();
 }
