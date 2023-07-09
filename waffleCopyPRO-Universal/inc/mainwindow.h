@@ -32,6 +32,7 @@ private:
     int track;
     int side;
     int status;
+    int err;
     QLabel *upperTrack[MAX_TRACKS];
     QLabel *lowerTrack[MAX_TRACKS];
     void prepareTracks(void);
@@ -53,13 +54,14 @@ private:
 private:
     void startWrite(void);
     void startRead(void);
-    void showError(QString err);
+    void showSetupError(QString err);
     void prepareFileSet(void);
     void resetFileCounters(void);
     QString m_track;
     QString m_side;
     QString m_status;
     QString m_folder;
+    QString m_error;
     QSettings settings;
     int serialPort;
 
@@ -79,5 +81,9 @@ private slots:
     void manageError(void);
     void wSysWatcher(void);
     void manageSerialPort(int p);
+    // Disk error management
+    void errorDialog_RetryClicked(void);
+    void errorDialog_SkipClicked(void);
+    void errorDialog_CancelClicked(void);
 };
 #endif // MAINWINDOW_H
