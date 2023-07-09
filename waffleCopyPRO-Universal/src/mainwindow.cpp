@@ -6,7 +6,6 @@
 #include <QPaintEvent>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "ui_errordialog.h"
 #include <stdio.h>
 #include <QString>
 #include <QFont>
