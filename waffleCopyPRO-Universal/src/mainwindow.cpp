@@ -642,14 +642,14 @@ extern void set_user_input(char data);
 
 void MainWindow::errorDialog_SkipClicked(void)
 {
-    qDebug() << __PRETTY_FUNCTION__ << "SKIP Clicked";
+    qDebug() << __FUNCTION__ << "SKIP Clicked";
     set_user_input('S'); // Skip
     ui->errorDialog->hide();
 }
 
 void MainWindow::errorDialog_CancelClicked(void)
 {
-    qDebug() << __PRETTY_FUNCTION__ << "ABORT Clicked";
+    qDebug() << __FUNCTION__ << "ABORT Clicked";
     set_user_input('A'); // Abort
     ui->errorDialog->hide();
     stopClicked();
@@ -657,7 +657,7 @@ void MainWindow::errorDialog_CancelClicked(void)
 
 void MainWindow::errorDialog_RetryClicked(void)
 {
-    qDebug() << __PRETTY_FUNCTION__ << "RETRY Clicked";
+    qDebug() << __FUNCTION__ << "RETRY Clicked";
     set_user_input('R'); // Retry
     ui->errorDialog->hide();
 }
