@@ -88,6 +88,9 @@ std::wstring atw(const std::string& str) {
 #include <unistd.h>
 #endif
 #include <string.h>
+#include <iostream>
+#include <chrono>
+#include <thread>
 
 // declaration of file pointers
 static int fd_trackFile = -1;
@@ -172,7 +175,8 @@ char wait_user_input(void)
     {
         if (userInputDone != false)
             break;
-        usleep(50 * 1000L);
+        // Do not hog the CPU for an housekeeping busy-loop
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     userInputDone = false; // Valid for the next time
     return userInput;
