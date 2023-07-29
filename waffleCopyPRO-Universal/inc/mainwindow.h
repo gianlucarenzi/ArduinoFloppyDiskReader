@@ -50,8 +50,6 @@ private:
     bool eraseBeforeWrite;
     bool tracks82;
     bool doRefresh;
-
-private:
     void startWrite(void);
     void startRead(void);
     void showSetupError(QString err);
@@ -64,6 +62,7 @@ private:
     QString m_error;
     QSettings settings;
     int serialPort;
+    bool readyReadSHM;
 
 private slots:
     void checkStartWrite(void);
@@ -85,5 +84,6 @@ private slots:
     void errorDialog_RetryClicked(void);
     void errorDialog_SkipClicked(void);
     void errorDialog_CancelClicked(void);
+    void manageQtDrawBridgeSignal(int rval);
 };
 #endif // MAINWINDOW_H

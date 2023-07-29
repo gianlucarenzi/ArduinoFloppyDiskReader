@@ -47,6 +47,7 @@ MainWindow::MainWindow(QWidget *parent)
     prepareFileSet();
     amigaBridge = new QtDrawBridge();
     connect(amigaBridge, SIGNAL(finished()), SLOT(doneWork()));
+    connect(amigaBridge, SIGNAL(QtDrawBridgeSignal(int)), this, SLOT(manageQtDrawBridgeSignal(int)));
     ui->scrollText->setStyleSheet("color: rgb(255,255,255)");
     QString empty = "                                                ";
     stext += empty;
@@ -121,6 +122,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(errorDialog_CancelClicked()));
     connect(ui->skipButton, SIGNAL(clicked()), this, SLOT(errorDialog_SkipClicked()));
     connect(ui->retryButton, SIGNAL(clicked()), this, SLOT(errorDialog_RetryClicked()));
+    readyReadSHM = false;
 }
 
 
@@ -238,8 +240,8 @@ void MainWindow::doneWork(void)
 {
     if (wSysTimer->isActive())
         wSysTimer->stop();
-    prepareTracksPosition();
-    qDebug() << "doneWork";
+    //prepareTracksPosition();
+    qDebug() << "doneWork" << "status:" << status;
     if (status != 0) {
         ui->copyError->show();
         ui->copyError->raise();
@@ -247,6 +249,7 @@ void MainWindow::doneWork(void)
         ui->copyCompleted->show();
         ui->copyCompleted->raise();
     }
+    readyReadSHM = false;
 }
 
 void MainWindow::done(void)
@@ -257,14 +260,16 @@ void MainWindow::done(void)
     ui->copyError->hide();
     ui->busy->hide();
     ui->stopButton->hide();
-    prepareTracksPosition();
+    //prepareTracksPosition();
     qDebug() << "DONE";
+    readyReadSHM = false;
 }
 
 void MainWindow::stopClicked(void)
 {
     if (wSysTimer->isActive())
         wSysTimer->stop();
+    ui->copyCompleted->setText(tr("OPERATION TERMINATED BY USER"));
     ui->stopButton->hide();
     amigaBridge->terminate();
 }
@@ -377,9 +382,11 @@ void MainWindow::checkStartWrite(void)
     if (ui->getADFFileName->text().isEmpty())
     {
         qDebug() << "NEED ADF FILENAME First to write to floppy";
-        showSetupError("NEED ADF FILENAME FIRST TO WRITE TO FLOPPY");
+        showSetupError(tr("NEED ADF FILENAME FIRST TO WRITE TO FLOPPY"));
         return;
     }
+    // To have the correct text on the copyCompleted.
+    ui->copyCompleted->setText(tr("AMIGA DISK COPY COMPLETED"));
     QString port =
 #ifdef _WIN32
     "COM";
@@ -416,6 +423,8 @@ void MainWindow::checkStartWrite(void)
 #ifdef _WIN32
     wSysTimer->start();
 #endif
+    // Now we can read the shared memory coming from the Thread
+    readyReadSHM = true;
 }
 
 void MainWindow::showSetupError(QString err)
@@ -452,6 +461,8 @@ void MainWindow::checkStartRead(void)
         showSetupError("NEED ADF FILENAME FIRST TO WRITE TO DISK FROM FLOPPY");
         return;
     }
+    // To have the correct text on the copyCompleted.
+    ui->copyCompleted->setText(tr("AMIGA DISK COPY COMPLETED"));
     QString port =
 #ifdef _WIN32
     "COM";
@@ -484,6 +495,8 @@ void MainWindow::checkStartRead(void)
 #ifdef _WIN32
     wSysTimer->start();
 #endif
+    // Now we can read the shared memory coming from the Thread
+    readyReadSHM = true;
 }
 
 void MainWindow::startWrite(void)
@@ -512,86 +525,107 @@ void MainWindow::progressChange(QString s)
 {
     bool toShow = false;
 
-    //qDebug() << __PRETTY_FUNCTION__ << "called with" << s;
-    if (s == m_track || s == "Timer" )
+    if (readyReadSHM)
     {
-        //qDebug() << __PRETTY_FUNCTION__ << "TRACKFILE" << s << "changed";
-        QFile file(m_track);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-            return;
-        QByteArray qbaTrack = file.readLine();
-        file.close();
-        QString t = qbaTrack.data();
-        track = t.toInt();
-        // Now we have the track!
-        toShow = true;
-    }
-
-    if (s == m_side || s == "Timer" )
-    {
-        //qDebug() << __PRETTY_FUNCTION__ << "SIDEFILE" << s << "changed";
-        QFile file(m_side);
-        if (!file.open(QIODevice::ReadWrite | QIODevice::Text))
-            return;
-        QByteArray qbaSide = file.readLine();
-        file.close();
-        QString t = qbaSide.data();
-        side = t.toInt();
-        // Now we have the side!
-        toShow = true;
-    }
-
-    if (s == m_status || s == "Timer" )
-    {
-        //qDebug() << __PRETTY_FUNCTION__ << "STATUSFILE" << s << "changed";
-        QFile file(m_status);
-        if (!file.open(QIODevice::ReadWrite | QIODevice::Text))
-            return;
-        QByteArray qbaStatus = file.readLine();
-        file.close();
-        QString t = qbaStatus.data();
-        status = t.toInt();
-        // Now we have the status!
-        toShow = true;
-    }
-
-    if (s == m_error || s == "Timer" )
-    {
-        //qDebug() << __PRETTY_FUNCTION__ << "ERRORFILE" << s << "changed";
-        QFile file(m_error);
-        if (!file.open(QIODevice::ReadWrite | QIODevice::Text))
-            return;
-        QByteArray qbaError = file.readLine();
-        file.close();
-        QString t = qbaError.data();
-        err = t.toInt();
-        // Now we have the error!
-        if (err == 1) ui->errorDialog->show(); else ui->errorDialog->hide();
-    }
-
-    //qDebug() << __PRETTY_FUNCTION__ << "TRACK: " << track << "SIDE: " << side << "STATUS: " << status << "toShow" << toShow;
-    if (toShow)
-    {
-        // Error = red squares. good green or yellow if verify
-        switch(side)
+        //qDebug() << __PRETTY_FUNCTION__ << "called with" << s;
+        if (s == m_track || s == "Timer" )
         {
-        case 0: // Lower Side
-            if (status != 0)
-                lowerTrack[track]->setStyleSheet("background-color: rgb(255,0,0)");
+            //qDebug() << __PRETTY_FUNCTION__ << "TRACKFILE" << s << "changed";
+            QFile file(m_track);
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+                return;
+            QByteArray qbaTrack = file.readLine();
+            file.close();
+            QString t = qbaTrack.data();
+            track = t.toInt();
+            //qDebug() << __PRETTY_FUNCTION__ << "TRACK FILE HAS: " << track;
+            // Now we have the track!
+            //qDebug() << __PRETTY_FUNCTION__ << "TRACK FILE HAS: " << track;
+        }
+
+        if (s == m_side || s == "Timer" )
+        {
+            //qDebug() << __PRETTY_FUNCTION__ << "SIDEFILE" << s << "changed";
+            QFile file(m_side);
+            if (!file.open(QIODevice::ReadWrite | QIODevice::Text))
+                return;
+            QByteArray qbaSide = file.readLine();
+            file.close();
+            QString t = qbaSide.data();
+            side = t.toInt();
+            // Now we have the side!
+            //qDebug() << __PRETTY_FUNCTION__ << "SIDE FILE HAS: " << side;
+        }
+
+        if (s == m_status || s == "Timer" )
+        {
+            //qDebug() << __PRETTY_FUNCTION__ << "STATUSFILE" << s << "changed";
+            QFile file(m_status);
+            if (!file.open(QIODevice::ReadWrite | QIODevice::Text))
+                return;
+            QByteArray qbaStatus = file.readLine();
+            file.close();
+            QString t = qbaStatus.data();
+            status = t.toInt();
+            // Now we have the status!
+            //qDebug() << __PRETTY_FUNCTION__ << "STATUS FILE HAS: " << status;
+        }
+
+        if (s == m_error || s == "Timer" )
+        {
+            //qDebug() << __PRETTY_FUNCTION__ << "ERRORFILE" << s << "changed";
+            QFile file(m_error);
+            if (!file.open(QIODevice::ReadWrite | QIODevice::Text))
+                return;
+            QByteArray qbaError = file.readLine();
+            file.close();
+            QString t = qbaError.data();
+            err = t.toInt();
+
+            // Now we have the error!
+            if (err != 0)
+                ui->errorDialog->show();
             else
-                lowerTrack[track]->setStyleSheet("background-color: rgb(0,255,0)");
-            lowerTrack[track]->show();
-            break;
-        case 1:
-            if (status != 0)
-                upperTrack[track]->setStyleSheet("background-color: rgb(255,0,0)");
-            else
-                upperTrack[track]->setStyleSheet("background-color: rgb(0,255,0)");
-            upperTrack[track]->show();
-            break;
+                ui->errorDialog->hide();
+
+            //qDebug() << __PRETTY_FUNCTION__ << "ERRORCODE" << err;
+            if (err != 0)
+            {
+                // The only way to setup a 'RED' square, is when err != 0, the
+                // square will be printed in RED
+                status = 1;
+                //qDebug() << __PRETTY_FUNCTION__ << "ERRORCODE CHANGE TO RED";
+            }
+        }
+
+        if (track < 0 || side < 0 || status < 0) toShow = false; else toShow = true;
+
+        //qDebug() << __PRETTY_FUNCTION__ << "TRACK: " << track << "SIDE: " << side << "STATUS: " << status << "ERROR: " << err << "toShow" << toShow;
+        if (toShow)
+        {
+            // Error = red squares. good green or yellow if verify
+            switch(side)
+            {
+            case 0: // Lower Side
+                if (status != 0)
+                    lowerTrack[track]->setStyleSheet("background-color: rgb(255,0,0)");
+                else
+                    lowerTrack[track]->setStyleSheet("background-color: rgb(0,255,0)");
+                lowerTrack[track]->show();
+                break;
+            case 1:
+                if (status != 0)
+                    upperTrack[track]->setStyleSheet("background-color: rgb(255,0,0)");
+                else
+                    upperTrack[track]->setStyleSheet("background-color: rgb(0,255,0)");
+                upperTrack[track]->show();
+                break;
+            }
+        } else {
+            //qDebug() << "Nothing to show...";
         }
     } else {
-        qDebug() << "Nothing to show...";
+        //qDebug() << "Thread NOT READY YET";
     }
 }
 void MainWindow::resetFileCounters(void)
@@ -616,6 +650,13 @@ void MainWindow::resetFileCounters(void)
     file.open(QIODevice::ReadWrite | QIODevice::Text);
     file.write("0");
     file.close();
+
+    file.setFileName(m_error);
+    qDebug() << "ZERO Error" << m_error;
+    file.open(QIODevice::ReadWrite | QIODevice::Text);
+    file.write("0");
+    file.close();
+
 }
 
 void MainWindow::on_fileReadADF_clicked()
@@ -660,4 +701,63 @@ void MainWindow::errorDialog_RetryClicked(void)
     qDebug() << __FUNCTION__ << "RETRY Clicked";
     set_user_input('R'); // Retry
     ui->errorDialog->hide();
+}
+
+void MainWindow::manageQtDrawBridgeSignal(int sig)
+{
+    bool toShow = true;
+    qDebug() << __FUNCTION__ << "Signal RECEIVED FROM QtDrawBridge: " << sig;
+    status = sig;
+    switch (sig)
+    {
+    case 0: toShow = false; break; // No error
+        // Responses from openPort
+    case 1: ui->copyError->setText("Port In Use"); break;
+    case 2: ui->copyError->setText("Port Not Found"); break;
+    case 3: ui->copyError->setText("Port Error"); break;
+    case 4: ui->copyError->setText("Access Denied"); break;
+    case 5: ui->copyError->setText("Comport Config Error"); break;
+    case 6: ui->copyError->setText("BaudRate Not Supported"); break;
+    case 7: ui->copyError->setText("Error Reading Version"); break;
+    case 8: ui->copyError->setText("Error Malformed Version"); break;
+    case 9: ui->copyError->setText("Old Firmware"); break;
+        // Responses from commands
+    case 10: ui->copyError->setText("Send Failed"); break;
+    case 11: ui->copyError->setText("Send Parameter Failed"); break;
+    case 12: ui->copyError->setText("Read Response Failed"); break;
+    case 13: ui->copyError->setText("Write Timeout"); break;
+    case 14: ui->copyError->setText("Serial Overrun"); break;
+    case 15: ui->copyError->setText("Framing Error"); break;
+    case 16: ui->copyError->setText("Error"); break;
+
+        // Response from selectTrack
+    case 17: ui->copyError->setText("Track Range Error"); break;
+    case 18: ui->copyError->setText("Select Track Error"); break;
+    case 19: ui->copyError->setText("Write Protected"); break;
+    case 20: ui->copyError->setText("Status Error"); break;
+    case 21: ui->copyError->setText("Send Data Failed"); break;
+    case 22: ui->copyError->setText("Track Write Response Error"); break;
+
+        // Returned if there is no disk in the drive
+    case 23: ui->copyError->setText("No Disk In Drive"); break;
+
+    case 24: ui->copyError->setText("Diagnostic Not Available"); break;
+    case 25: ui->copyError->setText("USB Serial Bad"); break;
+    case 26: ui->copyError->setText("CTS Failure"); break;
+    case 27: ui->copyError->setText("Rewind Failure"); break;
+    case 28: ui->copyError->setText("Media Type Mismatch"); break;
+    default: ui->copyError->setText("Unknown Error"); break;
+    }
+
+    if (toShow) {
+        ui->copyError->show();
+        ui->copyError->raise();
+        // When it's halted for an error, sometimes the LED (motor) is spinning
+        // due to the last issued command.
+        // How to invoke: ./drawbridge /dev/comport SETTINGS ?
+        // Without issuing a complete thread?
+
+    }
+
+    readyReadSHM = false;
 }

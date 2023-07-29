@@ -1,10 +1,11 @@
 #include "qtdrawbridge.h"
 #include "compilerdefs.h"
 #include <QDebug>
+#include "mainwindow.h"
 
 extern int wmain(QStringList list, QString track, QString side, QString status, QString error);
 
-QtDrawBridge::QtDrawBridge()
+QtDrawBridge::QtDrawBridge(void)
 {
     qDebug() << __PRETTY_FUNCTION__ << "Called";
 }
@@ -30,4 +31,5 @@ void QtDrawBridge::run()
     qDebug() << __PRETTY_FUNCTION__ << "Called" << "StringList" << list << "Side: " << m_side << "Track: " << m_track << "Status: " << m_status << "Error: " << m_error;
     int rval = wmain(list, m_track, m_side, m_status, m_error);
     qDebug() << __PRETTY_FUNCTION__ << "Finish with " << rval;
+    emit QtDrawBridgeSignal(rval);
 }
