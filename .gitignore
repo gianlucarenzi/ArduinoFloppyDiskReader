@@ -47,3 +47,5 @@ CVS
 /waffleCopyPRO-Universal/windows/
 /waffleCopyPRO-Universal/Makefile.Debug
 /waffleCopyPRO-Universal/Makefile.Release
+/waffleCopyPRO-Universal/moc_qtdrawbridge.cpp
+/waffleCopyPRO-Universal/moc_qtdrawbridge.o
