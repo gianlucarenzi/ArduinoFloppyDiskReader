@@ -99,6 +99,8 @@ static int fd_statusFile = -1;
 static int fd_errorFile = -1;
 
 using namespace ArduinoFloppyReader;
+// Error Handling. This must be done here, and the correct value will be written into the fError file...
+ArduinoFloppyReader::DiagnosticResponse lastResponse = DiagnosticResponse::drOK;
 
 ADFWriter writer;
 
@@ -216,13 +218,14 @@ static void update_gui_writing(int32_t currentTrack, DiskSurface currentSide)
     } else {
         fprintf(stderr, "%s SideFile NOT Valid\n", __PRETTY_FUNCTION__);
     }
+    ::sync();
 }
 
-static void update_gui_reading(int32_t currentTrack, DiskSurface currentSide, int32_t badSectorsFound)
+static void update_gui(int32_t currentTrack, DiskSurface currentSide, int32_t badSectorsFound)
 {
     update_gui_writing(currentTrack, currentSide);
     if (fd_statusFile) {
-        //fprintf(stdout, "Disk2ADF statusFile %d\n", badSectorsFound);
+        //fprintf(stdout, "%s---> Disk2ADF statusFile %d\n", __FUNCTION__, badSectorsFound);
         lseek(fd_statusFile, 0L, SEEK_SET);
         char status[3];
         sprintf(status, "%02d", badSectorsFound);
@@ -230,6 +233,7 @@ static void update_gui_reading(int32_t currentTrack, DiskSurface currentSide, in
     } else {
         fprintf(stderr, "Disk2ADF statusFile NOT Valid\n");
     }
+    ::sync();
 }
 
 // Read an ADF file and write it to disk
@@ -254,7 +258,13 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 			do {
 				printf("\rDisk write verify error on track %i, %s side. [R]etry, [S]kip, [A]bort?                                   ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
 #ifdef __USE_GUI__
-                    update_error_file(1); fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __PRETTY_FUNCTION__); fflush(stderr); input = wait_user_input();
+                    update_error_file(1); // Set error for ask user
+                    // This is not an error! I need to zero the badSectorCount (status file)
+                    update_gui( currentTrack, currentSide, 1 ); // Set status flag for that track
+                    fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __PRETTY_FUNCTION__);
+                    fflush(stderr);
+                    input = wait_user_input(); // This locks the program flow as the toupper() function
+                    update_error_file(0); // Clear error for next
 #else
     #ifdef _WIN32
                     input = toupper(_getch());
@@ -271,7 +281,7 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 			}
 		}
 #ifdef __USE_GUI__
-        update_gui_writing(currentTrack, currentSide);
+        update_gui(currentTrack, currentSide, 0);
 #else
         printf("\rWriting Track %i, %s side     ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
 #endif
@@ -282,14 +292,14 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 	});
 
 	switch (result) {
-	case ADFResult::adfrComplete:					printf("\rADF file written to disk                                                           "); break;
-	case ADFResult::adfrCompletedWithErrors:		printf("\rADF file written to disk but there were errors during verification                 "); break;
-	case ADFResult::adfrAborted:					printf("\rWriting ADF file to disk                                                           "); break;
-	case ADFResult::adfrFileError:					printf("\rError opening ADF file.                                                            "); break;
+    case ADFResult::adfrComplete:					printf("\rADF file written to disk                                                           "); lastResponse = DiagnosticResponse::drOK; break;
+    case ADFResult::adfrCompletedWithErrors:		printf("\rADF file written to disk but there were errors during verification                 "); lastResponse = DiagnosticResponse::drOK; break;
+    case ADFResult::adfrAborted:					printf("\rWriting ADF file to disk                                                           "); lastResponse = DiagnosticResponse::drOK; break;
+    case ADFResult::adfrFileError:					printf("\rError opening ADF file.                                                            "); lastResponse = DiagnosticResponse::drError; break;
 	case ADFResult::adfrDriveError:					printf("\rError communicating with the Arduino interface.                                    "); 
-													printf("\n%s                                                  ", writer.getLastError().c_str()); break;
-	case ADFResult::adfrDiskWriteProtected:			printf("\rError, disk is write protected!                                                    "); break;
-	default:										printf("\rAn unknown error occured                                                           "); break;
+                                                    printf("\n%s                                                  ", writer.getLastError().c_str()); lastResponse = DiagnosticResponse::drError; break;
+    case ADFResult::adfrDiskWriteProtected:			printf("\rError, disk is write protected!                                                    "); lastResponse = DiagnosticResponse::drWriteProtected; break;
+    default:										printf("\rAn unknown error occured                                                           "); lastResponse = DiagnosticResponse::drError; break;
 	}
 }
 
@@ -341,7 +351,11 @@ void disk2ADF(const std::wstring& filename, int numTracks) {
                 // Disk has checksum errors/missing data. Skip Bad checksum always
 #ifdef __USE_GUI__
                     // Now we have to inform the GUI Thread we have an error, and we need to decide how to proceed
-                    update_error_file(1); fprintf(stderr, "\r\n %s READ ERROR NOW WAIT USER INPUT \r\n", __PRETTY_FUNCTION__); fflush(stderr); input = wait_user_input();
+                    update_error_file(1); // set error flag
+                    fprintf(stderr, "\r\n %s READ ERROR NOW WAIT USER INPUT \r\n", __PRETTY_FUNCTION__);
+                    fflush(stderr);
+                    input = wait_user_input(); // This locks the program flow as getch()
+                    update_error_file(0); // clear error flag for next one
 #else
     #ifdef _WIN32
                     input = toupper(_getch());
@@ -359,7 +373,7 @@ void disk2ADF(const std::wstring& filename, int numTracks) {
 		}
 
 #ifdef __USE_GUI__
-        update_gui_reading( currentTrack, currentSide, badSectorsFound );
+        update_gui( currentTrack, currentSide, badSectorsFound );
 #else
         if (isADF) {
             printf("\rReading Track %i, %s side (retry: %i) - Got %i/11 sectors (%i bad found)   ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower", retryCounter, sectorsFound, badSectorsFound);
@@ -383,15 +397,15 @@ void disk2ADF(const std::wstring& filename, int numTracks) {
     if (isADF) result = writer.DiskToADF(filename, hdMode, numTracks, callback); else result = writer.DiskToSCP(filename, hdMode, numTracks, 3, callback);
 
 	switch (result) {
-	case ADFResult::adfrComplete:					printf("\rFile created successfully.                                                     "); break;
-	case ADFResult::adfrAborted:					printf("\rFile aborted.                                                                  "); break;
-	case ADFResult::adfrFileError:					printf("\rError creating file.                                                           "); break;
-	case ADFResult::adfrFileIOError:				printf("\rError writing to file.                                                         "); break;
-	case ADFResult::adfrFirmwareTooOld:			    printf("\rThis requires firmware V1.8 or newer.                                          "); break;
-	case ADFResult::adfrCompletedWithErrors:		printf("\rFile created with partial success.                                             "); break;
+    case ADFResult::adfrComplete:					printf("\rFile created successfully.                                                     "); lastResponse = DiagnosticResponse::drOK; break;
+    case ADFResult::adfrAborted:					printf("\rFile aborted.                                                                  "); lastResponse = DiagnosticResponse::drOK; break;
+    case ADFResult::adfrFileError:					printf("\rError creating file.                                                           "); lastResponse = DiagnosticResponse::drError; break;
+    case ADFResult::adfrFileIOError:				printf("\rError writing to file.                                                         "); lastResponse = DiagnosticResponse::drError; break;
+    case ADFResult::adfrFirmwareTooOld:			    printf("\rThis requires firmware V1.8 or newer.                                          "); lastResponse = DiagnosticResponse::drOldFirmware; break;
+    case ADFResult::adfrCompletedWithErrors:		printf("\rFile created with partial success.                                             "); lastResponse = DiagnosticResponse::drOK; break;
 	case ADFResult::adfrDriveError:					printf("\rError communicating with the Arduino interface.                                ");
-													printf("\n%s                                                  ", writer.getLastError().c_str()); break;
-	default: 										printf("\rAn unknown error occured.                                                      "); break;
+                                                    printf("\n%s                                                  ", writer.getLastError().c_str()); lastResponse = DiagnosticResponse::drError; break;
+    default: 										printf("\rAn unknown error occured.                                                      "); lastResponse = DiagnosticResponse::drError; break;
 	}
 }
 
@@ -440,6 +454,7 @@ int wmain(QStringList list, QString track, QString side, QString status, QString
     bool eraseBeforeWrite = list.contains("ERASEBEFOREWRITE");
     bool num82Tracks = list.contains("TRACKSNUM82");
     int numTracks = 80;
+    bool isOpened = false;
 
     if (num82Tracks)
         numTracks = 82;
@@ -456,6 +471,17 @@ int wmain(QStringList list, QString track, QString side, QString status, QString
     qDebug() << "eraseBeforeWrite" << eraseBeforeWrite;
     qDebug() << "TRACKS" << numTracks;
 
+    // Filenames
+    QByteArray tr = track.toLocal8Bit();
+    char *fTrack = tr.data();
+    QByteArray sd = side.toLocal8Bit();
+    char *fSide = sd.data();
+    QByteArray st = status.toLocal8Bit();
+    char *fStatus = st.data();
+    QByteArray er = error.toLocal8Bit();
+    char *fError = er.data();
+    prepareUIFiles(fTrack, fSide, fStatus, fError);
+
     userInputDone = false; // It will be changed by the user on errors
 
     if (list.contains("DIAGNOSTIC")) {
@@ -465,22 +491,66 @@ int wmain(QStringList list, QString track, QString side, QString status, QString
 			printf("\rError opening COM port: %s  ", writer.getLastError().c_str());
 		}
 		else {
-            QByteArray tr = track.toLocal8Bit();
-            char *fTrack = tr.data();
-            QByteArray sd = side.toLocal8Bit();
-            char *fSide = sd.data();
-            QByteArray st = status.toLocal8Bit();
-            char *fStatus = st.data();
-            QByteArray er = error.toLocal8Bit();
-            char *fError = er.data();
+            isOpened = true;
             //qDebug() << "TrackFile: " << fTrack << "SideFile: " << fSide << "StatusFile: " << fStatus << "ErrorFile: " << fError;
-            prepareUIFiles(fTrack, fSide, fStatus, fError);
-            if (writeMode) adf2Disk(filename.c_str(), verify, preComp, eraseBeforeWrite); else disk2ADF(filename.c_str(), numTracks);
-			writer.closeDevice();
-            removeUIFiles();
+            if (writeMode) {
+                adf2Disk(filename.c_str(), verify, preComp, eraseBeforeWrite);
+            } else {
+                disk2ADF(filename.c_str(), numTracks);
+                lastResponse = writer.getLastErrorCode();
+            }
 		}
 	}
-	printf("\r\n\r\n");
-    return 0;
+    if (isOpened) writer.closeDevice();
+
+    int globalError;
+    switch (lastResponse)
+    {
+    case DiagnosticResponse::drOK: globalError = 0; break;
+        // Responses from openPort
+    case DiagnosticResponse::drPortInUse: globalError = 1; break;
+    case DiagnosticResponse::drPortNotFound: globalError = 2; break;
+    case DiagnosticResponse::drPortError: globalError = 3; break;
+    case DiagnosticResponse::drAccessDenied: globalError = 4; break;
+    case DiagnosticResponse::drComportConfigError: globalError = 5; break;
+    case DiagnosticResponse::drBaudRateNotSupported: globalError = 6; break;
+    case DiagnosticResponse::drErrorReadingVersion: globalError = 7; break;
+    case DiagnosticResponse::drErrorMalformedVersion: globalError = 8; break;
+    case DiagnosticResponse::drOldFirmware: globalError = 9; break;
+        // Responses from commands
+    case DiagnosticResponse::drSendFailed: globalError = 10; break;
+    case DiagnosticResponse::drSendParameterFailed: globalError = 11; break;
+    case DiagnosticResponse::drReadResponseFailed: globalError = 12; break;
+    case DiagnosticResponse::drWriteTimeout: globalError = 13; break;
+    case DiagnosticResponse::drSerialOverrun: globalError = 14; break;
+    case DiagnosticResponse::drFramingError: globalError = 15; break;
+    case DiagnosticResponse::drError: globalError = 16; break;
+
+        // Response from selectTrack
+    case DiagnosticResponse::drTrackRangeError: globalError = 17; break;
+    case DiagnosticResponse::drSelectTrackError: globalError = 18; break;
+    case DiagnosticResponse::drWriteProtected: globalError = 19; break;
+    case DiagnosticResponse::drStatusError: globalError = 20; break;
+    case DiagnosticResponse::drSendDataFailed: globalError = 21; break;
+    case DiagnosticResponse::drTrackWriteResponseError: globalError = 22; break;
+
+        // Returned if there is no disk in the drive
+    case DiagnosticResponse::drNoDiskInDrive: globalError = 23; break;
+
+    case DiagnosticResponse::drDiagnosticNotAvailable: globalError = 24; break;
+    case DiagnosticResponse::drUSBSerialBad: globalError = 25; break;
+    case DiagnosticResponse::drCTSFailure: globalError = 26; break;
+    case DiagnosticResponse::drRewindFailure: globalError = 27; break;
+    case DiagnosticResponse::drMediaTypeMismatch: globalError = 28; break;
+    default: qDebug() << "UNKONWN ERROR. PLEASE DEBUG"; globalError = 99; break;
+    }
+
+    qDebug() << "GLOBAL ERROR: " << globalError << "IS OPENED" << isOpened;
+    if (!isOpened) {
+        globalError = 3;
+    }
+    removeUIFiles();
+    printf("\r\n\r\n");
+    return globalError;
 }
 
