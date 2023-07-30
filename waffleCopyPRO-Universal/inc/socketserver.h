@@ -25,7 +25,13 @@
     #include <windows.h>
     #include <winsock2.h>
     #include <w2tcpip.h>
-    #pragma comment (lib, "Ws2_32.lib")
+    #pragma comment (lib, "Ws2_32.lib") //Winsock Library
+#endif
+
+#ifndef _WIN32
+#define SOCKET int
+#define INVALID_SOCKET -1
+#define SOCKET_ERROR   -1
 #endif
 
 class SocketServer : public QObject
@@ -52,11 +58,14 @@ signals:
     void drError(int);
 
 private:
-    int sockfd;
-    int connfd;
+    SOCKET sockfd;
+    SOCKET connfd;
     socklen_t len;
     struct sockaddr_in servaddr;
     struct sockaddr_in cli;
+
+private:
+    void ClearWinSock(void);
 };
 
 #define MAXBUFF         256
