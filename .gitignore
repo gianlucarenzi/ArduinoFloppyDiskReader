@@ -49,3 +49,6 @@ CVS
 /waffleCopyPRO-Universal/Makefile.Release
 /waffleCopyPRO-Universal/moc_qtdrawbridge.cpp
 /waffleCopyPRO-Universal/moc_qtdrawbridge.o
+/waffleCopyPRO-Universal/moc_socketserver.cpp
+/waffleCopyPRO-Universal/moc_socketserver.o
+/waffleCopyPRO-Universal/socketserver.o
