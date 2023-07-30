@@ -58,10 +58,12 @@ MainWindow::MainWindow(QWidget *parent)
     QString sctext;
     // The following QString should be localized
     sctext = tr(" --- WAFFLE COPY PROFESSIONAL --- The essential USB floppy drive solution for the real Amiga user."
-    "  It allows you to write from ADF files, to read floppy disks as ADF, IPF and SCP format and, thanks to a specific version Amiga Emulator, like WinUAE (by Toni Wilen) or AmiBerry (by MiDWaN), "
-    "it works like a real Amiga disk drive allowing you to directly read and write your floppies through an emulator! "
-    "Sometime you may need a special USB cable (Y-Type) with the possibility of "
-    "double powering if the USB port of the PC is not powerful enough. Original Concept by Rob Smith (C), modified version by Gianluca Renzi, Waffle is it a product by RetroBit Lab and RetroGiovedi.");
+    "  It allows you to write from ADF, SCP and IPF files, and read floppy disks as ADF or SCP format and, thanks to "
+    "a specific version of an Amiga Emulator Software, like WinUAE (by Toni Wilen) or AmiBerry (by MiDWaN), it works "
+    "like a real Amiga disk drive allowing you to directly read and write your floppies through an emulator! "
+    "Sometime you may need a special USB cable (Y-Type) with the possibility of double powering if the USB port of the "
+    "PC is not powerful enough. Original Concept by Rob Smith, modified version by Gianluca Renzi, "
+    "Waffle is a product by RetroBit Lab and RetroGiovedi.");
     stext += sctext;
     stext += empty;
     ui->scrollText->setText(stext);
