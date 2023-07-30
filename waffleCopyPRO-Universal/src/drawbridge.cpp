@@ -93,13 +93,18 @@ std::wstring atw(const std::string& str) {
 #include <thread>
 #include <socketserver.h>
 
-#define INVALID_SOCKET (-1)
-
-static int sockfd = INVALID_SOCKET;
+static SOCKET sockfd = INVALID_SOCKET;
 
 static struct sockaddr_in servaddr;
 
 static char shmCommand[MAXBUFF];
+
+static void ClearWinSock(void)
+{
+#ifdef _WIN32
+    WSACleanup();
+#endif
+}
 
 static void setupSocketClient(void)
 {
@@ -108,11 +113,21 @@ static void setupSocketClient(void)
     //fprintf(stdout, "%s Called\n", __FUNCTION__);
     if (sockfd == INVALID_SOCKET)
     {
+#ifdef _WIN32
+        WSADATA wsaData;
+        int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+        if (iResult != 0)
+        {
+            qDebug() << __PRETTY_FUNCTION__ << "Error at WSAStartup";
+            return;
+        }
+#endif
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd == -1)
+        if (sockfd == INVALID_SOCKET)
         {
             fprintf(stderr, "%s socket creation failed %d\n", __FUNCTION__, errno);
             perror("OPEN SOCKET");
+            ClearWinSock();
             return;
         }
         // CleanUp servaddr struct
@@ -128,6 +143,12 @@ static void setupSocketClient(void)
             sockfd = INVALID_SOCKET;
             fprintf(stderr, "%s connection with the server failed %d\n", __FUNCTION__, errno);
             perror("CONNECT SOCKET");
+#ifdef _WIN32
+            closesocket(sockfd);
+#else
+            close(sockfd);
+#endif
+            ClearWinSock();
             return;
         }
     }
@@ -136,22 +157,22 @@ static void setupSocketClient(void)
     {
         int m_zero = 0;
         sprintf( shmCommand, "TRACK:%03d", m_zero );
-        write(sockfd, shmCommand, strlen( shmCommand ) );
+        send(sockfd, shmCommand, strlen( shmCommand ), 0);
         // Do not hog the CPU for an housekeeping busy-loop
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
         sprintf( shmCommand, "SIDE:%02d", m_zero );
-        write(sockfd, shmCommand, strlen( shmCommand ) );
+        send(sockfd, shmCommand, strlen( shmCommand ), 0);
         // Do not hog the CPU for an housekeeping busy-loop
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
         sprintf( shmCommand, "STATUS:%02d", m_zero );
-        write(sockfd, shmCommand, strlen( shmCommand) );
+        send(sockfd, shmCommand, strlen( shmCommand ), 0);
         // Do not hog the CPU for an housekeeping busy-loop
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
         sprintf( shmCommand, "ERROR:%01d", m_zero );
-        write(sockfd, shmCommand, strlen( shmCommand) );
+        send(sockfd, shmCommand, strlen( shmCommand ), 0);
         // Do not hog the CPU for an housekeeping busy-loop
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
@@ -197,7 +218,7 @@ char wait_user_input(void)
 static void update_error_file(int err)
 {
     sprintf(shmCommand, "ERROR:%01d", err);
-    if (sockfd != INVALID_SOCKET) write(sockfd, shmCommand, strlen(shmCommand));
+    if (sockfd != INVALID_SOCKET) send(sockfd, shmCommand, strlen( shmCommand ), 0);
     // Do not hog the CPU for an housekeeping busy-loop
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
@@ -205,12 +226,12 @@ static void update_error_file(int err)
 static void update_gui_writing(int32_t currentTrack, DiskSurface currentSide)
 {
     sprintf(shmCommand, "TRACK:%03d", currentTrack);
-    if (sockfd != INVALID_SOCKET) write(sockfd, shmCommand, strlen(shmCommand));
+    if (sockfd != INVALID_SOCKET) send(sockfd, shmCommand, strlen( shmCommand ), 0);
     // Do not hog the CPU for an housekeeping busy-loop
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     sprintf(shmCommand, "SIDE:%02d", (currentSide == DiskSurface::dsUpper) ? 1 : 0);
-    if (sockfd != INVALID_SOCKET) write(sockfd, shmCommand, strlen(shmCommand));
+    if (sockfd != INVALID_SOCKET) send(sockfd, shmCommand, strlen( shmCommand ), 0);
     // Do not hog the CPU for an housekeeping busy-loop
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
@@ -219,7 +240,7 @@ static void update_gui(int32_t currentTrack, DiskSurface currentSide, int32_t ba
 {
     update_gui_writing(currentTrack, currentSide);
     sprintf(shmCommand, "STATUS:%02d", badSectorsFound);
-    if (sockfd != INVALID_SOCKET) write(sockfd, shmCommand, strlen(shmCommand));
+    if (sockfd != INVALID_SOCKET) send(sockfd, shmCommand, strlen( shmCommand ), 0);
     // Do not hog the CPU for an housekeeping busy-loop
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
@@ -661,8 +682,13 @@ int wmain(QStringList list)
     //removeUIFiles();
     if (sockfd != INVALID_SOCKET)
     {
+#ifdef _WIN32
+        closesocket(sockfd);
+#else
         close(sockfd);
+#endif
         sockfd = INVALID_SOCKET;
+        ClearWinSock();
     }
     printf("\r\n\r\n");
     return globalError;

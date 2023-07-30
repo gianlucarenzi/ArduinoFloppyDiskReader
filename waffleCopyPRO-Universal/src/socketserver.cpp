@@ -21,16 +21,34 @@ void SocketServer::setup(void)
     //qDebug() << __PRETTY_FUNCTION__ << "Called";
 }
 
+void SocketServer::ClearWinSock(void)
+{
+#ifdef _WIN32
+    WSACleanup();
+#endif
+
+}
 void SocketServer::process()
 {
     //qDebug() << __PRETTY_FUNCTION__ << "Called";
+#ifdef _WIN32
+    WSADATA wsaData;
+    int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (iResult != 0)
+    {
+        qDebug() << __PRETTY_FUNCTION__ << "Error at WSAStartup";
+        emit NoSocket();
+        return;
+    }
+#endif
     int rval;
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1)
+    if (sockfd == INVALID_SOCKET)
     {
         qDebug() << __PRETTY_FUNCTION__<< "socket creation failed, ---> sending NoSocket() signal";
         emit NoSocket();
-        return;;
+        ClearWinSock();
+        return;
     } else {
         //qDebug() << __PRETTY_FUNCTION__ << "socket successfully created";
     }
@@ -43,20 +61,34 @@ void SocketServer::process()
     servaddr.sin_port = htons(SOCKET_PORT);
 
     // Binding newly created socket to given IP and verification
-    if ((bind(sockfd, (SA*)&servaddr, sizeof(servaddr))) != 0)
+    rval = bind(sockfd, (SA*)&servaddr, sizeof(servaddr));
+    if (rval == SOCKET_ERROR)
     {
         qDebug() << __PRETTY_FUNCTION__ << "socket bind failed";
         emit NoSocketBind();
+#ifdef _WIN32
+        closesocket(sockfd);
+#else
+        close(sockfd);
+#endif
+        ClearWinSock();
         return;
     } else {
         //qDebug() << __PRETTY_FUNCTION__ << "socket successfully binded";
     }
 
     // Now server is ready to listen and verification
-    if ((listen(sockfd, 5)) != 0)
+    rval = listen(sockfd, 5);
+    if (rval == SOCKET_ERROR)
     {
         qDebug() << __PRETTY_FUNCTION__ << "listen failed";
         emit NoListen();
+#ifdef _WIN32
+        closesocket(sockfd);
+#else
+        close(sockfd);
+#endif
+        ClearWinSock();
         return;
     } else {
         //qDebug() << __PRETTY_FUNCTION__ << "server listening...";
@@ -66,13 +98,24 @@ void SocketServer::process()
 
     // Accept the data packet from client and verification
     connfd = accept(sockfd, (SA*)&cli, &len);
-    if (connfd < 0)
+    if (connfd == INVALID_SOCKET)
     {
         qDebug() << __PRETTY_FUNCTION__ << "server accept failed";
         emit NoAccept();
+#ifdef _WIN32
+        closesocket(sockfd);
+#else
+        close(sockfd);
+#endif
+        ClearWinSock();
     } else {
        // qDebug() << __PRETTY_FUNCTION__ << "server accept the client...";
     }
+
+#ifdef _WIN32
+    // No longer need server socket
+    closesocket(sockfd);
+#endif
 
     QElapsedTimer m_timer;
     m_timer.start();
