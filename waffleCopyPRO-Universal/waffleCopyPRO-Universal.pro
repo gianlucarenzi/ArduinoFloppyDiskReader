@@ -27,6 +27,7 @@ HEADERS += \
     inc/compilerdefs.h \
     inc/mainwindow.h \
     inc/qtdrawbridge.h \
+    inc/socketserver.h \
     inc/waffleconfig.h \
     lib/ADFWriter.h \
     lib/ArduinoInterface.h \
@@ -54,6 +55,7 @@ SOURCES += \
     lib/pll.cpp \
     lib/capsapi/CapsPlug.cpp \
     \
+    src/socketserver.cpp
 
 
 SOURCES += \

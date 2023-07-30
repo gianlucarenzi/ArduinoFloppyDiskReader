@@ -91,72 +91,82 @@ std::wstring atw(const std::string& str) {
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <socketserver.h>
 
-// declaration of file pointers
-static int fd_trackFile = -1;
-static int fd_sideFile = -1;
-static int fd_statusFile = -1;
-static int fd_errorFile = -1;
+#define INVALID_SOCKET (-1)
+
+static int sockfd = INVALID_SOCKET;
+
+static struct sockaddr_in servaddr;
+
+static char shmCommand[MAXBUFF];
+
+static void setupSocketClient(void)
+{
+    //int rval;
+    //int counter = 0;
+    //fprintf(stdout, "%s Called\n", __FUNCTION__);
+    if (sockfd == INVALID_SOCKET)
+    {
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (sockfd == -1)
+        {
+            fprintf(stderr, "%s socket creation failed %d\n", __FUNCTION__, errno);
+            perror("OPEN SOCKET");
+            return;
+        }
+        // CleanUp servaddr struct
+        memset(&servaddr, 0, sizeof(servaddr));
+
+        // assign IP, PORT
+        servaddr.sin_family = AF_INET;
+        servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+        servaddr.sin_port = htons(SOCKET_PORT);
+
+        if (connect(sockfd, (SA*) &servaddr, sizeof(servaddr)) != 0)
+        {
+            sockfd = INVALID_SOCKET;
+            fprintf(stderr, "%s connection with the server failed %d\n", __FUNCTION__, errno);
+            perror("CONNECT SOCKET");
+            return;
+        }
+    }
+
+    if (sockfd != INVALID_SOCKET)
+    {
+        int m_zero = 0;
+        sprintf( shmCommand, "TRACK:%03d", m_zero );
+        write(sockfd, shmCommand, strlen( shmCommand ) );
+        // Do not hog the CPU for an housekeeping busy-loop
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+        sprintf( shmCommand, "SIDE:%02d", m_zero );
+        write(sockfd, shmCommand, strlen( shmCommand ) );
+        // Do not hog the CPU for an housekeeping busy-loop
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+        sprintf( shmCommand, "STATUS:%02d", m_zero );
+        write(sockfd, shmCommand, strlen( shmCommand) );
+        // Do not hog the CPU for an housekeeping busy-loop
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+        sprintf( shmCommand, "ERROR:%01d", m_zero );
+        write(sockfd, shmCommand, strlen( shmCommand) );
+        // Do not hog the CPU for an housekeeping busy-loop
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
+    //fprintf(stdout, "%s Exit: sockfd %d\n", __FUNCTION__, sockfd);
+}
+
 
 using namespace ArduinoFloppyReader;
+
 // Error Handling. This must be done here, and the correct value will be written into the fError file...
 ArduinoFloppyReader::DiagnosticResponse lastResponse = DiagnosticResponse::drOK;
 
 ADFWriter writer;
 
-static void prepareUIFiles(const char *tFile, const char *sFile, const char *bFile, const char *eFile)
-{
-    char zero[1] = { '0' };
-    if (tFile == NULL)
-    {
-        fprintf(stderr, "tFile is NULL\n");
-        exit(1);
-    }
-    if (sFile == NULL)
-    {
-        fprintf(stderr, "sFile is NULL\n");
-        exit(1);
-    }
-    if (bFile == NULL)
-    {
-        fprintf(stderr, "bFile is NULL\n");
-        exit(1);
-    }
-    if (eFile == NULL)
-    {
-        fprintf(stderr, "eFile is NULL\n");
-        exit(1);
-    }
-    //fprintf(stdout, "prepareUIFiles TrackFile: %s\n", tFile);
-    //fprintf(stdout, "prepareUIFiles SideFile: %s\n", sFile);
-    //fprintf(stdout, "prepareUIFiles StatusFile: %s\n", bFile);
-    //fprintf(stdout, "prepareUIFiles ErrorFile: %s\n", eFile);
-    fflush(stdout);
-    fd_trackFile  = open(tFile, O_RDWR);
-    fd_sideFile   = open(sFile, O_RDWR);
-    fd_statusFile = open(bFile, O_RDWR);
-    fd_errorFile  = open(eFile, O_RDWR);
-    write(fd_trackFile, zero, 1);
-    write(fd_sideFile, zero, 1);
-    write(fd_statusFile, zero, 1);
-    write(fd_errorFile, zero, 1);
-}
-
-static void removeUIFiles(void)
-{
-    if (fd_trackFile)
-        close(fd_trackFile);
-    if (fd_sideFile)
-        close(fd_sideFile);
-    if (fd_statusFile)
-        close(fd_statusFile);
-    if (fd_errorFile)
-        close(fd_errorFile);
-    fd_trackFile = -1;
-    fd_sideFile = -1;
-    fd_statusFile = -1;
-    fd_errorFile = -1;
-}
 
 static char userInput = 'Z';
 static bool userInputDone = false;
@@ -186,55 +196,64 @@ char wait_user_input(void)
 
 static void update_error_file(int err)
 {
-    if (fd_errorFile > 0) {
-        //fprintf(stdout, "ADF2Disk ErrorFile %s\n", err);
-        lseek(fd_errorFile, 0L, SEEK_SET);
-        char errS[2];
-        sprintf(errS, "%01d", err);
-        write(fd_errorFile, errS, 1);
-    } else {
-        fprintf(stderr, "ADF2Disk errorFile NOT Valid\n");
-    }
+    sprintf(shmCommand, "ERROR:%01d", err);
+    if (sockfd != INVALID_SOCKET) write(sockfd, shmCommand, strlen(shmCommand));
+    // Do not hog the CPU for an housekeeping busy-loop
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
 
 static void update_gui_writing(int32_t currentTrack, DiskSurface currentSide)
 {
-    if (fd_trackFile > 0) {
-        //fprintf(stdout, "ADF2Disk trackFile %d -- %d\n", fd_trackFile, currentTrack);
-        lseek(fd_trackFile, 0L, SEEK_SET);
-        char tr[4];
-        sprintf(tr, "%03d", currentTrack);
-        write(fd_trackFile, tr, 3);
-    } else {
-        fprintf(stderr, "ADF2Disk trackFile NOT Valid\n");
-    }
-    if (fd_sideFile > 0) {
-        //fprintf(stdout, "ADF2Disk SideFile %s\n",
-        //        (currentSide == DiskSurface::dsUpper) ? "UPPER" : "LOWER");
-        lseek(fd_sideFile, 0L, SEEK_SET);
-        char side[3];
-        sprintf(side, "%02d", (currentSide == DiskSurface::dsUpper) ? 1 : 0);
-        write(fd_sideFile, side, 2);
-    } else {
-        fprintf(stderr, "%s SideFile NOT Valid\n", __PRETTY_FUNCTION__);
-    }
-    ::sync();
+    sprintf(shmCommand, "TRACK:%03d", currentTrack);
+    if (sockfd != INVALID_SOCKET) write(sockfd, shmCommand, strlen(shmCommand));
+    // Do not hog the CPU for an housekeeping busy-loop
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    sprintf(shmCommand, "SIDE:%02d", (currentSide == DiskSurface::dsUpper) ? 1 : 0);
+    if (sockfd != INVALID_SOCKET) write(sockfd, shmCommand, strlen(shmCommand));
+    // Do not hog the CPU for an housekeeping busy-loop
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
 
 static void update_gui(int32_t currentTrack, DiskSurface currentSide, int32_t badSectorsFound)
 {
     update_gui_writing(currentTrack, currentSide);
-    if (fd_statusFile) {
-        //fprintf(stdout, "%s---> Disk2ADF statusFile %d\n", __FUNCTION__, badSectorsFound);
-        lseek(fd_statusFile, 0L, SEEK_SET);
-        char status[3];
-        sprintf(status, "%02d", badSectorsFound);
-        write(fd_statusFile, status, 2);
-    } else {
-        fprintf(stderr, "Disk2ADF statusFile NOT Valid\n");
-    }
-    ::sync();
+    sprintf(shmCommand, "STATUS:%02d", badSectorsFound);
+    if (sockfd != INVALID_SOCKET) write(sockfd, shmCommand, strlen(shmCommand));
+    // Do not hog the CPU for an housekeeping busy-loop
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
+
+// Settings type
+struct SettingName {
+    const wchar_t* name;
+    const char* description;
+};
+
+#define MAX_SETTINGS 5
+
+// All Settings
+const SettingName AllSettings[MAX_SETTINGS] = {
+    {L"DISKCHANGE","Force DiskChange Detection Support (used if pin 12 is not connected to GND)"},
+    {L"PLUS","Set DrawBridge Plus Mode (when Pin 4 and 8 are swapped for improved accuracy)"},
+    {L"ALLDD","Force All Disks to be Detected as Double Density (faster if you don't need HD support)"},
+    {L"SLOW","Use Slower Disk Seeking (for slow head-moving floppy drives - rare)"},
+    {L"INDEX","Always Index-Align Writing to Disks (not recommended unless you know what you are doing)"}
+};
+
+// Stolen from https://stackoverflow.com/questions/11635/case-insensitive-string-comparison-in-c
+// A wide-string case insensative compare of strings
+bool iequals(const std::wstring& a, const std::wstring& b) {
+    return std::equal(a.begin(), a.end(), b.begin(), b.end(), [](wchar_t a, wchar_t b) {
+        return tolower(a) == tolower(b);
+    });
+}
+bool iequals(const std::string& a, const std::string& b) {
+    return std::equal(a.begin(), a.end(), b.begin(), b.end(), [](char a, char b) {
+        return tolower(a) == tolower(b);
+    });
+}
+
 
 // Read an ADF file and write it to disk
 void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eraseFirst) {
@@ -243,20 +262,38 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
     bool isIPF = false;
     bool writeFromIndex = true;
 
-    printf("\nWrite disk from ADF mode\n\n");
+    const wchar_t* extension = wcsrchr(filename.c_str(), L'.');
+    if (extension) {
+        extension++;
+        isSCP = iequals(extension, L"SCP");
+        isIPF = iequals(extension, L"IPF");
+    }
+
     if (isIPF) printf("\nWrite disk from IPF mode\n\n"); else
     if (isSCP) printf("\nWrite disk from SCP mode\n\n"); else {
         printf("\nWrite disk from ADF mode\n\n");
         if (!verify) printf("WARNING: It is STRONGLY recommended to write with verify support turned on.\r\n\r\n");
     }
 
-    //ADFResult ADFToDisk(const std::wstring& inputFile, const bool inHDMode, bool verify, bool usePrecompMode, bool eraseFirst, bool writeFromIndex, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const bool isVerifyError, const CallbackOperation operation) > callback);
-    // To be sure erase first of writing with NO PRECOMP
-    ADFResult result = writer.ADFToDisk(filename, hdMode, verify, preComp, eraseFirst, writeFromIndex, [](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
-		if (isVerifyError) {
-			char input;
-			do {
-				printf("\rDisk write verify error on track %i, %s side. [R]etry, [S]kip, [A]bort?                                   ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
+    // Detect disk speed
+    const ArduinoFloppyReader::FirmwareVersion v = writer.getFirwareVersion();
+
+    if (((v.major == 1) && (v.minor >= 9)) || (v.major > 1)) {
+        if ((!isSCP) && (!isIPF))
+            if (writer.GuessDiskDensity(hdMode) != ArduinoFloppyReader::ADFResult::adfrComplete) {
+                lastResponse = DiagnosticResponse::drMediaTypeMismatch;
+                printf("unable to work out the density of the disk inserted\n");
+                return;
+            }
+    }
+
+    ADFResult result;
+    if (isIPF) {
+        result = writer.IPFToDisk(filename, eraseFirst, [](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
+            if (isVerifyError) {
+                char input;
+                do {
+                    printf("\rDisk write verify error on track %i, %s side. [R]etry, [S]kip, [A]bort?                                              ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
 #ifdef __USE_GUI__
                     update_error_file(1); // Set error for ask user
                     // This is not an error! I need to zero the badSectorCount (status file)
@@ -272,49 +309,131 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
                     input = toupper(_getChar());
     #endif
 #endif
-            } while ((input != 'R') && (input != 'S') && (input != 'A'));
-			
-			switch (input) {
-			case 'R': return WriteResponse::wrRetry;
-            case 'S': return WriteResponse::wrSkipBadChecksums;
-			case 'A': return WriteResponse::wrAbort;
-			}
-		}
+                } while ((input != 'R') && (input != 'S') && (input != 'A'));
+
+                switch (input) {
+                case 'R': return WriteResponse::wrRetry;
+                case 'S': return WriteResponse::wrSkipBadChecksums;
+                case 'A': return WriteResponse::wrAbort;
+                }
+            }
 #ifdef __USE_GUI__
-        update_gui(currentTrack, currentSide, 0);
+            update_gui(currentTrack, currentSide, 0);
 #else
-        printf("\rWriting Track %i, %s side     ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
+            printf("\nWriting Track %i, %s side     ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
 #endif
 #ifndef _WIN32
-		fflush(stdout);		
-#endif		
-		return WriteResponse::wrContinue;
-	});
+            fflush(stdout);
+#endif
+            return WriteResponse::wrContinue;
+        });
+    }
+    else
+    if (isSCP) {
+        result = writer.SCPToDisk(filename, eraseFirst, [](const int currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
+            if (isVerifyError) {
+                char input;
+                do {
+                    printf("\rDisk write verify error on track %i, %s side. [R]etry, [S]kip, [A]bort?                                   ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
+#ifdef __USE_GUI__
+                    update_error_file(1); // Set error for ask user
+                    // This is not an error! I need to zero the badSectorCount (status file)
+                    update_gui( currentTrack, currentSide, 1 ); // Set status flag for that track
+                    fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __PRETTY_FUNCTION__);
+                    fflush(stderr);
+                    input = wait_user_input(); // This locks the program flow as the toupper() function
+                    update_error_file(0); // Clear error for next
+#else
+    #ifdef _WIN32
+                    input = toupper(_getch());
+    #else
+                    input = toupper(_getChar());
+    #endif
+#endif
+                    } while ((input != 'R') && (input != 'S') && (input != 'A'));
+
+                switch (input) {
+                case 'R': return WriteResponse::wrRetry;
+                case 'I': return WriteResponse::wrSkipBadChecksums;
+                case 'A': return WriteResponse::wrAbort;
+                }
+            }
+#ifdef __USE_GUI__
+            update_gui(currentTrack, currentSide, 0);
+#else
+            printf("\rWriting Track %i, %s side     ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
+#endif
+#ifndef _WIN32
+            fflush(stdout);
+#endif
+            return WriteResponse::wrContinue;
+            });
+    } else {
+        result = writer.ADFToDisk(filename, hdMode, verify, preComp, eraseFirst, writeFromIndex, [](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
+            if (isVerifyError) {
+                char input;
+                do {
+    #ifdef __USE_GUI__
+                    update_error_file(1); // Set error for ask user
+                    // This is not an error! I need to zero the badSectorCount (status file)
+                    update_gui( currentTrack, currentSide, 1 ); // Set status flag for that track
+                    fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __PRETTY_FUNCTION__);
+                    fflush(stderr);
+                    input = wait_user_input(); // This locks the program flow as the toupper() function
+                    update_error_file(0); // Clear error for next
+    #else
+                    printf("\rDisk write verify error on track %i, %s side. [R]etry, [S]kip, [A]bort?                                   ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
+        #ifdef _WIN32
+                        input = toupper(_getch());
+        #else
+                        input = toupper(_getChar());
+        #endif
+    #endif
+                } while ((input != 'R') && (input != 'S') && (input != 'A'));
+
+                switch (input) {
+                case 'R': return WriteResponse::wrRetry;
+                case 'S': return WriteResponse::wrSkipBadChecksums;
+                case 'A': return WriteResponse::wrAbort;
+                }
+            }
+    #ifdef __USE_GUI__
+            update_gui(currentTrack, currentSide, 0);
+    #else
+            printf("\rWriting Track %i, %s side     ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
+    #endif
+    #ifndef _WIN32
+            fflush(stdout);
+    #endif
+            return WriteResponse::wrContinue;
+        });
+    }
 
 	switch (result) {
+    case ADFResult::adfrBadSCPFile:				    printf("\nBad, invalid or unsupported SCP file                                               "); lastResponse = DiagnosticResponse::drError; break;
     case ADFResult::adfrComplete:					printf("\rADF file written to disk                                                           "); lastResponse = DiagnosticResponse::drOK; break;
+    case ADFResult::adfrExtendedADFNotSupported:	printf("\nExtended ADF files are not currently supported.                                    "); lastResponse = DiagnosticResponse::drMediaTypeMismatch; break;
+    case ADFResult::adfrMediaSizeMismatch:			if (isIPF)
+                                                        printf("\nIPF writing is only supported for DD disks and images                          "); else
+                                                    if (isSCP)
+                                                        printf("\nSCP writing is only supported for DD disks and images                             "); else
+                                                    if (hdMode)
+                                                        printf("\nDisk in drive was detected as HD, but a DD ADF file supplied.                      "); else
+                                                        printf("\nDisk in drive was detected as DD, but an HD ADF file supplied.                     ");
+                                                    lastResponse = DiagnosticResponse::drMediaTypeMismatch;
+                                                    break;
+    case ADFResult::adfrFirmwareTooOld:             printf("\nCannot write this file, you need to upgrade the firmware first.                    "); lastResponse = DiagnosticResponse::drOldFirmware; break;
     case ADFResult::adfrCompletedWithErrors:		printf("\rADF file written to disk but there were errors during verification                 "); lastResponse = DiagnosticResponse::drOK; break;
     case ADFResult::adfrAborted:					printf("\rWriting ADF file to disk                                                           "); lastResponse = DiagnosticResponse::drOK; break;
     case ADFResult::adfrFileError:					printf("\rError opening ADF file.                                                            "); lastResponse = DiagnosticResponse::drError; break;
-	case ADFResult::adfrDriveError:					printf("\rError communicating with the Arduino interface.                                    "); 
+    case ADFResult::adfrIPFLibraryNotAvailable:		printf("\nIPF CAPSImg from Software Preservation Society Library Missing                     "); lastResponse = DiagnosticResponse::drErrorMalformedVersion; break;
+    case ADFResult::adfrDriveError:					printf("\rError communicating with the Arduino interface.                                    ");
                                                     printf("\n%s                                                  ", writer.getLastError().c_str()); lastResponse = DiagnosticResponse::drError; break;
     case ADFResult::adfrDiskWriteProtected:			printf("\rError, disk is write protected!                                                    "); lastResponse = DiagnosticResponse::drWriteProtected; break;
     default:										printf("\rAn unknown error occured                                                           "); lastResponse = DiagnosticResponse::drError; break;
 	}
 }
 
-// Stolen from https://stackoverflow.com/questions/11635/case-insensitive-string-comparison-in-c
-// A wide-string case insensative compare of strings
-bool iequals(const std::wstring& a, const std::wstring& b) {
-	return std::equal(a.begin(), a.end(),b.begin(), b.end(),[](wchar_t a, wchar_t b) {
-			return tolower(a) == tolower(b);
-	});
-}
-bool iequals(const std::string& a, const std::string& b) {
-	return std::equal(a.begin(), a.end(),b.begin(), b.end(),[](char a, char b) {
-			return tolower(a) == tolower(b);
-	});
-}
 
 // Read a disk and save it to ADF or SCP files
 void disk2ADF(const std::wstring& filename, int numTracks) {
@@ -333,6 +452,7 @@ void disk2ADF(const std::wstring& filename, int numTracks) {
 	if ((v.major == 1) && (v.minor < 8)) {
 		if (!isADF) {
 			printf("This requires firmware V1.8 or newer.\n");
+            lastResponse = DiagnosticResponse::drOldFirmware;
 			return;
 		}
 		else {
@@ -344,11 +464,10 @@ void disk2ADF(const std::wstring& filename, int numTracks) {
 
     bool hdMode = false;
 
-    auto callback = [isADF](const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound, const int totalSectors, const CallbackOperation operation) ->WriteResponse {
+    auto callback = [isADF, hdMode](const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound, const int totalSectors, const CallbackOperation operation) ->WriteResponse {
 		if (retryCounter > 20) {
 			char input;
 			do {
-                // Disk has checksum errors/missing data. Skip Bad checksum always
 #ifdef __USE_GUI__
                     // Now we have to inform the GUI Thread we have an error, and we need to decide how to proceed
                     update_error_file(1); // set error flag
@@ -357,6 +476,7 @@ void disk2ADF(const std::wstring& filename, int numTracks) {
                     input = wait_user_input(); // This locks the program flow as getch()
                     update_error_file(0); // clear error flag for next one
 #else
+                    printf("\rDisk has checksum errors/missing data.  [R]etry, [I]gnore, [A]bort?                                      ");
     #ifdef _WIN32
                     input = toupper(_getch());
     #else
@@ -446,7 +566,7 @@ void runDiagnostics(const std::wstring& port) {
 #include <QFile>
 #include <qtdrawbridge.h>
 
-int wmain(QStringList list, QString track, QString side, QString status, QString error)
+int wmain(QStringList list)
 {
     bool writeMode = list.contains("WRITE");
     bool verify = list.contains("VERIFY");
@@ -471,17 +591,6 @@ int wmain(QStringList list, QString track, QString side, QString status, QString
     qDebug() << "eraseBeforeWrite" << eraseBeforeWrite;
     qDebug() << "TRACKS" << numTracks;
 
-    // Filenames
-    QByteArray tr = track.toLocal8Bit();
-    char *fTrack = tr.data();
-    QByteArray sd = side.toLocal8Bit();
-    char *fSide = sd.data();
-    QByteArray st = status.toLocal8Bit();
-    char *fStatus = st.data();
-    QByteArray er = error.toLocal8Bit();
-    char *fError = er.data();
-    prepareUIFiles(fTrack, fSide, fStatus, fError);
-
     userInputDone = false; // It will be changed by the user on errors
 
     if (list.contains("DIAGNOSTIC")) {
@@ -491,8 +600,8 @@ int wmain(QStringList list, QString track, QString side, QString status, QString
 			printf("\rError opening COM port: %s  ", writer.getLastError().c_str());
 		}
 		else {
+            setupSocketClient();
             isOpened = true;
-            //qDebug() << "TrackFile: " << fTrack << "SideFile: " << fSide << "StatusFile: " << fStatus << "ErrorFile: " << fError;
             if (writeMode) {
                 adf2Disk(filename.c_str(), verify, preComp, eraseBeforeWrite);
             } else {
@@ -549,7 +658,12 @@ int wmain(QStringList list, QString track, QString side, QString status, QString
     if (!isOpened) {
         globalError = 3;
     }
-    removeUIFiles();
+    //removeUIFiles();
+    if (sockfd != INVALID_SOCKET)
+    {
+        close(sockfd);
+        sockfd = INVALID_SOCKET;
+    }
     printf("\r\n\r\n");
     return globalError;
 }

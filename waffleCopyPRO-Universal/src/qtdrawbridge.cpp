@@ -3,23 +3,19 @@
 #include <QDebug>
 #include "mainwindow.h"
 
-extern int wmain(QStringList list, QString track, QString side, QString status, QString error);
+extern int wmain(QStringList list);
 
 QtDrawBridge::QtDrawBridge(void)
 {
     qDebug() << __PRETTY_FUNCTION__ << "Called";
 }
 
-void QtDrawBridge::setup(QString port, QString filename, QStringList command, QString track, QString side, QString status, QString error)
+void QtDrawBridge::setup(QString port, QString filename, QStringList command)
 {
     qDebug() << __PRETTY_FUNCTION__ << "Called" << "Port" << port << "Filename" << filename << "command" << command;
     m_filename = filename;
     m_command = command;
     m_port = port;
-    m_track = track;
-    m_side = side;
-    m_status = status;
-    m_error = error;
 }
 
 void QtDrawBridge::run()
@@ -28,8 +24,8 @@ void QtDrawBridge::run()
     list << m_port;
     list << m_filename;
     list << m_command;
-    qDebug() << __PRETTY_FUNCTION__ << "Called" << "StringList" << list << "Side: " << m_side << "Track: " << m_track << "Status: " << m_status << "Error: " << m_error;
-    int rval = wmain(list, m_track, m_side, m_status, m_error);
+    qDebug() << __PRETTY_FUNCTION__ << "Called" << "StringList" << list;
+    int rval = wmain(list);
     qDebug() << __PRETTY_FUNCTION__ << "Finish with " << rval;
     emit QtDrawBridgeSignal(rval);
 }

@@ -13,6 +13,7 @@
 #include "waffleconfig.h"
 #include <QCursor>
 #include <QSettings>
+#include "socketserver.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -38,8 +39,8 @@ private:
     void prepareTracks(void);
     void prepareTracksPosition(void);
     QTimer *scrollTimer;
-    QTimer *wSysTimer;
     QtDrawBridge *amigaBridge;
+    SocketServer *socketServer;
     QFileSystemWatcher *watcher;
     QStringList fileList; // This file list is shared with the QThread for READING/WRITING from Waffle
     QString stext;
@@ -53,8 +54,6 @@ private:
     void startWrite(void);
     void startRead(void);
     void showSetupError(QString err);
-    void prepareFileSet(void);
-    void resetFileCounters(void);
     QString m_track;
     QString m_side;
     QString m_status;
@@ -63,11 +62,12 @@ private:
     QSettings settings;
     int serialPort;
     bool readyReadSHM;
+    QThread *m_thread;
+    void progressChange(QString s, int value);
 
 private slots:
     void checkStartWrite(void);
     void checkStartRead(void);
-    void progressChange(QString s);
     void on_fileReadADF_clicked();
     void on_fileSaveADF_clicked();
     void doneWork();
@@ -85,5 +85,9 @@ private slots:
     void errorDialog_SkipClicked(void);
     void errorDialog_CancelClicked(void);
     void manageQtDrawBridgeSignal(int rval);
+    void drTrackChange(int rval);
+    void drSideChange(int rval);
+    void drStatusChange(int rval);
+    void drErrorChange(int rval);
 };
 #endif // MAINWINDOW_H

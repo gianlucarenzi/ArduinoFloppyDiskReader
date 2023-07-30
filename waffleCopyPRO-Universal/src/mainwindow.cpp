@@ -14,6 +14,7 @@
 #include <QElapsedTimer>
 #include <QStandardPaths>
 #include <QSettings>
+#include "socketserver.h"
 
 MainWindow::MainWindow(QWidget *parent)
 : QMainWindow(parent),
@@ -44,7 +45,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->serial->setMinimum(1);
     ui->portSelection->setText("WAFFLE DRIVE COM PORT");
 #endif
-    prepareFileSet();
+    // This add a QFileSystemWatcher on files
+    //prepareFileSet();
     amigaBridge = new QtDrawBridge();
     connect(amigaBridge, SIGNAL(finished()), SLOT(doneWork()));
     connect(amigaBridge, SIGNAL(QtDrawBridgeSignal(int)), this, SLOT(manageQtDrawBridgeSignal(int)));
@@ -55,11 +57,11 @@ MainWindow::MainWindow(QWidget *parent)
     stext += empty;
     QString sctext;
     // The following QString should be localized
-    sctext = tr("The essential USB floppy drive solution for the real Amiga user."
-    "It allows you to write from ADF files, to read floppy disks as ADF, IPF and SCP format and, thanks to a specific version Amiga Emulator, like WinUAE (by Toni Wilen) or AmiBerry (by MiDWaN), "
+    sctext = tr(" --- WAFFLE COPY PROFESSIONAL --- The essential USB floppy drive solution for the real Amiga user."
+    "  It allows you to write from ADF files, to read floppy disks as ADF, IPF and SCP format and, thanks to a specific version Amiga Emulator, like WinUAE (by Toni Wilen) or AmiBerry (by MiDWaN), "
     "it works like a real Amiga disk drive allowing you to directly read and write your floppies through an emulator! "
     "Sometime you may need a special USB cable (Y-Type) with the possibility of "
-    "double powering if the USB port of the PC is not powerful enough.");
+    "double powering if the USB port of the PC is not powerful enough. Original Concept by Rob Smith (C), modified version by Gianluca Renzi, Waffle is it a product by RetroBit Lab and RetroGiovedi.");
     stext += sctext;
     stext += empty;
     ui->scrollText->setText(stext);
@@ -88,12 +90,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->showError->hide();
     ui->version->setText(WAFFLE_VERSION);
     ui->version->show();
-    // It seems something wrong with the QFileSystemWatcher on Windows
-    // so let's use a very annoying timer...
-    wSysTimer = new QTimer();
-    wSysTimer->setInterval(50);
-    wSysTimer->setSingleShot(false);
-    connect(wSysTimer, SIGNAL(timeout()), this, SLOT(wSysWatcher()));
     // Settings
     // If not exists default is true
     qDebug() << "BEFORE PRECOMP" << preComp;
@@ -123,80 +119,27 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->skipButton, SIGNAL(clicked()), this, SLOT(errorDialog_SkipClicked()));
     connect(ui->retryButton, SIGNAL(clicked()), this, SLOT(errorDialog_RetryClicked()));
     readyReadSHM = false;
-}
 
+    qDebug() << "Creating new socketServer";
+    socketServer = new SocketServer();
+    m_thread = new QThread();
+    socketServer->moveToThread(m_thread);
+    m_thread->start();
+    connect(m_thread, SIGNAL(started()), socketServer, SLOT(process()));
+    qDebug() << "New socketServer is running";
+
+    // Connect all thread from socketServer
+    connect(socketServer, SIGNAL(drTrack(int)), this, SLOT(drTrackChange(int)));
+    connect(socketServer, SIGNAL(drSide(int)), this, SLOT(drSideChange(int)));
+    connect(socketServer, SIGNAL(drStatus(int)), this, SLOT(drStatusChange(int)));
+    connect(socketServer, SIGNAL(drError(int)), this, SLOT(drErrorChange(int)));
+}
 
 MainWindow::~MainWindow()
 {
     delete ui;
 }
 
-void MainWindow::prepareFileSet(void)
-{
-    // Those functions should returns the location of some place to write or read files
-    m_folder = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-    m_track = m_folder + "/track";
-    m_side = m_folder + "/side";
-    m_status = m_folder + "/status";
-    m_error = m_folder + "/error";
-
-    qDebug() << "Track:  " << m_track;
-    qDebug() << "Side:   " << m_side;
-    qDebug() << "Status: " << m_status;
-    qDebug() << "Error:  " << m_error;
-
-    QDir dir(m_folder);
-    if (!dir.exists()) {
-        qDebug() << "Create Folder" << m_folder;
-        dir.mkdir(m_folder);
-    }
-
-    QFile file;
-    file.setFileName(m_track);
-    if (!file.exists()) {
-        qDebug() << "Create Track" << m_track;
-        file.open(QIODevice::ReadWrite | QIODevice::Text);
-        file.write("000");
-        file.close();
-    }
-    file.setFileName(m_side);
-    if (!file.exists()) {
-        qDebug() << "Create Side" << m_side;
-        file.open(QIODevice::ReadWrite | QIODevice::Text);
-        file.write("0");
-        file.close();
-    }
-    file.setFileName(m_status);
-    if (!file.exists()) {
-        qDebug() << "Create Status" << m_status;
-        file.open(QIODevice::ReadWrite | QIODevice::Text);
-        file.write("00");
-        file.close();
-    }
-    file.setFileName(m_error);
-    if (!file.exists()) {
-        qDebug() << "Create Error" << m_error;
-        file.open(QIODevice::ReadWrite | QIODevice::Text);
-        file.write("0");
-        file.close();
-    }
-
-#ifndef _WIN32
-    // On Windows seems to be problematic/erratic the filesystemwatcher
-    // Use timer
-    watcher = new QFileSystemWatcher(this);
-    if (!watcher->addPath(m_track))
-        qDebug() << "Error ADDING " << m_track;
-    if (!watcher->addPath(m_side))
-        qDebug() << "Error ADDING " << m_side;
-    if (!watcher->addPath(m_status))
-        qDebug() << "Error ADDING " << m_status;
-    if (!watcher->addPath(m_error))
-        qDebug() << "Error ADDING " << m_error;
-    //qDebug() << __PRETTY_FUNCTION__ << "Watch on: " << watcher->files();
-    connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(progressChange(QString)));
-#endif
-}
 
 void MainWindow::manageSerialPort(int p)
 {
@@ -238,9 +181,6 @@ void MainWindow::toggleNumTracks(void)
 
 void MainWindow::doneWork(void)
 {
-    if (wSysTimer->isActive())
-        wSysTimer->stop();
-    //prepareTracksPosition();
     qDebug() << "doneWork" << "status:" << status;
     if (status != 0) {
         ui->copyError->show();
@@ -254,8 +194,6 @@ void MainWindow::doneWork(void)
 
 void MainWindow::done(void)
 {
-    if (wSysTimer->isActive())
-        wSysTimer->stop();
     ui->copyCompleted->hide();
     ui->copyError->hide();
     ui->busy->hide();
@@ -267,8 +205,6 @@ void MainWindow::done(void)
 
 void MainWindow::stopClicked(void)
 {
-    if (wSysTimer->isActive())
-        wSysTimer->stop();
     ui->copyCompleted->setText(tr("OPERATION TERMINATED BY USER"));
     ui->stopButton->hide();
     amigaBridge->terminate();
@@ -385,6 +321,7 @@ void MainWindow::checkStartWrite(void)
         showSetupError(tr("NEED ADF FILENAME FIRST TO WRITE TO FLOPPY"));
         return;
     }
+
     // To have the correct text on the copyCompleted.
     ui->copyCompleted->setText(tr("AMIGA DISK COPY COMPLETED"));
     QString port =
@@ -416,21 +353,15 @@ void MainWindow::checkStartWrite(void)
     qDebug() << "Side: " << m_side;
     qDebug() << "Status: " << m_status << "NEED TO WRITE";
 
-    resetFileCounters();
     prepareTracksPosition();
-    amigaBridge->setup(port, filename, command, m_track, m_side, m_status, m_error);
+    amigaBridge->setup(port, filename, command);
     startWrite();
-#ifdef _WIN32
-    wSysTimer->start();
-#endif
     // Now we can read the shared memory coming from the Thread
     readyReadSHM = true;
 }
 
 void MainWindow::showSetupError(QString err)
 {
-    if (wSysTimer->isActive())
-        wSysTimer->stop();
     ui->showError->setText(err);
     ui->showError->show();
     QElapsedTimer timer;
@@ -445,8 +376,6 @@ void MainWindow::showSetupError(QString err)
 void MainWindow::manageError(void)
 {
     // Simply hide error window
-    if (wSysTimer->isActive())
-        wSysTimer->stop();
     ui->showError->hide();
 }
 
@@ -461,6 +390,7 @@ void MainWindow::checkStartRead(void)
         showSetupError("NEED ADF FILENAME FIRST TO WRITE TO DISK FROM FLOPPY");
         return;
     }
+
     // To have the correct text on the copyCompleted.
     ui->copyCompleted->setText(tr("AMIGA DISK COPY COMPLETED"));
     QString port =
@@ -488,13 +418,9 @@ void MainWindow::checkStartRead(void)
     qDebug() << "Side: " << m_side;
     qDebug() << "Status: " << m_status << "NEED TO READ";
 
-    resetFileCounters();
     prepareTracksPosition();
-    amigaBridge->setup(port, filename, command, m_track, m_side, m_status, m_error);
+    amigaBridge->setup(port, filename, command);
     startRead();
-#ifdef _WIN32
-    wSysTimer->start();
-#endif
     // Now we can read the shared memory coming from the Thread
     readyReadSHM = true;
 }
@@ -518,69 +444,25 @@ void MainWindow::startRead(void)
 void MainWindow::wSysWatcher(void)
 {
     //qDebug() << "TIMER FIRE!";
-    progressChange("Timer");
+    progressChange("Timer", 0);
 }
 
-void MainWindow::progressChange(QString s)
+void MainWindow::progressChange(QString s, int value)
 {
     bool toShow = false;
 
     if (readyReadSHM)
     {
-        //qDebug() << __PRETTY_FUNCTION__ << "called with" << s;
-        if (s == m_track || s == "Timer" )
-        {
-            //qDebug() << __PRETTY_FUNCTION__ << "TRACKFILE" << s << "changed";
-            QFile file(m_track);
-            if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-                return;
-            QByteArray qbaTrack = file.readLine();
-            file.close();
-            QString t = qbaTrack.data();
-            track = t.toInt();
-            //qDebug() << __PRETTY_FUNCTION__ << "TRACK FILE HAS: " << track;
-            // Now we have the track!
-            //qDebug() << __PRETTY_FUNCTION__ << "TRACK FILE HAS: " << track;
-        }
+        //qDebug() << __PRETTY_FUNCTION__ << "called with" << s << "Value" << value;
+        if (s == "Track")   track = value;
 
-        if (s == m_side || s == "Timer" )
-        {
-            //qDebug() << __PRETTY_FUNCTION__ << "SIDEFILE" << s << "changed";
-            QFile file(m_side);
-            if (!file.open(QIODevice::ReadWrite | QIODevice::Text))
-                return;
-            QByteArray qbaSide = file.readLine();
-            file.close();
-            QString t = qbaSide.data();
-            side = t.toInt();
-            // Now we have the side!
-            //qDebug() << __PRETTY_FUNCTION__ << "SIDE FILE HAS: " << side;
-        }
+        if (s == "Side" )   side = value;
 
-        if (s == m_status || s == "Timer" )
-        {
-            //qDebug() << __PRETTY_FUNCTION__ << "STATUSFILE" << s << "changed";
-            QFile file(m_status);
-            if (!file.open(QIODevice::ReadWrite | QIODevice::Text))
-                return;
-            QByteArray qbaStatus = file.readLine();
-            file.close();
-            QString t = qbaStatus.data();
-            status = t.toInt();
-            // Now we have the status!
-            //qDebug() << __PRETTY_FUNCTION__ << "STATUS FILE HAS: " << status;
-        }
+        if (s == "Status" ) status = value;
 
-        if (s == m_error || s == "Timer" )
+        if (s == "Error" )
         {
-            //qDebug() << __PRETTY_FUNCTION__ << "ERRORFILE" << s << "changed";
-            QFile file(m_error);
-            if (!file.open(QIODevice::ReadWrite | QIODevice::Text))
-                return;
-            QByteArray qbaError = file.readLine();
-            file.close();
-            QString t = qbaError.data();
-            err = t.toInt();
+            err = value;
 
             // Now we have the error!
             if (err != 0)
@@ -628,36 +510,31 @@ void MainWindow::progressChange(QString s)
         //qDebug() << "Thread NOT READY YET";
     }
 }
-void MainWindow::resetFileCounters(void)
+
+void MainWindow::drStatusChange(int val)
 {
-    qDebug() << "RESET FILE COUNTERS";
-
-    QFile file;
-    file.setFileName(m_track);
-    qDebug() << "ZERO Track" << m_track;
-    file.open(QIODevice::ReadWrite | QIODevice::Text);
-    file.write("000");
-    file.close();
-
-    file.setFileName(m_side);
-    qDebug() << "ZERO Side" << m_side;
-    file.open(QIODevice::ReadWrite | QIODevice::Text);
-    file.write("00");
-    file.close();
-
-    file.setFileName(m_status);
-    qDebug() << "ZERO Status" << m_status;
-    file.open(QIODevice::ReadWrite | QIODevice::Text);
-    file.write("0");
-    file.close();
-
-    file.setFileName(m_error);
-    qDebug() << "ZERO Error" << m_error;
-    file.open(QIODevice::ReadWrite | QIODevice::Text);
-    file.write("0");
-    file.close();
-
+    //qDebug() << __PRETTY_FUNCTION__ << "SIGNAL drSTATUS" << val;
+    progressChange("Status", val);
 }
+
+void MainWindow::drSideChange(int val)
+{
+    //qDebug() << __PRETTY_FUNCTION__ << "SIGNAL drSIDE" << val;
+    progressChange("Side", val);
+}
+
+void MainWindow::drTrackChange(int val)
+{
+    //qDebug() << __PRETTY_FUNCTION__ << "SIGNAL drTrack" << val;
+    progressChange("Track", val);
+}
+
+void MainWindow::drErrorChange(int val)
+{
+    //qDebug() << __PRETTY_FUNCTION__ << "SIGNAL drError" << val;
+    progressChange("Error", val);
+}
+
 
 void MainWindow::on_fileReadADF_clicked()
 {
@@ -683,14 +560,14 @@ extern void set_user_input(char data);
 
 void MainWindow::errorDialog_SkipClicked(void)
 {
-    qDebug() << __FUNCTION__ << "SKIP Clicked";
+    //qDebug() << __FUNCTION__ << "SKIP Clicked";
     set_user_input('S'); // Skip
     ui->errorDialog->hide();
 }
 
 void MainWindow::errorDialog_CancelClicked(void)
 {
-    qDebug() << __FUNCTION__ << "ABORT Clicked";
+    //qDebug() << __FUNCTION__ << "ABORT Clicked";
     set_user_input('A'); // Abort
     ui->errorDialog->hide();
     stopClicked();
@@ -698,7 +575,7 @@ void MainWindow::errorDialog_CancelClicked(void)
 
 void MainWindow::errorDialog_RetryClicked(void)
 {
-    qDebug() << __FUNCTION__ << "RETRY Clicked";
+    //qDebug() << __FUNCTION__ << "RETRY Clicked";
     set_user_input('R'); // Retry
     ui->errorDialog->hide();
 }
@@ -706,7 +583,7 @@ void MainWindow::errorDialog_RetryClicked(void)
 void MainWindow::manageQtDrawBridgeSignal(int sig)
 {
     bool toShow = true;
-    qDebug() << __FUNCTION__ << "Signal RECEIVED FROM QtDrawBridge: " << sig;
+    //qDebug() << __FUNCTION__ << "Signal RECEIVED FROM QtDrawBridge: " << sig;
     status = sig;
     switch (sig)
     {
