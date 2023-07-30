@@ -208,6 +208,8 @@ void MainWindow::done(void)
 void MainWindow::stopClicked(void)
 {
     ui->copyCompleted->setText(tr("OPERATION TERMINATED BY USER"));
+    if (ui->errorDialog->isVisible())
+        ui->errorDialog->hide();
     ui->stopButton->hide();
     amigaBridge->terminate();
 }
