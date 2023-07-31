@@ -267,9 +267,9 @@ background-color: rgb(61, 56, 70);</string>
    <widget class="QLabel" name="portSelection">
     <property name="geometry">
      <rect>
-      <x>50</x>
+      <x>20</x>
       <y>510</y>
-      <width>161</width>
+      <width>191</width>
       <height>20</height>
      </rect>
     </property>
