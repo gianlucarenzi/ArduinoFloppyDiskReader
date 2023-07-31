@@ -93,6 +93,12 @@ std::wstring atw(const std::string& str) {
 #include <thread>
 #include <socketserver.h>
 
+#ifdef _WIN32
+// Need to link with Ws2_32.lib, Mswsock.lib, and Advapi32.lib
+//#pragma comment (lib, "Ws2_32.lib")
+#pragma comment (lib, "Mswsock.lib")
+#pragma comment (lib, "AdvApi32.lib")
+#endif
 static SOCKET sockfd = INVALID_SOCKET;
 
 static struct sockaddr_in servaddr;
@@ -115,13 +121,61 @@ static void setupSocketClient(void)
     {
 #ifdef _WIN32
         WSADATA wsaData;
-        int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-        if (iResult != 0)
+        int iResult;
+        struct addrinfo *result = NULL,
+                        *ptr = NULL,
+                        hints;
+        int rval;
+
+        rval = WSAStartup(MAKEWORD(2, 2), &wsaData);
+        if (rval != 0)
         {
-            qDebug() << __PRETTY_FUNCTION__ << "Error at WSAStartup";
+            printf("Error at WSAStartup %d\n", rval);
             return;
         }
-#endif
+        ZeroMemory( &hints, sizeof(hints) );
+        hints.ai_family = AF_UNSPEC;
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_protocol = IPPROTO_TCP;
+
+        // Resolve the server address and port
+        rval = getaddrinfo(argv[1], SOCKET_PORT, &hints, &result);
+        if ( rval != 0 ) {
+            printf("getaddrinfo failed with error: %d\n", rval);
+            WSACleanup();
+            return;
+        }
+
+        // Attempt to connect to an address until one succeeds
+        for(ptr=result; ptr != NULL ;ptr=ptr->ai_next)
+        {
+            // Create a SOCKET for connecting to server
+            sockfd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+            if (sockfd == INVALID_SOCKET) {
+                printf("socket failed with error: %ld\n", WSAGetLastError());
+                WSACleanup();
+                return;
+            }
+
+            // Connect to server.
+            rval = connect( sockfd, ptr->ai_addr, (int)ptr->ai_addrlen);
+            if (rval == SOCKET_ERROR) {
+                closesocket(sockfd);
+                sockfd = INVALID_SOCKET;
+                continue;
+            }
+            break;
+        }
+
+        freeaddrinfo(result);
+
+        if (sockfd == INVALID_SOCKET) {
+            printf("Unable to connect to server!\n");
+            WSACleanup();
+            return;
+        }
+
+#else
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd == INVALID_SOCKET)
         {
@@ -143,14 +197,11 @@ static void setupSocketClient(void)
             sockfd = INVALID_SOCKET;
             fprintf(stderr, "%s connection with the server failed %d\n", __FUNCTION__, errno);
             perror("CONNECT SOCKET");
-#ifdef _WIN32
-            closesocket(sockfd);
-#else
             close(sockfd);
-#endif
             ClearWinSock();
             return;
         }
+#endif
     }
 
     if (sockfd != INVALID_SOCKET)
