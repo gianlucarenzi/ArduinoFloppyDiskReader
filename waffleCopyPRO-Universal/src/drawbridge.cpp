@@ -492,7 +492,7 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode) {
 #ifdef __USE_GUI__
                     // Now we have to inform the GUI Thread we have an error, and we need to decide how to proceed
                     update_error_file(1); // set error flag
-                    fprintf(stderr, "\r\n %s READ ERROR NOW WAIT USER INPUT \r\n", __PRETTY_FUNCTION__);
+                    fprintf(stdout, "\r\n %s READ ERROR NOW WAIT USER INPUT \r\n", __PRETTY_FUNCTION__);
                     fflush(stderr);
                     input = wait_user_input(); // This locks the program flow as getch()
                     update_error_file(0); // clear error flag for next one
@@ -678,10 +678,11 @@ int wmain(QStringList list)
     default: qDebug() << "UNKONWN ERROR. PLEASE DEBUG"; globalError = 99; break;
     }
 
-    qDebug() << "GLOBAL ERROR: " << globalError << "IS OPENED" << isOpened;
-    if (!isOpened) {
+    if (!isOpened && globalError == 0) {
+        qDebug() << "GLOBAL ERROR FIX: ";
         globalError = 3;
     }
+    qDebug() << "GLOBAL ERROR: " << globalError << "IS OPENED" << isOpened;
     if (sockfd != INVALID_SOCKET)
     {
 #ifdef _WIN32
