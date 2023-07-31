@@ -16,6 +16,11 @@
     #include <netdb.h>
     #include <netinet/in.h>
     #include <arpa/inet.h>
+    #define SOCKET int
+    #define INVALID_SOCKET -1
+    #define SOCKET_ERROR   -1
+    #define MAXBUFF         256
+    #define SOCKET_PORT     10240
 #else
     #undef UNICODE
     #define WIN32_LEAN_AND_MEAN
@@ -26,12 +31,8 @@
     #include <winsock2.h>
     #include <ws2tcpip.h>
     #pragma comment (lib, "Ws2_32.lib") //Winsock Library
-#endif
-
-#ifndef _WIN32
-#define SOCKET int
-#define INVALID_SOCKET -1
-#define SOCKET_ERROR   -1
+    #define MAXBUFF         256
+    #define SOCKET_PORT     "10240"
 #endif
 
 class SocketServer : public QObject
@@ -60,16 +61,16 @@ signals:
 private:
     SOCKET sockfd;
     SOCKET connfd;
+#ifdef _WIN32
+    struct addrinfo *result;
+    struct addrinfo hints;
+#else
     socklen_t len;
     struct sockaddr_in servaddr;
     struct sockaddr_in cli;
-
+#endif
 private:
     void ClearWinSock(void);
 };
-
-#define MAXBUFF         256
-#define SOCKET_PORT     10240
-//#define SA struct sockaddr
 
 #endif // SOCKETSERVER_H

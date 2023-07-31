@@ -31,7 +31,9 @@ void SocketServer::ClearWinSock(void)
 void SocketServer::process()
 {
     //qDebug() << __PRETTY_FUNCTION__ << "Called";
+    int rval;
 #ifdef _WIN32
+    // Initialize WinSock
     WSADATA wsaData;
     int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (iResult != 0)
@@ -40,8 +42,68 @@ void SocketServer::process()
         emit NoSocket();
         return;
     }
-#endif
-    int rval;
+    // struct addrinfo *result;
+    result = NULL;
+
+    ZeroMemory(&hints, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_flags = AI_PASSIVE;
+
+    // Resolve the server address and port
+    rval = getaddrinfo(NULL, SOCKET_PORT, &hints, &result);
+    if (rval != 0) {
+        qDebug() << __PRETTY_FUNCTION__ << "getaddrinfo failed with " << rval;
+        ClearWinSock();
+        emit NoSocket();
+        return;
+    }
+
+    // Create a SOCKET for the server to listen for client connections.
+    sockfd = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+    if (sockfd == INVALID_SOCKET)
+    {
+        qDebug() << __PRETTY_FUNCTION__<< "socket creation failed, ---> sending NoSocket() signal";
+        emit NoSocket();
+        freeaddrinfo(result);
+        ClearWinSock();
+        return;
+    }
+
+    // Setup the TCP listening socket
+    rval = bind(sockfd, result->ai_addr, (int)result->ai_addrlen);
+    if (rval == SOCKET_ERROR)
+    {
+        qDebug() << __PRETTY_FUNCTION__<< "binding socket failed, ---> sending NoBinding() signal";
+        emit NoSocketBind();
+        freeaddrinfo(result);
+        closesocket(sockfd);
+        ClearWinSock();
+        return;
+    }
+
+    freeaddrinfo(result);
+
+    rval = listen(sockfd, SOMAXCONN);
+    if (rval == SOCKET_ERROR)
+    {
+        emit NoListen();
+        closesocket(sockfd);
+        ClearWinSock();
+        return;
+    }
+
+    // Accept a client socket
+    connfd = accept(sockfd, NULL, NULL);
+    if (connfd == INVALID_SOCKET)
+    {
+        emit NoAccept();
+        closesocket(sockfd);
+        ClearWinSock();
+        return;
+    }
+#else
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == INVALID_SOCKET)
     {
@@ -66,11 +128,7 @@ void SocketServer::process()
     {
         qDebug() << __PRETTY_FUNCTION__ << "socket bind failed";
         emit NoSocketBind();
-#ifdef _WIN32
-        closesocket(sockfd);
-#else
         close(sockfd);
-#endif
         ClearWinSock();
         return;
     } else {
@@ -83,11 +141,7 @@ void SocketServer::process()
     {
         qDebug() << __PRETTY_FUNCTION__ << "listen failed";
         emit NoListen();
-#ifdef _WIN32
-        closesocket(sockfd);
-#else
         close(sockfd);
-#endif
         ClearWinSock();
         return;
     } else {
@@ -102,15 +156,13 @@ void SocketServer::process()
     {
         qDebug() << __PRETTY_FUNCTION__ << "server accept failed";
         emit NoAccept();
-#ifdef _WIN32
-        closesocket(sockfd);
-#else
         close(sockfd);
-#endif
         ClearWinSock();
     } else {
        // qDebug() << __PRETTY_FUNCTION__ << "server accept the client...";
     }
+
+#endif
 
     QElapsedTimer m_timer;
     m_timer.start();
@@ -134,8 +186,15 @@ void SocketServer::process()
 #else
                 close(connfd);
 #endif
+
+#ifdef _WIN32
+                connfd = accept(sockfd, NULL, NULL);
+                if (connfd == INVALID_SOCKET)
+                {
+#else
                 connfd = accept(sockfd, (sockaddr*) &cli, &len);
                 if (connfd < 0)
+#endif
                 {
                     qDebug() << __PRETTY_FUNCTION__ << "server accept failed";
                     emit NoAccept();
