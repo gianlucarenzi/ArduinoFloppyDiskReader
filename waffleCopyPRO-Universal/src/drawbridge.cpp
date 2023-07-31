@@ -452,6 +452,7 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
     case ADFResult::adfrDiskWriteProtected:			printf("\rError, disk is write protected!                                                    "); lastResponse = DiagnosticResponse::drWriteProtected; break;
     default:										printf("\rAn unknown error occured                                                           "); lastResponse = DiagnosticResponse::drError; break;
 	}
+    writer.closeDevice();
 }
 
 
@@ -547,6 +548,7 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode) {
                                                     printf("\n%s                                                  ", writer.getLastError().c_str()); lastResponse = DiagnosticResponse::drError; break;
     default: 										printf("\rAn unknown error occured.                                                      "); lastResponse = DiagnosticResponse::drError; break;
 	}
+    writer.closeDevice();
 }
 
 // Run the diagnostics module
@@ -680,7 +682,6 @@ int wmain(QStringList list)
     if (!isOpened) {
         globalError = 3;
     }
-    //removeUIFiles();
     if (sockfd != INVALID_SOCKET)
     {
 #ifdef _WIN32
