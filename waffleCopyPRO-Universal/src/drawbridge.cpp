@@ -277,8 +277,7 @@ bool iequals(const std::string& a, const std::string& b) {
 
 
 // Read an ADF file and write it to disk
-void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eraseFirst) {
-    bool hdMode = false;
+void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eraseFirst, bool hdMode) {
     bool isSCP = true;
     bool isIPF = false;
     bool writeFromIndex = true;
@@ -303,7 +302,7 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
         if ((!isSCP) && (!isIPF))
             if (writer.GuessDiskDensity(hdMode) != ArduinoFloppyReader::ADFResult::adfrComplete) {
                 lastResponse = DiagnosticResponse::drMediaTypeMismatch;
-                printf("unable to work out the density of the disk inserted\n");
+                printf("unable to work out the density of the disk inserted or disk not inserted\n");
                 return;
             }
     }
@@ -457,7 +456,7 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 
 
 // Read a disk and save it to ADF or SCP files
-void disk2ADF(const std::wstring& filename, int numTracks) {
+void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode) {
 	const wchar_t* extension = wcsrchr(filename.c_str(), L'.');
 	bool isADF = true;
 
@@ -483,7 +482,7 @@ void disk2ADF(const std::wstring& filename, int numTracks) {
 		}
 	}
 
-    bool hdMode = false;
+//    bool hdMode = false;
 
     auto callback = [isADF, hdMode](const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound, const int totalSectors, const CallbackOperation operation) ->WriteResponse {
 		if (retryCounter > 20) {
@@ -596,6 +595,7 @@ int wmain(QStringList list)
     bool num82Tracks = list.contains("TRACKSNUM82");
     int numTracks = 80;
     bool isOpened = false;
+    bool isHDMode = list.contains("HD");
 
     if (num82Tracks)
         numTracks = 82;
@@ -611,6 +611,7 @@ int wmain(QStringList list)
     qDebug() << "preComp" << preComp;
     qDebug() << "eraseBeforeWrite" << eraseBeforeWrite;
     qDebug() << "TRACKS" << numTracks;
+    qDebug() << "HD" << isHDMode;
 
     userInputDone = false; // It will be changed by the user on errors
 
@@ -624,9 +625,9 @@ int wmain(QStringList list)
             setupSocketClient();
             isOpened = true;
             if (writeMode) {
-                adf2Disk(filename.c_str(), verify, preComp, eraseBeforeWrite);
+                adf2Disk(filename.c_str(), verify, preComp, eraseBeforeWrite, isHDMode);
             } else {
-                disk2ADF(filename.c_str(), numTracks);
+                disk2ADF(filename.c_str(), numTracks, isHDMode);
                 lastResponse = writer.getLastErrorCode();
             }
 		}
