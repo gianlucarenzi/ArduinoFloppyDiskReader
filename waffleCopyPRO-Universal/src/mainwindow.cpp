@@ -45,6 +45,8 @@ MainWindow::MainWindow(QWidget *parent)
     // In Windows the first available COM port is 1.
     ui->serial->setMinimum(1);
     ui->portSelection->setText("WAFFLE DRIVE COM PORT");
+#else
+    ui->portSelection->setText("WAFFLE DRIVE /dev/ttyUSB PORT");
 #endif
     // This add a QFileSystemWatcher on files
     //prepareFileSet();
