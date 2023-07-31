@@ -28,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
   preComp(true),
   eraseBeforeWrite(false),
   tracks82(false),
+  diskDriveHDensityMode(false),
   doRefresh(true),
   serialPort(1)
 {
@@ -81,6 +82,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->numTracks, SIGNAL(clicked()), this, SLOT(toggleNumTracks()));
     connect(ui->showError, SIGNAL(clicked()), this, SLOT(manageError()));
     connect(ui->serial, SIGNAL(valueChanged(int)), this, SLOT(manageSerialPort(int)));
+    connect(ui->hdModeSelection, SIGNAL(clicked()), this, SLOT(toggleDiskDensityMode()));
     ui->copyCompleted->hide();
     ui->copyError->hide();
     // Busy background is invisible now
@@ -103,6 +105,7 @@ MainWindow::MainWindow(QWidget *parent)
     eraseBeforeWrite = settings.value("ERASEBEFOREWRITE", false).toBool();
     tracks82 = settings.value("TRACKS82", false).toBool();
     serialPort = settings.value("SERIALPORT", 1).toInt();
+    diskDriveHDensityMode = settings.value("HD", false).toBool();
 
     // Adapt the correct value to the ui
     ui->preCompSelection->setChecked(preComp);
@@ -181,6 +184,18 @@ void MainWindow::toggleNumTracks(void)
     settings.sync();
 }
 
+void MainWindow::toggleDiskDensityMode(void)
+{
+    diskDriveHDensityMode = !diskDriveHDensityMode;
+    if (diskDriveHDensityMode)
+        qDebug() << "USING HIGH DENSITY MODE";
+    else
+        qDebug() << "USING DOUBLE DENSITY MODE (DEFAULT)";
+    ui->hdModeSelection->setChecked(diskDriveHDensityMode);
+    settings.setValue("HD", diskDriveHDensityMode);
+    settings.sync();
+}
+
 void MainWindow::doneWork(void)
 {
     qDebug() << "doneWork" << "status:" << status;
@@ -255,6 +270,7 @@ void MainWindow::doScroll(void)
         ui->cancelButton->setFont(this->font());
         ui->skipButton->setFont(this->font());
         ui->errorMessage->setFont(this->font());
+        ui->hdModeSelection->setFont(this->font());
         doRefresh = ! doRefresh;
     }
 }
@@ -349,6 +365,9 @@ void MainWindow::checkStartWrite(void)
     if (eraseBeforeWrite)
         command.append("ERASEBEFOREWRITE");
 
+    if (diskDriveHDensityMode)
+        command.append("HD");
+
     qDebug() << "PORT: " << port;
     qDebug() << "FILENAME: " << filename;
     qDebug() << "COMMAND: " << command;
@@ -413,6 +432,9 @@ void MainWindow::checkStartRead(void)
     command.append("READ");
     if (tracks82)
         command.append("TRACKSNUM82");
+
+    if (diskDriveHDensityMode)
+        command.append("HD");
 
     qDebug() << "PORT: " << port;
     qDebug() << "FILENAME: " << filename;
@@ -626,7 +648,7 @@ void MainWindow::manageQtDrawBridgeSignal(int sig)
     case 25: ui->copyError->setText("USB Serial Bad"); break;
     case 26: ui->copyError->setText("CTS Failure"); break;
     case 27: ui->copyError->setText("Rewind Failure"); break;
-    case 28: ui->copyError->setText("Media Type Mismatch"); break;
+    case 28: ui->copyError->setText("Media Type Mismatch or No Disk in Drive"); break;
     default: ui->copyError->setText("Unknown Error"); break;
     }
 
