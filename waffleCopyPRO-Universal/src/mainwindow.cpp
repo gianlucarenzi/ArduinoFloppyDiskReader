@@ -629,7 +629,7 @@ void MainWindow::manageQtDrawBridgeSignal(int sig)
         // Responses from commands
     case 10: ui->copyError->setText("Send Failed"); break;
     case 11: ui->copyError->setText("Send Parameter Failed"); break;
-    case 12: ui->copyError->setText("Read Response Failed"); break;
+    case 12: ui->copyError->setText("Read Response Failed or No Disk in Drive"); break;
     case 13: ui->copyError->setText("Write Timeout"); break;
     case 14: ui->copyError->setText("Serial Overrun"); break;
     case 15: ui->copyError->setText("Framing Error"); break;
