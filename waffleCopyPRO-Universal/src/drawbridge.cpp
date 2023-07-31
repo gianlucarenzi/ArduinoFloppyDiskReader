@@ -138,7 +138,7 @@ static void setupSocketClient(void)
         servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
         servaddr.sin_port = htons(SOCKET_PORT);
 
-        if (connect(sockfd, (SA*) &servaddr, sizeof(servaddr)) != 0)
+        if (connect(sockfd, (sockaddr *) &servaddr, sizeof(servaddr)) != 0)
         {
             sockfd = INVALID_SOCKET;
             fprintf(stderr, "%s connection with the server failed %d\n", __FUNCTION__, errno);

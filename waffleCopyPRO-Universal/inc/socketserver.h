@@ -24,7 +24,7 @@
     #endif
     #include <windows.h>
     #include <winsock2.h>
-    #include <w2tcpip.h>
+    #include <ws2tcpip.h>
     #pragma comment (lib, "Ws2_32.lib") //Winsock Library
 #endif
 
@@ -70,6 +70,6 @@ private:
 
 #define MAXBUFF         256
 #define SOCKET_PORT     10240
-#define SA struct sockaddr
+//#define SA struct sockaddr
 
 #endif // SOCKETSERVER_H

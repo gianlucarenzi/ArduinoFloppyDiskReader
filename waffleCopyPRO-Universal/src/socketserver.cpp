@@ -61,7 +61,7 @@ void SocketServer::process()
     servaddr.sin_port = htons(SOCKET_PORT);
 
     // Binding newly created socket to given IP and verification
-    rval = bind(sockfd, (SA*)&servaddr, sizeof(servaddr));
+    rval = bind(sockfd, (sockaddr *) &servaddr, sizeof(servaddr));
     if (rval == SOCKET_ERROR)
     {
         qDebug() << __PRETTY_FUNCTION__ << "socket bind failed";
@@ -97,7 +97,7 @@ void SocketServer::process()
     len = sizeof(cli);
 
     // Accept the data packet from client and verification
-    connfd = accept(sockfd, (SA*)&cli, &len);
+    connfd = accept(sockfd, (sockaddr *) &cli, &len);
     if (connfd == INVALID_SOCKET)
     {
         qDebug() << __PRETTY_FUNCTION__ << "server accept failed";
@@ -112,18 +112,13 @@ void SocketServer::process()
        // qDebug() << __PRETTY_FUNCTION__ << "server accept the client...";
     }
 
-#ifdef _WIN32
-    // No longer need server socket
-    closesocket(sockfd);
-#endif
-
     QElapsedTimer m_timer;
     m_timer.start();
     for (;;)
     {
         char buff[MAXBUFF];
         memset(buff, 0, MAXBUFF);
-        rval = read(connfd, buff, sizeof(buff));
+        rval = recv(connfd, buff, sizeof(buff), 0);
         if (rval < 0)
         {
             qDebug() << __PRETTY_FUNCTION__ << "Error";
@@ -134,8 +129,12 @@ void SocketServer::process()
             if (rval == 0)
             {
                 qDebug() << __PRETTY_FUNCTION__ << "Nothing to read. Maybe client disconnected?";
+#ifdef _WIN32
+                closesocket(connfd);
+#else
                 close(connfd);
-                connfd = accept(sockfd, (SA *) &cli, &len);
+#endif
+                connfd = accept(sockfd, (sockaddr*) &cli, &len);
                 if (connfd < 0)
                 {
                     qDebug() << __PRETTY_FUNCTION__ << "server accept failed";
@@ -197,8 +196,19 @@ void SocketServer::process()
 //       }
     }
     qDebug() << __PRETTY_FUNCTION__ << "Finish with " << rval;
-    if (connfd >= 0) close(connfd);
+    if (connfd >= 0)
+#ifdef _WIN32
+        closesocket(connfd);
+#else
+        close(connfd);
+#endif
     // Close the socket
-    if (sockfd >= 0) close(sockfd);
+    if (sockfd >= 0)
+#ifdef _WIN32
+        closesocket(sockfd);
+#else
+        close(sockfd);
+#endif
+
     delete(this);
 }
