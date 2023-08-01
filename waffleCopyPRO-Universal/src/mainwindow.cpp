@@ -481,7 +481,7 @@ void MainWindow::progressChange(QString s, int value)
 
     if (readyReadSHM)
     {
-        //qDebug() << __PRETTY_FUNCTION__ << "called with" << s << "Value" << value;
+        //qDebug() << __FUNCTION__ << "called with" << s << "Value" << value;
         if (s == "Track")   track = value;
 
         if (s == "Side" )   side = value;
@@ -498,19 +498,19 @@ void MainWindow::progressChange(QString s, int value)
             else
                 ui->errorDialog->hide();
 
-            //qDebug() << __PRETTY_FUNCTION__ << "ERRORCODE" << err;
+            //qDebug() << __FUNCTION__ << "ERRORCODE" << err;
             if (err != 0)
             {
                 // The only way to setup a 'RED' square, is when err != 0, the
                 // square will be printed in RED
                 status = 1;
-                //qDebug() << __PRETTY_FUNCTION__ << "ERRORCODE CHANGE TO RED";
+                //qDebug() << __FUNCTION__ << "ERRORCODE CHANGE TO RED";
             }
         }
 
         if (track < 0 || side < 0 || status < 0) toShow = false; else toShow = true;
 
-        //qDebug() << __PRETTY_FUNCTION__ << "TRACK: " << track << "SIDE: " << side << "STATUS: " << status << "ERROR: " << err << "toShow" << toShow;
+        //qDebug() << __FUNCTION__ << "TRACK: " << track << "SIDE: " << side << "STATUS: " << status << "ERROR: " << err << "toShow" << toShow;
         if (toShow)
         {
             // Error = red squares. good green or yellow if verify
@@ -541,25 +541,25 @@ void MainWindow::progressChange(QString s, int value)
 
 void MainWindow::drStatusChange(int val)
 {
-    //qDebug() << __PRETTY_FUNCTION__ << "SIGNAL drSTATUS" << val;
+    //qDebug() << __FUNCTION__ << "SIGNAL drSTATUS" << val;
     progressChange("Status", val);
 }
 
 void MainWindow::drSideChange(int val)
 {
-    //qDebug() << __PRETTY_FUNCTION__ << "SIGNAL drSIDE" << val;
+    //qDebug() << __FUNCTION__ << "SIGNAL drSIDE" << val;
     progressChange("Side", val);
 }
 
 void MainWindow::drTrackChange(int val)
 {
-    //qDebug() << __PRETTY_FUNCTION__ << "SIGNAL drTrack" << val;
+    //qDebug() << __FUNCTION__ << "SIGNAL drTrack" << val;
     progressChange("Track", val);
 }
 
 void MainWindow::drErrorChange(int val)
 {
-    //qDebug() << __PRETTY_FUNCTION__ << "SIGNAL drError" << val;
+    //qDebug() << __FUNCTION__ << "SIGNAL drError" << val;
     progressChange("Error", val);
 }
 

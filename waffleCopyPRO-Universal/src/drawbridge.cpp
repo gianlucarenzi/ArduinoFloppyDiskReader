@@ -369,7 +369,7 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
                     update_error_file(1); // Set error for ask user
                     // This is not an error! I need to zero the badSectorCount (status file)
                     update_gui( currentTrack, currentSide, 1 ); // Set status flag for that track
-                    fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __PRETTY_FUNCTION__);
+                    fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __FUNCTION__);
                     fflush(stderr);
                     input = wait_user_input(); // This locks the program flow as the toupper() function
                     update_error_file(0); // Clear error for next
@@ -410,7 +410,7 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
                     update_error_file(1); // Set error for ask user
                     // This is not an error! I need to zero the badSectorCount (status file)
                     update_gui( currentTrack, currentSide, 1 ); // Set status flag for that track
-                    fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __PRETTY_FUNCTION__);
+                    fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __FUNCTION__);
                     fflush(stderr);
                     input = wait_user_input(); // This locks the program flow as the toupper() function
                     update_error_file(0); // Clear error for next
@@ -448,7 +448,7 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
                     update_error_file(1); // Set error for ask user
                     // This is not an error! I need to zero the badSectorCount (status file)
                     update_gui( currentTrack, currentSide, 1 ); // Set status flag for that track
-                    fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __PRETTY_FUNCTION__);
+                    fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __FUNCTION__);
                     fflush(stderr);
                     input = wait_user_input(); // This locks the program flow as the toupper() function
                     update_error_file(0); // Clear error for next
@@ -543,7 +543,7 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode) {
 #ifdef __USE_GUI__
                     // Now we have to inform the GUI Thread we have an error, and we need to decide how to proceed
                     update_error_file(1); // set error flag
-                    fprintf(stdout, "\r\n %s READ ERROR NOW WAIT USER INPUT \r\n", __PRETTY_FUNCTION__);
+                    fprintf(stdout, "\r\n %s READ ERROR NOW WAIT USER INPUT \r\n", __FUNCTION__);
                     fflush(stderr);
                     input = wait_user_input(); // This locks the program flow as getch()
                     update_error_file(0); // clear error flag for next one

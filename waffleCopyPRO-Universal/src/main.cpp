@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     int id = QFontDatabase::addApplicationFont("fonts/TopazPlus_a500_v1.0.ttf");
     if (id < 0)
     {
-        qDebug() << __PRETTY_FUNCTION__ << "Missing font!";
+        qDebug() << __FUNCTION__ << "Missing font!";
     }
     else
     {

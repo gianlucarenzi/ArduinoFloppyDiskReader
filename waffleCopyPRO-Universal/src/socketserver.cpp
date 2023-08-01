@@ -7,18 +7,18 @@
 
 SocketServer::SocketServer(void)
 {
-    //qDebug() << __PRETTY_FUNCTION__ << "Called";
+    //qDebug() << __FUNCTION__ << "Called";
 }
 
 SocketServer::~SocketServer(void)
 {
-    //qDebug() << __PRETTY_FUNCTION__ << "Called";
+    //qDebug() << __FUNCTION__ << "Called";
     emit serverDelete();
 }
 
 void SocketServer::setup(void)
 {
-    //qDebug() << __PRETTY_FUNCTION__ << "Called";
+    //qDebug() << __FUNCTION__ << "Called";
 }
 
 void SocketServer::ClearWinSock(void)
@@ -30,7 +30,7 @@ void SocketServer::ClearWinSock(void)
 }
 void SocketServer::process()
 {
-    //qDebug() << __PRETTY_FUNCTION__ << "Called";
+    //qDebug() << __FUNCTION__ << "Called";
     int rval;
 #ifdef _WIN32
     // Initialize WinSock
@@ -38,7 +38,7 @@ void SocketServer::process()
     int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (iResult != 0)
     {
-        qDebug() << __PRETTY_FUNCTION__ << "Error at WSAStartup";
+        qDebug() << __FUNCTION__ << "Error at WSAStartup";
         emit NoSocket();
         return;
     }
@@ -54,7 +54,7 @@ void SocketServer::process()
     // Resolve the server address and port
     rval = getaddrinfo(NULL, SOCKET_PORT, &hints, &result);
     if (rval != 0) {
-        qDebug() << __PRETTY_FUNCTION__ << "getaddrinfo failed with " << rval;
+        qDebug() << __FUNCTION__ << "getaddrinfo failed with " << rval;
         ClearWinSock();
         emit NoSocket();
         return;
@@ -64,7 +64,7 @@ void SocketServer::process()
     sockfd = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
     if (sockfd == INVALID_SOCKET)
     {
-        qDebug() << __PRETTY_FUNCTION__<< "socket creation failed, ---> sending NoSocket() signal";
+        qDebug() << __FUNCTION__<< "socket creation failed, ---> sending NoSocket() signal";
         emit NoSocket();
         freeaddrinfo(result);
         ClearWinSock();
@@ -75,7 +75,7 @@ void SocketServer::process()
     rval = bind(sockfd, result->ai_addr, (int)result->ai_addrlen);
     if (rval == SOCKET_ERROR)
     {
-        qDebug() << __PRETTY_FUNCTION__<< "binding socket failed, ---> sending NoBinding() signal";
+        qDebug() << __FUNCTION__<< "binding socket failed, ---> sending NoBinding() signal";
         emit NoSocketBind();
         freeaddrinfo(result);
         closesocket(sockfd);
@@ -107,12 +107,12 @@ void SocketServer::process()
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == INVALID_SOCKET)
     {
-        qDebug() << __PRETTY_FUNCTION__<< "socket creation failed, ---> sending NoSocket() signal";
+        qDebug() << __FUNCTION__<< "socket creation failed, ---> sending NoSocket() signal";
         emit NoSocket();
         ClearWinSock();
         return;
     } else {
-        //qDebug() << __PRETTY_FUNCTION__ << "socket successfully created";
+        //qDebug() << __FUNCTION__ << "socket successfully created";
     }
     // CleanUp servaddr struct
     memset(&servaddr, 0, sizeof(servaddr));
@@ -126,26 +126,26 @@ void SocketServer::process()
     rval = bind(sockfd, (sockaddr *) &servaddr, sizeof(servaddr));
     if (rval == SOCKET_ERROR)
     {
-        qDebug() << __PRETTY_FUNCTION__ << "socket bind failed";
+        qDebug() << __FUNCTION__ << "socket bind failed";
         emit NoSocketBind();
         close(sockfd);
         ClearWinSock();
         return;
     } else {
-        //qDebug() << __PRETTY_FUNCTION__ << "socket successfully binded";
+        //qDebug() << __FUNCTION__ << "socket successfully binded";
     }
 
     // Now server is ready to listen and verification
     rval = listen(sockfd, 5);
     if (rval == SOCKET_ERROR)
     {
-        qDebug() << __PRETTY_FUNCTION__ << "listen failed";
+        qDebug() << __FUNCTION__ << "listen failed";
         emit NoListen();
         close(sockfd);
         ClearWinSock();
         return;
     } else {
-        //qDebug() << __PRETTY_FUNCTION__ << "server listening...";
+        //qDebug() << __FUNCTION__ << "server listening...";
     }
 
     len = sizeof(cli);
@@ -154,12 +154,12 @@ void SocketServer::process()
     connfd = accept(sockfd, (sockaddr *) &cli, &len);
     if (connfd == INVALID_SOCKET)
     {
-        qDebug() << __PRETTY_FUNCTION__ << "server accept failed";
+        qDebug() << __FUNCTION__ << "server accept failed";
         emit NoAccept();
         close(sockfd);
         ClearWinSock();
     } else {
-       // qDebug() << __PRETTY_FUNCTION__ << "server accept the client...";
+       // qDebug() << __FUNCTION__ << "server accept the client...";
     }
 
 #endif
@@ -173,14 +173,14 @@ void SocketServer::process()
         rval = recv(connfd, buff, sizeof(buff), 0);
         if (rval < 0)
         {
-            qDebug() << __PRETTY_FUNCTION__ << "Error";
+            qDebug() << __FUNCTION__ << "Error";
             break;
         }
         else
         {
             if (rval == 0)
             {
-                qDebug() << __PRETTY_FUNCTION__ << "Nothing to read. Maybe client disconnected?";
+                qDebug() << __FUNCTION__ << "Nothing to read. Maybe client disconnected?";
 #ifdef _WIN32
                 closesocket(connfd);
 #else
@@ -196,7 +196,7 @@ void SocketServer::process()
                 if (connfd < 0)
 #endif
                 {
-                    qDebug() << __PRETTY_FUNCTION__ << "server accept failed";
+                    qDebug() << __FUNCTION__ << "server accept failed";
                     emit NoAccept();
                     rval = connfd;
                     break;
@@ -214,7 +214,7 @@ void SocketServer::process()
                 {
                     // We need to split all strings apart
                     // TRACK:003SIDE:01STATUS:0ERROR=1
-                    qDebug() << __PRETTY_FUNCTION__ << "Error!!!";
+                    qDebug() << __FUNCTION__ << "Error!!!";
                 }
                 else
                 {
@@ -248,13 +248,13 @@ void SocketServer::process()
 
 //       if (m_timer.elapsed() > 1000)
 //       {
-//           qDebug() << __PRETTY_FUNCTION__ << "Called";
+//           qDebug() << __FUNCTION__ << "Called";
 //           counter++;
 //           if (counter >= 100) { rval = 199; break; }
 //           m_timer.start();
 //       }
     }
-    qDebug() << __PRETTY_FUNCTION__ << "Finish with " << rval;
+    qDebug() << __FUNCTION__ << "Finish with " << rval;
     if (connfd >= 0)
 #ifdef _WIN32
         closesocket(connfd);
