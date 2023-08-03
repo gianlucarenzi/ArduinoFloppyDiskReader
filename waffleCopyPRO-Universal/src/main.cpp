@@ -4,6 +4,7 @@
 #include <QFont>
 #include <QFontDatabase>
 #include <QString>
+#include <QDebug>
 
 int main(int argc, char *argv[])
 {
@@ -28,11 +29,18 @@ int main(int argc, char *argv[])
     }
 
     QApplication a(argc, argv);
-    int id = QFontDatabase::addApplicationFont("fonts/TopazPlus_a500_v1.0.ttf");
-    QString family = QFontDatabase::applicationFontFamilies(id).at(0);
-    QFont amigaTopaz(family);
     MainWindow w;
-    w.setFont(amigaTopaz);
+    int id = QFontDatabase::addApplicationFont("fonts/TopazPlus_a500_v1.0.ttf");
+    if (id < 0)
+    {
+        qDebug() << __FUNCTION__ << "Missing font!";
+    }
+    else
+    {
+        QString family = QFontDatabase::applicationFontFamilies(id).at(0);
+        QFont amigaTopaz(family);
+        w.setFont(amigaTopaz);
+    }
     w.show();
     return a.exec();
 }
