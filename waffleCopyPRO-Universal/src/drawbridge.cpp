@@ -218,7 +218,6 @@ static void update_gui_writing(int32_t currentTrack, DiskSurface currentSide)
     } else {
         fprintf(stderr, "%s SideFile NOT Valid\n", __PRETTY_FUNCTION__);
     }
-    ::sync();
 }
 
 static void update_gui(int32_t currentTrack, DiskSurface currentSide, int32_t badSectorsFound)
@@ -233,7 +232,6 @@ static void update_gui(int32_t currentTrack, DiskSurface currentSide, int32_t ba
     } else {
         fprintf(stderr, "Disk2ADF statusFile NOT Valid\n");
     }
-    ::sync();
 }
 
 // Settings type
