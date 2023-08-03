@@ -27,6 +27,7 @@ MainWindow::MainWindow(QWidget *parent)
   preComp(true),
   eraseBeforeWrite(false),
   tracks82(false),
+  diskDriveHDensityMode(false),
   doRefresh(true),
   serialPort(1)
 {
@@ -43,6 +44,8 @@ MainWindow::MainWindow(QWidget *parent)
     // In Windows the first available COM port is 1.
     ui->serial->setMinimum(1);
     ui->portSelection->setText("WAFFLE DRIVE COM PORT");
+#else
+    ui->portSelection->setText("WAFFLE DRIVE /dev/ttyUSB PORT");
 #endif
     prepareFileSet();
     amigaBridge = new QtDrawBridge();
@@ -55,11 +58,13 @@ MainWindow::MainWindow(QWidget *parent)
     stext += empty;
     QString sctext;
     // The following QString should be localized
-    sctext = tr("The essential USB floppy drive solution for the real Amiga user."
-    "It allows you to write from ADF files, to read floppy disks as ADF, IPF and SCP format and, thanks to a specific version Amiga Emulator, like WinUAE (by Toni Wilen) or AmiBerry (by MiDWaN), "
-    "it works like a real Amiga disk drive allowing you to directly read and write your floppies through an emulator! "
-    "Sometime you may need a special USB cable (Y-Type) with the possibility of "
-    "double powering if the USB port of the PC is not powerful enough.");
+    sctext = tr(" --- WAFFLE COPY PROFESSIONAL --- The essential USB floppy drive solution for the real Amiga user."
+    "  It allows you to write from ADF, SCP and IPF files, and read floppy disks as ADF or SCP format and, thanks to "
+    "a specific version of an Amiga Emulator Software, like WinUAE (by Toni Wilen) or AmiBerry (by MiDWaN), it works "
+    "like a real Amiga disk drive allowing you to directly read and write your floppies through an emulator! "
+    "Sometime you may need a special USB cable (Y-Type) with the possibility of double powering if the USB port of the "
+    "PC is not powerful enough. Original Concept by Rob Smith, modified version by Gianluca Renzi, "
+    "Waffle is a product by RetroBit Lab and RetroGiovedi.");
     stext += sctext;
     stext += empty;
     ui->scrollText->setText(stext);
@@ -105,6 +110,7 @@ MainWindow::MainWindow(QWidget *parent)
     eraseBeforeWrite = settings.value("ERASEBEFOREWRITE", false).toBool();
     tracks82 = settings.value("TRACKS82", false).toBool();
     serialPort = settings.value("SERIALPORT", 1).toInt();
+    diskDriveHDensityMode = settings.value("HD", false).toBool();
 
     // Adapt the correct value to the ui
     ui->preCompSelection->setChecked(preComp);
@@ -236,6 +242,18 @@ void MainWindow::toggleNumTracks(void)
     settings.sync();
 }
 
+void MainWindow::toggleDiskDensityMode(void)
+{
+    diskDriveHDensityMode = !diskDriveHDensityMode;
+    if (diskDriveHDensityMode)
+        qDebug() << "USING HIGH DENSITY MODE";
+    else
+        qDebug() << "USING DOUBLE DENSITY MODE (DEFAULT)";
+    ui->hdModeSelection->setChecked(diskDriveHDensityMode);
+    settings.setValue("HD", diskDriveHDensityMode);
+    settings.sync();
+}
+
 void MainWindow::doneWork(void)
 {
     if (wSysTimer->isActive())
@@ -315,6 +333,7 @@ void MainWindow::doScroll(void)
         ui->cancelButton->setFont(this->font());
         ui->skipButton->setFont(this->font());
         ui->errorMessage->setFont(this->font());
+        ui->hdModeSelection->setFont(this->font());
         doRefresh = ! doRefresh;
     }
 }
@@ -408,6 +427,9 @@ void MainWindow::checkStartWrite(void)
     if (eraseBeforeWrite)
         command.append("ERASEBEFOREWRITE");
 
+    if (diskDriveHDensityMode)
+        command.append("HD");
+
     qDebug() << "PORT: " << port;
     qDebug() << "FILENAME: " << filename;
     qDebug() << "COMMAND: " << command;
@@ -479,6 +501,9 @@ void MainWindow::checkStartRead(void)
     command.append("READ");
     if (tracks82)
         command.append("TRACKSNUM82");
+
+    if (diskDriveHDensityMode)
+        command.append("HD");
 
     qDebug() << "PORT: " << port;
     qDebug() << "FILENAME: " << filename;
@@ -724,7 +749,7 @@ void MainWindow::manageQtDrawBridgeSignal(int sig)
         // Responses from commands
     case 10: ui->copyError->setText("Send Failed"); break;
     case 11: ui->copyError->setText("Send Parameter Failed"); break;
-    case 12: ui->copyError->setText("Read Response Failed"); break;
+    case 12: ui->copyError->setText("Read Response Failed or No Disk in Drive"); break;
     case 13: ui->copyError->setText("Write Timeout"); break;
     case 14: ui->copyError->setText("Serial Overrun"); break;
     case 15: ui->copyError->setText("Framing Error"); break;
@@ -745,7 +770,7 @@ void MainWindow::manageQtDrawBridgeSignal(int sig)
     case 25: ui->copyError->setText("USB Serial Bad"); break;
     case 26: ui->copyError->setText("CTS Failure"); break;
     case 27: ui->copyError->setText("Rewind Failure"); break;
-    case 28: ui->copyError->setText("Media Type Mismatch"); break;
+    case 28: ui->copyError->setText("Media Type Mismatch or No Disk in Drive"); break;
     default: ui->copyError->setText("Unknown Error"); break;
     }
 

@@ -86,7 +86,7 @@
    <widget class="QSpinBox" name="serial">
     <property name="geometry">
      <rect>
-      <x>220</x>
+      <x>280</x>
       <y>510</y>
       <width>45</width>
       <height>21</height>
@@ -267,9 +267,9 @@ background-color: rgb(61, 56, 70);</string>
    <widget class="QLabel" name="portSelection">
     <property name="geometry">
      <rect>
-      <x>50</x>
+      <x>40</x>
       <y>510</y>
-      <width>161</width>
+      <width>231</width>
       <height>20</height>
      </rect>
     </property>
@@ -489,7 +489,7 @@ background-color: rgb(61, 56, 70);</string>
     <property name="geometry">
      <rect>
       <x>850</x>
-      <y>510</y>
+      <y>515</y>
       <width>111</width>
       <height>17</height>
      </rect>
@@ -581,6 +581,22 @@ background-color: rgb(61, 56, 70);</string>
      </layout>
     </widget>
    </widget>
+   <widget class="QCheckBox" name="hdModeSelection">
+    <property name="geometry">
+     <rect>
+      <x>600</x>
+      <y>510</y>
+      <width>211</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string notr="true">HIGH DENSITY DISK SELECTION</string>
+    </property>
+   </widget>
    <zorder>busy</zorder>
    <zorder>background</zorder>
    <zorder>stopButton</zorder>
@@ -604,6 +620,7 @@ background-color: rgb(61, 56, 70);</string>
    <zorder>numTracks</zorder>
    <zorder>version</zorder>
    <zorder>errorDialog</zorder>
+   <zorder>hdModeSelection</zorder>
   </widget>
  </widget>
  <customwidgets>

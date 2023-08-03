@@ -49,6 +49,7 @@ private:
     bool preComp;
     bool eraseBeforeWrite;
     bool tracks82;
+    bool diskDriveHDensityMode;
     bool doRefresh;
     void startWrite(void);
     void startRead(void);
@@ -77,6 +78,7 @@ private slots:
     void togglePreComp(void);
     void toggleEraseBeforeWrite(void);
     void toggleNumTracks(void);
+    void toggleDiskDensityMode(void);
     void manageError(void);
     void wSysWatcher(void);
     void manageSerialPort(int p);
