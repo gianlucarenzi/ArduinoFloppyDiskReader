@@ -61,7 +61,7 @@ private:
     QString m_status;
     QString m_folder;
     QString m_error;
-    QSettings settings;
+    QSettings *settings;
     int serialPort;
     bool readyReadSHM;
 

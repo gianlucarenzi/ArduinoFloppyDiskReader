@@ -29,6 +29,7 @@ MainWindow::MainWindow(QWidget *parent)
   tracks82(false),
   diskDriveHDensityMode(false),
   doRefresh(true),
+  settings(new QSettings("./conf.ini", QSettings::IniFormat)),
   serialPort(1)
 {
     ui->setupUi(this);
@@ -106,11 +107,11 @@ MainWindow::MainWindow(QWidget *parent)
     qDebug() << "BEFORE TRACKS82" << tracks82;
     qDebug() << "BEFORE COM PORT" << serialPort;
 
-    preComp = settings.value("PRECOMP", true).toBool();
-    eraseBeforeWrite = settings.value("ERASEBEFOREWRITE", false).toBool();
-    tracks82 = settings.value("TRACKS82", false).toBool();
-    serialPort = settings.value("SERIALPORT", 1).toInt();
-    diskDriveHDensityMode = settings.value("HD", false).toBool();
+    preComp = settings->value("PRECOMP", true).toBool();
+    eraseBeforeWrite = settings->value("ERASEBEFOREWRITE", false).toBool();
+    tracks82 = settings->value("TRACKS82", false).toBool();
+    serialPort = settings->value("SERIALPORT", 1).toInt();
+    diskDriveHDensityMode = settings->value("HD", false).toBool();
 
     // Adapt the correct value to the ui
     ui->preCompSelection->setChecked(preComp);
@@ -207,8 +208,8 @@ void MainWindow::prepareFileSet(void)
 void MainWindow::manageSerialPort(int p)
 {
     qDebug() << "WRITE SETTINGS SERIAL" << p;
-    settings.setValue("SERIALPORT", p);
-    settings.sync();
+    settings->setValue("SERIALPORT", p);
+    settings->sync();
 }
 
 void MainWindow::togglePreComp(void)
@@ -217,8 +218,8 @@ void MainWindow::togglePreComp(void)
     qDebug() << "WRITE SETTINGS PRECOMP" << preComp;
     ui->preCompSelection->setChecked(preComp);
     // Store preComp into settings
-    settings.setValue("PRECOMP", preComp);
-    settings.sync();
+    settings->setValue("PRECOMP", preComp);
+    settings->sync();
 }
 
 void MainWindow::toggleEraseBeforeWrite(void)
@@ -226,8 +227,8 @@ void MainWindow::toggleEraseBeforeWrite(void)
     eraseBeforeWrite = !eraseBeforeWrite;
     qDebug() << "WRITE SETTINGS ERASE BEFORE WRITE" << eraseBeforeWrite;
     ui->eraseBeforeWrite->setChecked(eraseBeforeWrite);
-    settings.setValue("ERASEBEFOREWRITE", eraseBeforeWrite);
-    settings.sync();
+    settings->setValue("ERASEBEFOREWRITE", eraseBeforeWrite);
+    settings->sync();
 }
 
 void MainWindow::toggleNumTracks(void)
@@ -238,8 +239,8 @@ void MainWindow::toggleNumTracks(void)
     else
         qDebug() << "WRITE SETTINGS 80 Tracks";
     ui->numTracks->setChecked(tracks82);
-    settings.setValue("TRACKS82", tracks82);
-    settings.sync();
+    settings->setValue("TRACKS82", tracks82);
+    settings->sync();
 }
 
 void MainWindow::toggleDiskDensityMode(void)
@@ -250,8 +251,8 @@ void MainWindow::toggleDiskDensityMode(void)
     else
         qDebug() << "USING DOUBLE DENSITY MODE (DEFAULT)";
     ui->hdModeSelection->setChecked(diskDriveHDensityMode);
-    settings.setValue("HD", diskDriveHDensityMode);
-    settings.sync();
+    settings->setValue("HD", diskDriveHDensityMode);
+    settings->sync();
 }
 
 void MainWindow::doneWork(void)
@@ -494,7 +495,7 @@ void MainWindow::checkStartRead(void)
     int value = ui->serial->value();
     port += QString::number(value);
     qDebug() << "WRITE SETTINGS SERIALPORT " << value;
-    settings.setValue("SERIALPORT", value);
+    settings->setValue("SERIALPORT", value);
 
     QString filename = ui->setADFFileName->text();
     QStringList command;
