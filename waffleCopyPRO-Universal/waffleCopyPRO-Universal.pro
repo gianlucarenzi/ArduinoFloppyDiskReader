@@ -34,6 +34,7 @@ HEADERS += \
     lib/SerialIO.h \
     lib/ftdi.h \
     lib/pll.h \
+    lib/ibm_sectors.h \
     lib/capsapi/CapsAPI.h \
     lib/capsapi/CapsLib.h \
     lib/capsapi/CapsPlug.h \
@@ -52,6 +53,7 @@ SOURCES += \
     lib/SerialIO.cpp \
     lib/ftdi.cpp \
     lib/pll.cpp \
+    lib/ibm_sectors.cpp \
     lib/capsapi/CapsPlug.cpp \
     \
 
