@@ -1,6 +1,6 @@
 /* DrawBridge a.k.a ArduinoFloppyReader (and writer)
 *
-* Copyright (C) 2017-2022 Robert Smith (@RobSmithDev)
+* Copyright (C) 2017-2024 Robert Smith (@RobSmithDev)
 * https://amiga.robsmithdev.co.uk
 *
 * This sketch is free software; you can redistribute it and/or
@@ -74,7 +74,7 @@
                       Created ASM version for DrawBridge Plus! Classic gets a more accurate version but couldnt get the code stable
               v1.9.24 More Accurate PLL for both DrawBridge Classic and Plus!
               v1.9.25 Added support for tracks 82 and 83
-                      Fixed compiler warnings
+                      Tidied up the code to remove warnings
                       
 */    
 
@@ -3367,7 +3367,6 @@ void testDiskDensity() {
     PCMSK2 = bit(PCINT20);
 
     unsigned int overflows = 0;
-
     unsigned int HDPulses = 0;
     unsigned int DDPulses = 0;
     unsigned char counter;

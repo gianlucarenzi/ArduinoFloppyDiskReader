@@ -1,20 +1,16 @@
-/* ArduinoFloppyReaderWin aka DrawBridge Windows App
+/* DrawBridge - aka ArduinoFloppyReader (and writer)
 *
-* Copyright (C) 2017-2022 Robert Smith (@RobSmithDev)
+* Copyright (C) 2017-2024 Robert Smith (@RobSmithDev)
 * https://amiga.robsmithdev.co.uk
 *
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU Library General Public
-* License as published by the Free Software Foundation; either
-* version 3 of the License, or (at your option) any later version.
+* This file is multi-licensed under the terms of the Mozilla Public
+* License Version 2.0 as published by Mozilla Corporation and the
+* GNU General Public License, version 2 or later, as published by the
+* Free Software Foundation.
 *
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-* Library General Public License for more details.
+* MPL2: https://www.mozilla.org/en-US/MPL/2.0/
+* GPL2: https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
 *
-* You should have received a copy of the GNU Library General Public
-* License along with this program; if not see http://www.gnu.org/licenses/
 */
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -37,10 +33,15 @@
 #include "CCompleteDialog.h"
 #include <WinSock2.h>
 #include <wtsapi32.h>
+#include <WinDNS.h>
+#include "CCleanDialog.h"
+#pragma comment(lib, "Dnsapi.lib")
 
 #define EVENT_ID_RESCAN			((UINT_PTR)100)
 #define EVENT_ID_BLINK			((UINT_PTR)101)
 #define EVENT_RESCAN_INTERVAL	100
+
+
 
 static const WCHAR* footerStringNormal = L"DrawBridge %i.%i.%i, Created by Robert Smith (RobSmithDev) https://amiga.robsmithdev.co.uk";
 static const WCHAR* footerStringUpdate = L"DrawBridge %i.%i.%i, Update Available (V%i.%i.%i) at https://amiga.robsmithdev.co.uk";
@@ -82,6 +83,7 @@ BEGIN_MESSAGE_MAP(CArduinoFloppyReaderWinDlg, CDialogEx)
 	ON_STN_CLICKED(IDC_FOOTER, &CArduinoFloppyReaderWinDlg::OnClickedFooter)
 	ON_WM_CTLCOLOR()
 	ON_WM_SETCURSOR()
+	ON_BN_CLICKED(IDC_CLEANING, &CArduinoFloppyReaderWinDlg::OnBnClickedCleaning)
 END_MESSAGE_MAP()
 
 
@@ -173,8 +175,10 @@ BOOL CArduinoFloppyReaderWinDlg::OnInitDialog()
 	setComPort(buf);
 
 	m_mediadensity.AddString(L"Auto");
-	m_mediadensity.AddString(L"DD");
+	m_mediadensity.AddString(L"DD (MUST Cover Hole for HD Disks)");
 	m_mediadensity.AddString(L"HD");
+	int w = SendDlgItemMessageW(IDC_MEDIADENSITY, CB_GETDROPPEDWIDTH, 0, 0);
+	SendDlgItemMessageW(IDC_MEDIADENSITY, CB_SETDROPPEDWIDTH, w + 140, 0);
 	buf[0] = '\0';
 	len = 10;
 	RegQueryValueW(HKEY_CURRENT_USER, L"Software\\ArduinoFloppyReader\\disksize", buf, &len);
@@ -189,6 +193,7 @@ BOOL CArduinoFloppyReaderWinDlg::OnInitDialog()
 	m_pages[0]->ShowWindow(index == 0 ? TRUE : FALSE);
 	m_pages[1]->ShowWindow(index == 1 ? TRUE : FALSE);
 
+#ifdef COMPLETE_SOUNDEFFECT
 	HRSRC res = FindResource(NULL, MAKEINTRESOURCE(IDR_COMPLETE), L"WAVE");
 	m_sfx = nullptr;
 	if (res) {
@@ -205,7 +210,7 @@ BOOL CArduinoFloppyReaderWinDlg::OnInitDialog()
 			FreeResource(resource);
 		}
 	}
-
+#endif
 	DWORD dwStyle = GetWindowLong(m_footer.GetSafeHwnd(), GWL_STYLE);
 	SetWindowLong(m_footer.GetSafeHwnd(), GWL_STYLE, dwStyle | SS_NOTIFY);
 
@@ -213,19 +218,39 @@ BOOL CArduinoFloppyReaderWinDlg::OnInitDialog()
 		// Start winsock
 		WSADATA data;
 		WSAStartup(MAKEWORD(2, 0), &data);
-		// Fetch version from 'A' record in the DNS record
-		hostent* address = gethostbyname("drawbridge-amiga.robsmithdev.co.uk");
-		if ((address) && (address->h_addrtype == AF_INET)) {
-			if (address->h_addr_list[0] != 0) {
-				in_addr add = *((in_addr*)address->h_addr_list[0]);
 
+		DNS_RECORD* dnsRecord;
+		std::wstring versionString;
+
+		// Look up TXT record 
+		DNS_STATUS error = DnsQuery(L"drawbridge-amiga.robsmithdev.co.uk", DNS_TYPE_TEXT, DNS_QUERY_BYPASS_CACHE, NULL, &dnsRecord, NULL);
+		if (!error) {
+			const DNS_RECORD* record = dnsRecord;
+			while (record) {
+				if (record->wType == DNS_TYPE_TEXT) {
+					const DNS_TXT_DATAW* pData = &record->Data.TXT;
+					for (DWORD string = 0; string < pData->dwStringCount; string++) {
+						const std::wstring text = pData->pStringArray[string];
+						if ((text.length() >= 9) && (text.substr(0, 2) == L"v=")) versionString = text.substr(2);
+					}
+				}
+				record = record->pNext;
+			}
+			DnsRecordListFree(dnsRecord, DnsFreeRecordList);  //DnsFreeRecordListDeep
+		}
+
+		if (!versionString.empty()) {
+			// A little hacky to convert a.b.c.d into an array
+			sockaddr_in tmp;
+			INT len = sizeof(tmp);
+			if (WSAStringToAddress((wchar_t*)versionString.c_str(), AF_INET, NULL, (sockaddr*)&tmp, &len) == 0) {
+				const in_addr add = tmp.sin_addr;
+				unsigned int newmajor, newminor, newrev;
+				newmajor = add.S_un.S_un_b.s_b1;
+				newminor = add.S_un.S_un_b.s_b2;
+				newrev = add.S_un.S_un_b.s_b3;
 				unsigned int major, minor, rev;
 				if (CAboutDlg::GetProductVersion(major, minor, rev)) {
-					unsigned int newmajor, newminor, newrev;
-					newmajor = add.S_un.S_un_b.s_b1;
-					newminor = add.S_un.S_un_b.s_b2;
-					newrev  = add.S_un.S_un_b.s_b3;
-
 					if ((newmajor > major) ||
 						((newmajor == major) && (newminor > minor)) ||
 						((newmajor == major) && (newminor == minor) && (newrev > rev))) {
@@ -239,7 +264,7 @@ BOOL CArduinoFloppyReaderWinDlg::OnInitDialog()
 				}
 			}
 		}
-		});
+	});
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -264,7 +289,9 @@ void CArduinoFloppyReaderWinDlg::setComPort(const std::wstring& comport) {
 
 // Free
 CArduinoFloppyReaderWinDlg::~CArduinoFloppyReaderWinDlg() {
+#ifdef COMPLETE_SOUNDEFFECT
 	if (m_sfx) free(m_sfx);
+#endif
 }
 
 // On Sys command
@@ -435,25 +462,52 @@ void CArduinoFloppyReaderWinDlg::runThreadRead(CRunningDlg* dlg) {
 	std::wstring msg = L"Reading ";
 	if (hdMode) msg += L"HD "; else msg += L"DD ";
 	msg += L"disk and saving to ";
-	msg +=(m_readPage->getImageType() == CReadFromDiskPage::ImageType::itSCP) ? L"SCP" : L"ADF";
+	switch (m_readPage->getImageType()) {
+	case ImageType::itSCP: msg += L"SCP"; break;
+	case ImageType::itADF: msg += L"ADF"; break;
+	case ImageType::itIBM: msg += L"IMA"; break;
+	case ImageType::itST: msg += L"ST"; break;
+	}
 	msg += L" image file...";
 
 	dlg->setStatus(msg);
 
+	
 
+	switch (m_readPage->getImageType()) {
+	case ImageType::itADF: readerResult = writer.DiskToADF(m_readPage->getFilename(), hdMode, lastTrack, callback); break;
+	case ImageType::itSCP:
 #ifdef _DEBUG
-	readerResult = (m_readPage->getImageType() == CReadFromDiskPage::ImageType::itSCP) ? writer.DiskToSCP(m_readPage->getFilename(), hdMode, lastTrack, 2, callback, fluxMode) : writer.DiskToADF(m_readPage->getFilename(), hdMode, lastTrack, callback);
+		readerResult = writer.DiskToSCP(m_readPage->getFilename(), hdMode, lastTrack, 2, callback, fluxMode);
 #else
-	readerResult = (m_readPage->getImageType() == CReadFromDiskPage::ImageType::itSCP) ? writer.DiskToSCP(m_readPage->getFilename(), hdMode, lastTrack, 3, callback, fluxMode) : writer.DiskToADF(m_readPage->getFilename(), hdMode, lastTrack, callback);
-#endif
-
+		readerResult = writer.DiskToSCP(m_readPage->getFilename(), hdMode, lastTrack, 3, callback, fluxMode);
+#endif		
+		break;
+	case ImageType::itIBM:
+	case ImageType::itST:
+		readerResult = writer.diskToIBMST(m_readPage->getFilename(), hdMode, callback);
+		break;
+	}
 	std::string lastError = writer.getLastError();
 	writer.closeDevice();
+
+#ifdef COMPLETE_SOUNDEFFECT
+	void* sfx = m_sfx;
+#else
+	void* sfx = nullptr;
+#endif
 
 	// Handle the result
 	switch (readerResult) {
 	case ArduinoFloppyReader::ADFResult::adfrComplete: {
-		CCompleteDialog dlg(m_sfx, (m_readPage->getImageType() == CReadFromDiskPage::ImageType::itSCP) ? CCompleteDialog::CompleteMessage::cmReadOKSCP : CCompleteDialog::CompleteMessage::cmReadOK);
+		CCompleteDialog::CompleteMessage msg;
+		switch (m_readPage->getImageType()) {
+		case ImageType::itSCP:
+			msg = CCompleteDialog::CompleteMessage::cmReadOKSCP; break;
+			break;
+		default: msg = CCompleteDialog::CompleteMessage::cmReadOK; break;
+		}
+		CCompleteDialog dlg(sfx,msg );
 		dlg.DoModal();
 		return;
 	}
@@ -463,7 +517,7 @@ void CArduinoFloppyReaderWinDlg::runThreadRead(CRunningDlg* dlg) {
 	case ArduinoFloppyReader::ADFResult::adfrFileIOError:				MessageBox(L"An error occured writing to the specified file.", L"Output File Error", MB_OK | MB_ICONEXCLAMATION); 
 	case ArduinoFloppyReader::ADFResult::adfrFirmwareTooOld:			MessageBox(L"This requires firmware V1.8 or newer.", L"Firmware out of date", MB_OK | MB_ICONEXCLAMATION);
 	case ArduinoFloppyReader::ADFResult::adfrCompletedWithErrors: {
-		CCompleteDialog dlg(m_sfx, CCompleteDialog::CompleteMessage::cmReadErrors);
+		CCompleteDialog dlg(sfx, CCompleteDialog::CompleteMessage::cmReadErrors);
 		dlg.DoModal();
 		return;
 	}
@@ -495,9 +549,6 @@ void CArduinoFloppyReaderWinDlg::runThreadWrite(CRunningDlg* dlg) {
 		return;
 	}
 
-	bool isSCPFile = m_writePage->isSCPFile();
-	bool isIPFFile = m_writePage->isIPFFile();
-
 	// Analysis was complete and found some data.  Run the reader	
 	const unsigned int lastTrack = 80;
 	dlg->resetProgress(lastTrack * 2);
@@ -507,18 +558,19 @@ void CArduinoFloppyReaderWinDlg::runThreadWrite(CRunningDlg* dlg) {
 	// Detect disk speed
 	const ArduinoFloppyReader::FirmwareVersion v = writer.getFirwareVersion();
 
-	if ((isSCPFile) && (m_mediadensity.GetCurSel() == 2)) {
+	if ((m_writePage->fileType() == ImageType::itSCP) && (m_mediadensity.GetCurSel() == 2)) {
 		MessageBox(L"SCP writing is only supported for DD media.", L"Error", MB_OK | MB_ICONEXCLAMATION);
 		return;
 	}
 
-	if ((isIPFFile) && (m_mediadensity.GetCurSel() == 2)) {
+	if ((m_writePage->fileType() == ImageType::itIPF) && (m_mediadensity.GetCurSel() == 2)) {
 		MessageBox(L"IPF writing is only supported for DD media.", L"Error", MB_OK | MB_ICONEXCLAMATION);
 		return;
 	}
 
+	const bool notFluxFile = m_writePage->fileType() < ImageType::itSCP;
 	if (m_mediadensity.GetCurSel() == 0) {
-		if ((!isSCPFile) && (!isIPFFile)) {
+		if (notFluxFile) {
 			if (((v.major == 1) && (v.minor >= 9)) || (v.major > 1)) {
 				dlg->setStatus(L"Checking disk density...");
 				if (writer.GuessDiskDensity(hdMode) != ArduinoFloppyReader::ADFResult::adfrComplete) {
@@ -529,21 +581,25 @@ void CArduinoFloppyReaderWinDlg::runThreadWrite(CRunningDlg* dlg) {
 		}
 	}
 	else hdMode = m_mediadensity.GetCurSel() == 2;
+	std::wstring msg = L"Writing ";
+	switch (m_writePage->fileType()) {
+	case ImageType::itADF:msg = L"ADF"; break;
+	case ImageType::itSCP:msg = L"SCP"; break;
+	case ImageType::itST:msg = L"ST"; break;
+	case ImageType::itIBM:msg = L"IMA"; break;
+	case ImageType::itIPF:msg = L"IPF"; break;
+	}
+	msg += L" file to ";
+	if (notFluxFile) 
+		if (hdMode) msg += L"HD "; else msg += L"DD ";
+	msg += L"disk...";
 
-	if (isIPFFile) {
-		dlg->setStatus(L"Writing IPF file to disk...");
-	}
-	else
-	if (isSCPFile) {
-		dlg->setStatus(L"Writing SCP file to disk..."); 
-	}
-	else {
-		if (hdMode) dlg->setStatus(L"Writing ADF file to HD disk..."); else dlg->setStatus(L"Writing ADF file to DD disk...");
-	}
+	dlg->setStatus(msg); 
 
 	ArduinoFloppyReader::ADFResult readerResult;
 
-	if (isIPFFile) {
+	switch (m_writePage->fileType()) {
+	case ImageType::itIPF: {
 		readerResult = writer.IPFToDisk(m_writePage->getFilename(), m_writePage->isErase(),
 			[this, dlg](const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, const bool isVerifyError, ArduinoFloppyReader::CallbackOperation operation) -> ArduinoFloppyReader::WriteResponse {
 
@@ -560,9 +616,10 @@ void CArduinoFloppyReaderWinDlg::runThreadWrite(CRunningDlg* dlg) {
 				// Just continue
 				return ArduinoFloppyReader::WriteResponse::wrContinue;
 			});
-	} else
-	if (isSCPFile) {
-		readerResult = writer.SCPToDisk( m_writePage->getFilename(), m_writePage->isErase(),
+		}
+		break;
+	case ImageType::itSCP: {
+		readerResult = writer.SCPToDisk(m_writePage->getFilename(), m_writePage->isErase(),
 			[this, dlg](const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, const bool isVerifyError, ArduinoFloppyReader::CallbackOperation operation) -> ArduinoFloppyReader::WriteResponse {
 
 				if (dlg->wasAbortPressed()) return ArduinoFloppyReader::WriteResponse::wrAbort;
@@ -578,8 +635,9 @@ void CArduinoFloppyReaderWinDlg::runThreadWrite(CRunningDlg* dlg) {
 				// Just continue
 				return ArduinoFloppyReader::WriteResponse::wrContinue;
 			});
-	}
-	else {
+		}
+		break;
+	case ImageType::itADF: {
 		readerResult = writer.ADFToDisk(m_writePage->getFilename(), hdMode, m_writePage->isVerify(), m_writePage->isPrecomp(), m_writePage->isErase(), m_writePage->isIndex(),
 			[this, dlg](const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, const bool isVerifyError, ArduinoFloppyReader::CallbackOperation operation) -> ArduinoFloppyReader::WriteResponse {
 
@@ -604,34 +662,72 @@ void CArduinoFloppyReaderWinDlg::runThreadWrite(CRunningDlg* dlg) {
 				// Just continue
 				return ArduinoFloppyReader::WriteResponse::wrContinue;
 			});
+		}
+		break;
+	case ImageType::itIBM:
+	case ImageType::itST: {
+		readerResult = writer.sectorFileToDisk(m_writePage->getFilename(), hdMode, m_writePage->isVerify(), m_writePage->isPrecomp(), m_writePage->isErase(), m_writePage->fileType()== ImageType::itST,
+			[this, dlg](const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, const bool isVerifyError, ArduinoFloppyReader::CallbackOperation operation) -> ArduinoFloppyReader::WriteResponse {
+
+				if (dlg->wasAbortPressed()) return ArduinoFloppyReader::WriteResponse::wrAbort;
+
+				dlg->setOperation(operation);
+
+				CString str;
+				str.Format(L"%i", currentTrack);
+				dlg->setSide(currentSide);
+				dlg->setCylinder(currentTrack);
+				dlg->setProgress((currentTrack * 2) + ((currentSide == ArduinoFloppyReader::DiskSurface::dsUpper) ? 1 : 0));
+
+				if (isVerifyError) {
+					switch (MessageBox(L"Verify error writing track.", L"Disk Write Error", MB_ABORTRETRYIGNORE)) {
+					case IDABORT: return ArduinoFloppyReader::WriteResponse::wrAbort;
+					case IDRETRY: return ArduinoFloppyReader::WriteResponse::wrRetry;
+					case IDIGNORE: return ArduinoFloppyReader::WriteResponse::wrSkipBadChecksums;
+					}
+				}
+
+				// Just continue
+				return ArduinoFloppyReader::WriteResponse::wrContinue;
+			});
+		}
+		break;
 	}
 
 	std::string lastError = writer.getLastError();
 	writer.closeDevice();
 
+#ifdef COMPLETE_SOUNDEFFECT
+	void* sfx = m_sfx;
+#else
+	void* sfx = nullptr;
+#endif
+
 	switch (readerResult) {
 	case ArduinoFloppyReader::ADFResult::adfrBadSCPFile:			MessageBox(L"Unsupported or incompatiable SCP file", L"File Error", MB_OK | MB_ICONEXCLAMATION); return;
 	case ArduinoFloppyReader::ADFResult::adfrComplete:					
 	{
-		CCompleteDialog dlg(m_sfx, (m_writePage->isVerify()) ? CCompleteDialog::CompleteMessage::cmWroteOK : CCompleteDialog::CompleteMessage::cmWroteNoVerify);
+		CCompleteDialog dlg(sfx, (m_writePage->isVerify()) ? CCompleteDialog::CompleteMessage::cmWroteOK : CCompleteDialog::CompleteMessage::cmWroteNoVerify);
 		dlg.DoModal();
 		return;
 	}
 	case ArduinoFloppyReader::ADFResult::adfrCompletedWithErrors: {
-		CCompleteDialog dlg(m_sfx, CCompleteDialog::CompleteMessage::cmWroteWithErrors);
+		CCompleteDialog dlg(sfx, CCompleteDialog::CompleteMessage::cmWroteWithErrors);
 		dlg.DoModal();
 		return;
 	}
 	case ArduinoFloppyReader::ADFResult::adfrAborted:					return;
 	case ArduinoFloppyReader::ADFResult::adfrFirmwareTooOld:            MessageBox(L"Cannot write this file, you need to upgrade the firmware first.", L"File Error", MB_OK | MB_ICONEXCLAMATION); return;
 	case ArduinoFloppyReader::ADFResult::adfrExtendedADFNotSupported:	MessageBox(L"Extended ADF files are not currently supported.", L"ADF File Error", MB_OK | MB_ICONEXCLAMATION); return;
-	case ArduinoFloppyReader::ADFResult::adfrMediaSizeMismatch:			if (isSCPFile) MessageBox(L"SCP writing is only supported for DD disks and images.", L"SCP File Error", MB_OK | MB_ICONEXCLAMATION); else
+	case ArduinoFloppyReader::ADFResult::adfrMediaSizeMismatch:			if (m_writePage->fileType() == ImageType::itSCP) 
+																			MessageBox(L"SCP writing is only supported for DD disks and images.", L"SCP File Error", MB_OK | MB_ICONEXCLAMATION); 
+																		else
 																		if (m_mediadensity.GetCurSel()) {
-																			if (hdMode) MessageBox(L"You have forced the disk to be HD, but a DD ADF file supplied.", L"ADF File Mismatch", MB_OK | MB_ICONEXCLAMATION); else
-																				MessageBox(L"You have forced the disk to be DD, but an HD ADF file supplied.", L"ADF File Mismatch", MB_OK | MB_ICONEXCLAMATION);
+																			if (hdMode) MessageBox(L"You have forced the disk to be HD, but a DD file supplied.", L"File Mismatch", MB_OK | MB_ICONEXCLAMATION); else
+																				MessageBox(L"You have forced the disk to be DD, but an HD file supplied.", L"File Mismatch", MB_OK | MB_ICONEXCLAMATION);
 																		} else {
-																			if (hdMode) MessageBox(L"Disk in drive was detected as HD, but a DD ADF file supplied.", L"ADF File Mismatch", MB_OK | MB_ICONEXCLAMATION); else
-																				MessageBox(L"Disk in drive was detected as DD, but an HD ADF file supplied.", L"ADF File Mismatch", MB_OK | MB_ICONEXCLAMATION);
+																			if (hdMode) MessageBox(L"Disk in drive was detected as HD, but a DD file supplied.", L"File Mismatch", MB_OK | MB_ICONEXCLAMATION); else
+																				MessageBox(L"Disk in drive was detected as DD, but an HD file supplied.", L"File Mismatch", MB_OK | MB_ICONEXCLAMATION);
 																		}
 																		return;
 	case ArduinoFloppyReader::ADFResult::adfrIPFLibraryNotAvailable:	MessageBox(L"IPF CAPSImg from Software Preservation Society Library is Missing or there was an error with the file", L"IPF Error", MB_OK | MB_ICONEXCLAMATION); break;
@@ -644,7 +740,7 @@ void CArduinoFloppyReaderWinDlg::runThreadWrite(CRunningDlg* dlg) {
 	}
 	case ArduinoFloppyReader::ADFResult::adfrDiskWriteProtected:		MessageBox(L"Unable to write to the disk.  Disk is write protected.", L"Write Protection Error", MB_OK | MB_ICONEXCLAMATION); return;
 	default: {
-		std::wstring tmp = std::wstring(isSCPFile ? L"SCP" : L"ADF") + std::wstring(L" writing aborted with unknown error (");
+		std::wstring tmp = std::wstring(L"File writing aborted with unknown error (");
 		tmp += std::to_wstring((int)readerResult) + L"," + std::to_wstring((int)writer.getLastErrorCode()) + L")\r\n\r\n";
 		tmp += L"If this happens again please post a screen shot of this dialog on Discord.";
 		MessageBox(tmp.c_str(), L"Write Error", MB_OK | MB_ICONEXCLAMATION); return;
@@ -655,7 +751,13 @@ void CArduinoFloppyReaderWinDlg::runThreadWrite(CRunningDlg* dlg) {
 
 // Show ending message
 void CArduinoFloppyReaderWinDlg::showCompletedDialog(const CCompleteDialog::CompleteMessage message) {
-	CCompleteDialog dlg(m_sfx, message);
+#ifdef COMPLETE_SOUNDEFFECT
+	void* sfx = m_sfx;
+#else
+	void* sfx = nullptr;
+#endif
+
+	CCompleteDialog dlg(sfx, message);
 	dlg.DoModal();
 }
 
@@ -687,7 +789,17 @@ void CArduinoFloppyReaderWinDlg::ReadFromDisk()
 	if (comPort.length() < 1) return;
 
 	SetCursor(m_crHourGlass);
-	CRunningDlg dlg(m_readPage->getImageType() == CReadFromDiskPage::ImageType::itADF ? L"Read Disk to ADF" : L"Read Disk to SCP", [this](CRunningDlg* dlg) {
+
+	std::wstring title = L"Read Disk to ";
+	switch (m_readPage->getImageType()) {
+	case ImageType::itADF: title += L"ADF"; break;
+	case ImageType::itSCP: title += L"SCP"; break;
+	case ImageType::itIBM: title += L"IMA"; break;
+	case ImageType::itST: title += L"ST"; break;
+	default: title += L" File"; break;
+	}
+
+	CRunningDlg dlg(title, [this](CRunningDlg* dlg) {
 		this->runThreadRead(dlg);
 	}, this);
 
@@ -705,7 +817,7 @@ std::wstring CArduinoFloppyReaderWinDlg::checkForComPort() {
 	return comPort;
 }
 
-// ADF/SCP to Disk write button callback
+// Disk write button callback
 void CArduinoFloppyReaderWinDlg::WriteToDisk()
 {
 	saveComPort();
@@ -713,11 +825,17 @@ void CArduinoFloppyReaderWinDlg::WriteToDisk()
 	if (comPort.length() < 1) return;
 
 	SetCursor(m_crHourGlass);
-	std::wstring title;
+	std::wstring title = L"Write ";
 
-	if (m_writePage->isSCPFile()) title = L"Write SCP to Disk"; else
-		if (m_writePage->isIPFFile()) title = L"Write IPF to Disk"; else title = L"Write ADF to Disk";
-
+	switch (m_writePage->fileType()) {
+	case ImageType::itADF: title += L"ADF"; break;
+	case ImageType::itSCP: title += L"SCP"; break;
+	case ImageType::itIBM: title += L"IMA"; break;
+	case ImageType::itST: title += L"ST"; break;
+	case ImageType::itIPF: title += L"IPF"; break;
+	default: title += L"File";
+	}
+	title += L" to Disk";
 	CRunningDlg dlg(title, [this](CRunningDlg* dlg) {
 		this->runThreadWrite(dlg);
 	}, this);
@@ -887,4 +1005,15 @@ BOOL CArduinoFloppyReaderWinDlg::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT mes
 	}
 
 	return CDialogEx::OnSetCursor(pWnd, nHitTest, message);
+}
+
+
+void CArduinoFloppyReaderWinDlg::OnBnClickedCleaning()
+{
+	saveComPort();
+	std::wstring comPort = checkForComPort();
+	if (comPort.length() < 1) return;
+
+	CCleanDialog dlgClean(comPort);
+	dlgClean.DoModal();
 }

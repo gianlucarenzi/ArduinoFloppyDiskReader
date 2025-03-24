@@ -1,20 +1,16 @@
-/* ArduinoFloppyReaderWin
+/* DrawBridge - aka ArduinoFloppyReader (and writer)
 *
-* Copyright (C) 2017-2022 Robert Smith (@RobSmithDev)
+* Copyright (C) 2017-2024 Robert Smith (@RobSmithDev)
 * https://amiga.robsmithdev.co.uk
 *
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU Library General Public
-* License as published by the Free Software Foundation; either
-* version 3 of the License, or (at your option) any later version.
+* This file is multi-licensed under the terms of the Mozilla Public
+* License Version 2.0 as published by Mozilla Corporation and the
+* GNU General Public License, version 2 or later, as published by the
+* Free Software Foundation.
 *
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-* Library General Public License for more details.
+* MPL2: https://www.mozilla.org/en-US/MPL/2.0/
+* GPL2: https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
 *
-* You should have received a copy of the GNU Library General Public
-* License along with this program; if not see http://www.gnu.org/licenses/
 */
 
 
@@ -120,13 +116,13 @@ bool isSCPFile = false;
 void CWriteToDiskPage::OnBnClickedBrowse2()
 {
 	// szFilters is a text string that includes two file name filters:
-	TCHAR szFilters[] = _T("Supported Files (*.adf, *.scp, *.ipf)|*.adf;*.scp;*.ipf|Amiga Disk Files (*.adf)|*.adf|Supercard Pro Files (*.scp)|*.adf|Amiga Disk Files (*.ipf)|*.ipf|All Files (*.*)|*.*||");
+	TCHAR szFilters[] = _T("Supported Files (*.adf, *.scp, *.ipf, *.ima, *.img, *.st)|*.adf;*.scp;*.ipf;*.ima;*.img;*.st|Amiga Disk Files (*.adf)|*.adf|IBM PC Disk Files (*.ima, *.img)|*.ima;*.img|Atari ST Disk Files (*.st)|*.st|Supercard Pro Files (*.scp)|*.adf|Amiga Disk Files (*.ipf)|*.ipf|All Files (*.*)|*.*||");
 
 	// Create an Save dialog
 	CString oldFileName;
 	m_filename.GetWindowText(oldFileName);
 
-	CFileDialog fileDlg(TRUE, _T("adf"), oldFileName, OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NODEREFERENCELINKS | OFN_ENABLESIZING | OFN_EXPLORER, szFilters, this);
+	CFileDialog fileDlg(TRUE, _T(""), oldFileName, OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NODEREFERENCELINKS | OFN_ENABLESIZING | OFN_EXPLORER, szFilters, this);
 	fileDlg.m_ofn.lpstrTitle = L"Select a Disk Image File to Write To Disk";
 
 	// Display it
@@ -145,35 +141,27 @@ void CWriteToDiskPage::OnBnClickedStartstop2()
 	if (m_onStart) m_onStart();
 }
 
-const bool CWriteToDiskPage::isIPFFile() const {
-	bool scpFIle = false;
+const ImageType CWriteToDiskPage::fileType() const {
 	std::wstring fleName = getFilename();
 	for (wchar_t& c : fleName) c = toupper(c);
 	const wchar_t* extension = wcsrchr(fleName.c_str(), L'.');
 	if (extension) {
 		extension++;
-		scpFIle = wcscmp(extension, L"IPF") == 0;
+		if (wcscmp(extension, L"IPF") == 0) return ImageType::itIPF;
+		if (wcscmp(extension, L"SCP") == 0) return ImageType::itSCP;
+		if (wcscmp(extension, L"ST") == 0) return ImageType::itST;
+		if (wcscmp(extension, L"IMA") == 0) return ImageType::itIBM;
+		if (wcscmp(extension, L"IMG") == 0) return ImageType::itIBM;
 	}
-	return scpFIle;
+	return ImageType::itADF;
 }
-
-const bool CWriteToDiskPage::isSCPFile() const {
-	bool scpFIle = false;
-	std::wstring fleName = getFilename();
-	for (wchar_t& c : fleName) c = toupper(c);
-	const wchar_t* extension = wcsrchr(fleName.c_str(), L'.');
-	if (extension) {
-		extension++;
-		scpFIle = wcscmp(extension, L"SCP") == 0;
-	}
-	return scpFIle;
-}
-
 
 void CWriteToDiskPage::OnEnChangeFilename()
 {
-	const bool notADF = isSCPFile() || isIPFFile();
-	m_verify.EnableWindow(!notADF);
-	m_precomp.EnableWindow(!notADF);
-	m_index.EnableWindow(!notADF);
+	ImageType t = fileType();
+	bool isFlux = (t == ImageType::itIPF) || (t == ImageType::itSCP);
+	
+	m_verify.EnableWindow(!isFlux);
+	m_precomp.EnableWindow(!isFlux);
+	m_index.EnableWindow(t == ImageType::itADF);
 }

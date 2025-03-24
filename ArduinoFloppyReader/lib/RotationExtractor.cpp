@@ -1,20 +1,19 @@
 /* ArduinoFloppyReader (and writer) - Rotation Extractor
 *
-* Copyright (C) 2017-2022 Robert Smith (@RobSmithDev)
+* Copyright (C) 2021-2024 Robert Smith (@RobSmithDev)
 * https://amiga.robsmithdev.co.uk
 *
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU Library General Public
-* License as published by the Free Software Foundation; either
-* version 3 of the License, or (at your option) any later version.
+* This file is multi-licensed under the terms of the Mozilla Public
+* License Version 2.0 as published by Mozilla Corporation and the
+* GNU General Public License, version 2 or later, as published by the
+* Free Software Foundation.
 *
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-* Library General Public License for more details.
+* MPL2: https://www.mozilla.org/en-US/MPL/2.0/
+* GPL2: https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
 *
-* You should have received a copy of the GNU Library General Public
-* License along with this library; if not, see http://www.gnu.org/licenses/
+* This file, along with currently active and supported interfaces
+* are maintained from by GitHub repo at
+* https://github.com/RobSmithDev/FloppyDriveBridge
 */
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -31,6 +30,7 @@
 // This isn't 100% perfect but does seem to work.
 
 #include "RotationExtractor.h"
+#include <cstring>
 
 RotationExtractor::RotationExtractor() : m_sequences(new MFMSequenceInfo[MAX_REVOLUTION_SEQUENCES]),
 										 m_initialSequences(
@@ -109,7 +109,7 @@ uint32_t RotationExtractor::getOverlapPosition(uint32_t& numberOfBadMatches) con
 uint32_t RotationExtractor::getTrueIndexPosition(const uint32_t nextRevolutionStart, const uint32_t startingPoint)
 {
 	// Where to start from
-	const uint32_t firstPoint = startingPoint == INDEX_NOT_FOUND ? m_sequenceIndex : startingPoint;
+	const uint32_t firstPoint = startingPoint == INDEX_NOT_FOUND ? (m_sequenceIndex == INDEX_NOT_FOUND ? 0 : m_sequenceIndex) : startingPoint;
 
 	// First. Do we actually have a 'index marker' buffer?
 	if (!m_indexSequence.valid) {
@@ -506,4 +506,75 @@ bool RotationExtractor::extractRotation(MFMSample* output, uint32_t& outputBits,
 
 	// and success!
 	return true;
+}
+
+
+// Reset this back to "empty"
+void LinearExtractor::reset(bool isHD) {
+	m_totalTime = 0;
+	m_currentPosition = m_outputBuffer;
+	m_outputStreamPos = 0;
+	m_outputStreamBit = 0;
+}
+
+// Set where the data should be saved to
+void LinearExtractor::setOutputBuffer(void* outputBuffer, const uint32_t bufferSizeInBytes) {
+	m_outputBuffer = (uint8_t*)outputBuffer;
+	reset(false);
+	m_totalSize = bufferSizeInBytes;
+}
+
+// Write a 0 or 1 to the bit stream
+inline void LinearExtractor::writeLinearBit(const bool value) {
+	if (!m_currentPosition) return;
+	(*m_currentPosition) <<= 1;
+	if (value) *m_currentPosition |= 1; 
+	m_outputStreamBit++;
+	if (m_outputStreamBit >= 8) {
+		m_outputStreamBit = 0;
+		m_outputStreamPos++;
+		if (m_outputStreamPos >= m_totalSize)
+			m_currentPosition = nullptr;
+		else m_currentPosition++;
+	}
+}
+
+// Copies the supplied buffer directly in
+void LinearExtractor::copyToBuffer(void* data, const uint32_t dataSize) {
+	uint32_t amountToCopy = dataSize;
+	if (amountToCopy > m_totalSize) amountToCopy = m_totalSize;
+	if (!m_outputBuffer) return;
+	if (!data) return;
+#ifdef _WIN32
+	memcpy_s(m_outputBuffer, m_totalSize, data, amountToCopy);
+#else
+	memcpy(m_outputBuffer, data, amountToCopy);
+#endif
+	m_outputStreamPos = dataSize;
+	m_outputStreamBit = 0;
+	m_currentPosition = nullptr;
+}
+
+
+// Submit a single sequence to the list - abstract function
+void LinearExtractor::submitSequence(const MFMSequenceInfo& sequence, bool isIndex, bool discardEarlySamples) {
+	if (!m_currentPosition) return;
+
+	m_totalTime += sequence.timeNS;
+
+	// And write the output stream
+	uint32_t bitsToWrite = (uint32_t)sequence.mfm;
+	if (bitsToWrite > 3) bitsToWrite = 3;
+	for (uint32_t s = 0; s < bitsToWrite; s++) writeLinearBit(false);
+	if (sequence.mfm != MFMSequence::mfm000) writeLinearBit(true);
+}
+
+// Finalise the buffer (shifting the bits for the current byte into place) and returns the total number of bits received
+uint32_t LinearExtractor::finaliseAndGetNumBits() {
+	// Shift the remaining bits into place
+	if (m_outputStreamBit && m_currentPosition) {
+		(*m_currentPosition) <<= 8 - m_outputStreamBit;
+		m_currentPosition = nullptr;
+	}
+	return (m_outputStreamPos * 8) + m_outputStreamBit;
 }
