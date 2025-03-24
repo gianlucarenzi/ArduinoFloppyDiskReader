@@ -1,3 +1,4 @@
+/ArduinoFloppyReader/lib.backup
 /ArduinoFloppyReader/lib/LinuxCompat.o
 /ArduinoFloppyReader/lib/LinuxCompat.d
 /ArduinoFloppyReader/lib/ArduinoInterface.o
@@ -43,6 +44,7 @@ CVS
 /waffleCopyPRO-Universal/CapsPlug.o
 /waffleCopyPRO-Universal/ftdi.o
 /waffleCopyPRO-Universal/pll.o
+/waffleCopyPRO-Universal/ibm_sectors.o
 /waffleCopyPRO-Universal/.qtc_clangd/
 /waffleCopyPRO-Universal/windows/
 /waffleCopyPRO-Universal/Makefile.Debug
