@@ -1,20 +1,19 @@
 /* Dynamic PLL for *UAE
 *
-* Copyright (C) 2021-2022 Robert Smith (@RobSmithDev)
+* Copyright (C) 2021-2024 Robert Smith (@RobSmithDev)
 * https://amiga.robsmithdev.co.uk
 *
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU Library General Public
-* License as published by the Free Software Foundation; either
-* version 3 of the License, or (at your option) any later version.
+* This file is multi-licensed under the terms of the Mozilla Public
+* License Version 2.0 as published by Mozilla Corporation and the
+* GNU General Public License, version 2 or later, as published by the
+* Free Software Foundation.
 *
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-* Library General Public License for more details.
+* MPL2: https://www.mozilla.org/en-US/MPL/2.0/
+* GPL2: https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
 *
-* You should have received a copy of the GNU Library General Public
-* License along with this library; if not, see http://www.gnu.org/licenses/
+* This file, along with currently active and supported interfaces
+* are maintained from by GitHub repo at
+* https://github.com/RobSmithDev/FloppyDriveBridge
 */
 
 /*
@@ -47,9 +46,6 @@ BridgePLL::BridgePLL(bool enabled, bool enableReplay) : m_enabled(enabled)
 , m_useReplay(enableReplay)
 #endif 
 {
-#ifndef ENABLE_REPLY
-    (void) enableReplay;
-#endif
     reset();
 }
 
@@ -111,12 +107,6 @@ void BridgePLL::rePlayData(const unsigned int maxBufferSize, RotationExtractor::
         }        
     }
     m_useReplay = true;
-#else
-    // Avoid Compiler warning for unused parameters
-    (void)maxBufferSize;
-    (void)buffer;
-    (void) indexMarker;
-    (void) onRotation;
 #endif
 }
 
@@ -173,7 +163,7 @@ void BridgePLL::submitFlux(uint32_t timeInNanoSeconds, bool isAtIndex) {
 }
 
 // Add data to the Rotation Extractor
-void BridgePLL::addToExtractor(int numZeros, unsigned int pllTimeInNS, unsigned int realTimeInNS) {
+void BridgePLL::addToExtractor(unsigned int numZeros, unsigned int pllTimeInNS, unsigned int realTimeInNS) {
     if (numZeros < 0) numZeros = 0;
 
     // More than 3 zeros.  This is not normal MFM, but is allowed

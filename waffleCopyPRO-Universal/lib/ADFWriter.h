@@ -1,20 +1,16 @@
-/* ArduinoFloppyReader (and writer)
-* 
-* Copyright (C) 2017-2022 Robert Smith (@RobSmithDev)
+/* DrawBridge - aka ArduinoFloppyReader (and writer)
+*
+* Copyright (C) 2017-2024 Robert Smith (@RobSmithDev)
 * https://amiga.robsmithdev.co.uk
 *
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU Library General Public
-* License as published by the Free Software Foundation; either
-* version 3 of the License, or (at your option) any later version.
+* This file is multi-licensed under the terms of the Mozilla Public
+* License Version 2.0 as published by Mozilla Corporation and the
+* GNU General Public License, version 2 or later, as published by the
+* Free Software Foundation.
 *
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-* Library General Public License for more details.
+* MPL2: https://www.mozilla.org/en-US/MPL/2.0/
+* GPL2: https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
 *
-* You should have received a copy of the GNU Library General Public
-* License along with this library; if not, see http://www.gnu.org/licenses/
 */
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -39,8 +35,27 @@
 #include "RotationExtractor.h"
 #include "ArduinoInterface.h"
 
+#define MFM_MASK    0x55555555L		
+#define AMIGA_WORD_SYNC  0x4489							 // Disk SYNC code for the Amiga start of sector
+#define SECTOR_BYTES	512								 // Number of bytes in a decoded sector
+#define NUM_SECTORS_PER_TRACK_DD 11						 // Number of sectors per track
+#define NUM_SECTORS_PER_TRACK_HD 22						  // Same but for HD disks
+#define RAW_SECTOR_SIZE (8+56+SECTOR_BYTES+SECTOR_BYTES)      // Size of a sector, *Including* the sector sync word longs
+#define ADF_TRACK_SIZE_DD (SECTOR_BYTES*NUM_SECTORS_PER_TRACK_DD)   // Bytes required for a single track dd
+#define ADF_TRACK_SIZE_HD (SECTOR_BYTES*NUM_SECTORS_PER_TRACK_HD)   // Bytes required for a single track hd
 
+
+	// Buffer to hold raw data for just a single sector
+typedef unsigned char RawEncodedSector[RAW_SECTOR_SIZE];
+typedef unsigned char RawDecodedSector[SECTOR_BYTES];
+typedef RawDecodedSector RawDecodedTrackDD[NUM_SECTORS_PER_TRACK_DD];
+typedef RawDecodedSector RawDecodedTrackHD[NUM_SECTORS_PER_TRACK_HD];
+typedef unsigned char RawMFMData[SECTOR_BYTES + SECTOR_BYTES];
 namespace ArduinoFloppyReader {
+
+
+
+
 
 	// Optional how to respond to the callback from the writeADF command.
 	enum class WriteResponse {
@@ -105,6 +120,8 @@ namespace ArduinoFloppyReader {
 		std::string getLastError() { return m_device.getLastErrorStr(); };
 		DiagnosticResponse getLastErrorCode() { return m_device.getLastError(); };
 
+		ADFResult runClean(std::function<bool(const uint16_t position, const uint16_t maxPos)>  onProgress);
+
 		// Reads the disk and write the data to the ADF file supplied.  The callback is for progress, and you can returns FALSE to abort the process
 		// numTracks is the number of tracks to read.  Usually 80 (0..79), sometimes track 80 and 81 are needed
 		ADFResult DiskToADF(const std::wstring& outputFile, const bool inHDMode, const unsigned int numTracks, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound, const int maxSectors, const CallbackOperation operation)> callback);
@@ -116,6 +133,12 @@ namespace ArduinoFloppyReader {
 
 		// Writes an ADF file back to a floppy disk.  Return FALSE in the callback to abort this operation.  If verify is set then the track isread back and and sector checksums are checked for 11 valid sectors
 		ADFResult ADFToDisk(const std::wstring& inputFile, const bool inHDMode, bool verify, bool usePrecompMode, bool eraseFirst, bool writeFromIndex, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const bool isVerifyError, const CallbackOperation operation) > callback);
+
+		// Writes an IMG, IMA or ST file to disk. Return FALSE in the callback to abort this operation.  If verify is set then the track isread back and and sector checksums are checked for 11 valid sectors
+		ADFResult sectorFileToDisk(const std::wstring& inputFile, const bool inHDMode, bool verify, bool usePrecompMode, bool eraseFirst, bool useAtariSTTiming, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const bool isVerifyError, const CallbackOperation operation) > callback);
+
+		// Attempt to read a PC or Atari ST disk as a disk sector-based file
+		ADFResult diskToIBMST(const std::wstring& outputFile, const bool inHDMode, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound, const int maxSectors, const CallbackOperation operation)> callback);
 
 		// Writes an SCP file back to a floppy disk.  Return FALSE in the callback to abort this operation.  
 		ADFResult SCPToDisk(const std::wstring& inputFile, bool extraErases, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const bool isVerifyError, const CallbackOperation operation) > callback);
@@ -130,4 +153,9 @@ namespace ArduinoFloppyReader {
 		// Attempt to work out what the density of the currently inserted disk is
 		ADFResult GuessDiskDensity(bool& isHD);
 	};
+
+
 };
+
+void encodeSector(const unsigned int trackNumber, const ArduinoFloppyReader::DiskSurface surface, bool isHD, const unsigned int sectorNumber, const RawDecodedSector& input, RawEncodedSector& encodedSector, unsigned char& lastByte);
+

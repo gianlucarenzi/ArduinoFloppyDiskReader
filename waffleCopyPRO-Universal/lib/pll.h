@@ -2,21 +2,20 @@
 #define FLOPPYBRIDGE_PLL
 /* Dynamic PLL for *UAE
 *
-* Copyright (C) 2021-2022 Robert Smith (@RobSmithDev)
+* Copyright (C) 2021-2024 Robert Smith (@RobSmithDev)
 * https://amiga.robsmithdev.co.uk
 *
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU Library General Public
-* License as published by the Free Software Foundation; either
-* version 3 of the License, or (at your option) any later version.
+* This file is multi-licensed under the terms of the Mozilla Public
+* License Version 2.0 as published by Mozilla Corporation and the
+* GNU General Public License, version 2 or later, as published by the
+* Free Software Foundation.
 *
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-* Library General Public License for more details.
+* MPL2: https://www.mozilla.org/en-US/MPL/2.0/
+* GPL2: https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
 *
-* You should have received a copy of the GNU Library General Public
-* License along with this library; if not, see http://www.gnu.org/licenses/
+* This file, along with currently active and supported interfaces
+* are maintained from by GitHub repo at
+* https://github.com/RobSmithDev/FloppyDriveBridge
 */
 
 /*
@@ -56,7 +55,7 @@ namespace PLL {
 		const bool m_enabled;
 
 		// Rotation extractor
-		RotationExtractor* m_extractor = nullptr;
+		MFMExtractionTarget* m_extractor = nullptr;
 
 		// Clock
 		int32_t m_clock = 0;
@@ -78,7 +77,7 @@ namespace PLL {
 		bool m_indexFound = false;
 
 		// Add data to the Rotation Extractor
-        void addToExtractor(int numZeros, unsigned int pllTimeInNS, unsigned int realTimeInNS);
+		void addToExtractor(unsigned int numZeros, unsigned int pllTimeInNS, unsigned int realTimeInNS);
 
 	public:
 		// Make me - if disabled this behaves very basic which might be useful for extraction of flux to SCP
@@ -94,14 +93,14 @@ namespace PLL {
 		void prepareExtractor(bool isHD, const RotationExtractor::IndexSequenceMarker& indexSequence);
 
 		// Change the rotation extractor
-		void setRotationExtractor(RotationExtractor* extractor) { m_extractor = extractor; }
+		void setRotationExtractor(MFMExtractionTarget* extractor) { m_extractor = extractor; }
 
 		// Re-plays the data back into the rotation extractor but with (random) +/- 64ns of jitter
 		void rePlayData(const unsigned int maxBufferSize, RotationExtractor::MFMSample* buffer, RotationExtractor::IndexSequenceMarker& indexMarker,
 			std::function<bool(RotationExtractor::MFMSample* mfmData, const unsigned int dataLengthInBits)> onRotation);
 
 		// Return the active rotation extractor
-		RotationExtractor* rotationExtractor() { return m_extractor; }
+		MFMExtractionTarget* rotationExtractor() { return m_extractor; }
 
 		// Pass on some functions from the extractor
 		bool canExtract() { return m_extractor->canExtract(); }
