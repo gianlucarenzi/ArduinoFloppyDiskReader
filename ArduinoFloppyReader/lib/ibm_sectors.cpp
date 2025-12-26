@@ -74,7 +74,7 @@ namespace IBM {
 		unsigned char cylinder;
 		unsigned char head;
 		unsigned char sector;
-		unsigned char length;  // 2^(length+7) sector size = should be 2 for 512
+		unsigned char length = 2;  // 2^(length+7) sector size = should be 2 for 512
 		unsigned char crc[2];
 	} IBMSectorHeader;
 
@@ -117,8 +117,6 @@ namespace IBM {
 
 	// Extract the data, properly aligned into the output
 	void extractMFMDecodeRaw(const unsigned char* inTrack, const uint32_t dataLengthInBits, const uint32_t bitPos, uint32_t outputBytes, uint8_t* output) {
-		unsigned char byteOut = 0;
-		unsigned int byteOutPosition = 0;
 
 		uint32_t realBitPos = bitPos + 1;  // the +1 skips past the clock bit
 
@@ -147,8 +145,6 @@ namespace IBM {
 		// Prepare our test buffer
 		uint64_t decoded = 0;
 
-		int nextTrackBitCount = 0;
-		int i = 0;
 		IBMSector sector;
 
 		bool headerFound = false;
@@ -205,7 +201,7 @@ namespace IBM {
 					if (!headerFound) {
 						// Sector header was missing. We'll "guess" one - not ideal!
 						lastSectorNumber++;
-						memset(&sector.header, 0, sizeof(sector.header));
+						sector.header = {};
 						sector.header.sector = (uint8_t)lastSectorNumber;
 						sector.header.length = sectorSize;
 						sector.header.cylinder = cylinder;
@@ -413,8 +409,6 @@ namespace IBM {
 		uint8_t gap2Size = 22;    // 0x4E - between sector header and data
 		uint8_t gap3Size = 84;    // 0x4E - after data sector
 		uint8_t gap4bSize = 182;   // 0x4E - after all sectors
-		bool writeTrackHeader = true;
-
 		if (decodedTrack->sectors.size() > 21) return 0;
 
 		// NOTE: ALL OF THE ATARI TIMINGS NEED CHECKING!

@@ -28,7 +28,7 @@ namespace IBM {
 
 	// Structure to hold data while we decode it
 	typedef struct {
-		uint32_t numErrors;					// Number of decoding errors found
+		uint32_t numErrors = 0;					// Number of decoding errors found
 		RawDecodedSector data;          // decoded sector data
 	} DecodedSector;
 
