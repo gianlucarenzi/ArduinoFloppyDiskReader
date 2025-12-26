@@ -41,10 +41,11 @@ jobs:
 
       - name: Install linuxdeployqt
         run: |
-          wget -c -nv https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage
-          chmod a+x linuxdeployqt-7-x86_64.AppImage
-          ./linuxdeployqt-7-x86_64.AppImage --appimage-extract
-          echo "$(pwd)/squashfs-root/AppRun" >> $GITHUB_PATH
+          mkdir -p /tmp/linuxdeployqt
+          wget -c -nv https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage -O /tmp/linuxdeployqt/linuxdeployqt.AppImage
+          chmod a+x /tmp/linuxdeployqt/linuxdeployqt.AppImage
+          /tmp/linuxdeployqt/linuxdeployqt.AppImage --appimage-extract # This extracts to squashfs-root in /tmp/linuxdeployqt
+          echo "/tmp/linuxdeployqt/squashfs-root" >> $GITHUB_PATH
 
       - name: Deploy and Package
         run: |
