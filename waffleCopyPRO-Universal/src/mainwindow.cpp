@@ -16,6 +16,8 @@
 #include <QSettings>
 #include "socketserver.h"
 
+extern void set_user_input(char data);
+
 MainWindow::MainWindow(QWidget *parent)
 : QMainWindow(parent),
   ui(new Ui::MainWindow),
@@ -30,6 +32,7 @@ MainWindow::MainWindow(QWidget *parent)
   tracks82(false),
   diskDriveHDensityMode(false),
   doRefresh(true),
+  skipReadError(false),
   serialPort(1)
 {
     ui->setupUi(this);
@@ -85,6 +88,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->showError, SIGNAL(clicked()), this, SLOT(manageError()));
     connect(ui->serial, SIGNAL(valueChanged(int)), this, SLOT(manageSerialPort(int)));
     connect(ui->hdModeSelection, SIGNAL(clicked()), this, SLOT(toggleDiskDensityMode()));
+    connect(ui->skipReadError, SIGNAL(clicked()), this, SLOT(toggleSkipReadError()));
     ui->copyCompleted->hide();
     ui->copyError->hide();
     // Busy background is invisible now
@@ -101,11 +105,13 @@ MainWindow::MainWindow(QWidget *parent)
     qDebug() << "BEFORE PRECOMP" << preComp;
     qDebug() << "BEFORE ERASEBEFOREWRITE" << eraseBeforeWrite;
     qDebug() << "BEFORE TRACKS82" << tracks82;
+    qDebug() << "BEFORE SKIPREADERROR" << skipReadError;
     qDebug() << "BEFORE COM PORT" << serialPort;
 
     preComp = settings.value("PRECOMP", true).toBool();
     eraseBeforeWrite = settings.value("ERASEBEFOREWRITE", false).toBool();
     tracks82 = settings.value("TRACKS82", false).toBool();
+    skipReadError = settings.value("SKIPREADERROR", false).toBool();
     serialPort = settings.value("SERIALPORT", 1).toInt();
     diskDriveHDensityMode = settings.value("HD", false).toBool();
 
@@ -113,11 +119,13 @@ MainWindow::MainWindow(QWidget *parent)
     ui->preCompSelection->setChecked(preComp);
     ui->eraseBeforeWrite->setChecked(eraseBeforeWrite);
     ui->numTracks->setChecked(tracks82);
+    ui->skipReadError->setChecked(skipReadError);
     ui->serial->setValue(serialPort);
 
     qDebug() << "AFTER PRECOMP" << preComp;
     qDebug() << "AFTER ERASEBEFOREWRITE" << eraseBeforeWrite;
     qDebug() << "AFTER TRACKS82" << tracks82;
+    qDebug() << "AFTER SKIPREADERROR" << skipReadError;
     qDebug() << "AFTER COM PORT" << serialPort;
 
     ui->errorDialog->hide();
@@ -195,6 +203,18 @@ void MainWindow::toggleDiskDensityMode(void)
         qDebug() << "USING DOUBLE DENSITY MODE (DEFAULT)";
     ui->hdModeSelection->setChecked(diskDriveHDensityMode);
     settings.setValue("HD", diskDriveHDensityMode);
+    settings.sync();
+}
+
+void MainWindow::toggleSkipReadError(void)
+{
+    skipReadError = !skipReadError;
+    if (skipReadError)
+        qDebug() << "SKIP READ ERROR ENABLED";
+    else
+        qDebug() << "SKIP READ ERROR DISABLED";
+    ui->skipReadError->setChecked(skipReadError);
+    settings.setValue("SKIPREADERROR", skipReadError);
     settings.sync();
 }
 
@@ -435,6 +455,9 @@ void MainWindow::checkStartRead(void)
     if (tracks82)
         command.append("TRACKSNUM82");
 
+    if (skipReadError)
+        command.append("SKIPREADERROR");
+
     if (diskDriveHDensityMode)
         command.append("HD");
 
@@ -493,10 +516,16 @@ void MainWindow::progressChange(QString s, int value)
             err = value;
 
             // Now we have the error!
-            if (err != 0)
-                ui->errorDialog->show();
-            else
+            if (err != 0) {
+                if (skipReadError) {
+                    set_user_input('S'); // Simulate Skip
+                    ui->errorDialog->hide();
+                } else {
+                    ui->errorDialog->show();
+                }
+            } else {
                 ui->errorDialog->hide();
+            }
 
             //qDebug() << __FUNCTION__ << "ERRORCODE" << err;
             if (err != 0)
