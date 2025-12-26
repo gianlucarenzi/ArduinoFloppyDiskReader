@@ -293,6 +293,7 @@ void MainWindow::doScroll(void)
         ui->skipButton->setFont(this->font());
         ui->errorMessage->setFont(this->font());
         ui->hdModeSelection->setFont(this->font());
+        ui->skipReadError->setFont(this->font());
         doRefresh = ! doRefresh;
     }
 }

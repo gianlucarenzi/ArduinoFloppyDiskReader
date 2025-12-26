@@ -538,10 +538,10 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool ski
 //    bool hdMode = false;
 
     auto callback = [isADF, hdMode, skipReadError](const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound, const int totalSectors, const CallbackOperation operation) ->WriteResponse {
-//        qDebug() << __PRETTY_FUNCTION__ << "Callback entered. Track:" << currentTrack << "Side:" << (int)currentSide << "Retry:" << retryCounter << "Bad Sectors:" << badSectorsFound;
+        //qDebug() << __PRETTY_FUNCTION__ << "Callback entered. Track:" << currentTrack << "Side:" << (int)currentSide << "Retry:" << retryCounter << "Bad Sectors:" << badSectorsFound;
 		if (retryCounter > 20) {
             if (skipReadError) {
-//                qDebug() << __PRETTY_FUNCTION__ << "skipReadError is true, returning wrSkipBadChecksums for Track:" << currentTrack;
+                //qDebug() << __PRETTY_FUNCTION__ << "skipReadError is true, returning wrSkipBadChecksums for Track:" << currentTrack;
                 return WriteResponse::wrSkipBadChecksums;
             }
 			char input;
@@ -584,7 +584,7 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool ski
 #ifndef _WIN32
 		fflush(stdout);		
 #endif		
-//        qDebug() << __PRETTY_FUNCTION__ << "Returning wrContinue for Track:" << currentTrack;
+        //qDebug() << __PRETTY_FUNCTION__ << "Returning wrContinue for Track:" << currentTrack;
 		return WriteResponse::wrContinue;
 	};
 
@@ -600,7 +600,7 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool ski
         //qDebug() << __PRETTY_FUNCTION__ << "Calling DiskToSCP";
         result = writer.DiskToSCP(filename, hdMode, numTracks, 3, callback);
     }
-    qDebug() << __PRETTY_FUNCTION__ << "Disk read operation finished with result:" << (int)result;
+    //qDebug() << __PRETTY_FUNCTION__ << "Disk read operation finished with result:" << (int)result;
 
 	switch (result) {
     case ADFResult::adfrComplete:					printf("\rFile created successfully.                                                     "); lastResponse = DiagnosticResponse::drOK; break;

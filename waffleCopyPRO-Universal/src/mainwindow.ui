@@ -485,6 +485,22 @@ background-color: rgb(61, 56, 70);</string>
      <string notr="true">Tracks: 82</string>
     </property>
    </widget>
+   <widget class="QCheckBox" name="skipReadError">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>450</y>
+      <width>150</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string notr="true">Skip Read Errors</string>
+    </property>
+   </widget>
    <widget class="QLabel" name="version">
     <property name="geometry">
      <rect>
@@ -618,6 +634,7 @@ background-color: rgb(61, 56, 70);</string>
    <zorder>preCompSelection</zorder>
    <zorder>eraseBeforeWrite</zorder>
    <zorder>numTracks</zorder>
+   <zorder>skipReadError</zorder>
    <zorder>version</zorder>
    <zorder>errorDialog</zorder>
    <zorder>hdModeSelection</zorder>
