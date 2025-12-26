@@ -25,15 +25,13 @@ jobs:
           dir:          ${{ runner.temp }}
           setup-python: false
           
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
       - name: Build Project
         run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           cd waffleCopyPRO-Universal
           qmake -tp vc waffleCopyPRO-Universal.pro
           msbuild waffleCopyPRO-Universal.vcxproj /p:Configuration=Release
-        shell: pwsh
+        shell: cmd
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
