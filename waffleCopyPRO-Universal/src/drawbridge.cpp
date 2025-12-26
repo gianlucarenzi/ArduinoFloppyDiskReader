@@ -125,7 +125,7 @@ static void setupSocketClient(void)
     {
 #ifdef _WIN32
         WSADATA wsaData;
-        int iResult;
+        //int iResult;
         struct addrinfo *result = NULL,
                         *ptr = NULL,
                         hints;
@@ -212,22 +212,22 @@ static void setupSocketClient(void)
     {
         int m_zero = 0;
         sprintf( shmCommand, "TRACK:%03d", m_zero );
-        send(sockfd, shmCommand, strlen( shmCommand ), 0);
+        send(sockfd, shmCommand, static_cast<int>(strlen(shmCommand)), 0);
         // Do not hog the CPU for an housekeeping busy-loop
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
         sprintf( shmCommand, "SIDE:%02d", m_zero );
-        send(sockfd, shmCommand, strlen( shmCommand ), 0);
+        send(sockfd, shmCommand, static_cast<int>(strlen(shmCommand)), 0);
         // Do not hog the CPU for an housekeeping busy-loop
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
         sprintf( shmCommand, "STATUS:%02d", m_zero );
-        send(sockfd, shmCommand, strlen( shmCommand ), 0);
+        send(sockfd, shmCommand, static_cast<int>(strlen(shmCommand)), 0);
         // Do not hog the CPU for an housekeeping busy-loop
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
         sprintf( shmCommand, "ERROR:%01d", m_zero );
-        send(sockfd, shmCommand, strlen( shmCommand ), 0);
+        send(sockfd, shmCommand, static_cast<int>(strlen(shmCommand)), 0);
         // Do not hog the CPU for an housekeeping busy-loop
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
@@ -273,7 +273,7 @@ char wait_user_input(void)
 static void update_error_file(int err)
 {
     sprintf(shmCommand, "ERROR:%01d", err);
-    if (sockfd != INVALID_SOCKET) send(sockfd, shmCommand, strlen( shmCommand ), 0);
+    if (sockfd != INVALID_SOCKET) send(sockfd, shmCommand, static_cast<int>(strlen(shmCommand)), 0);
     // Do not hog the CPU for an housekeeping busy-loop
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
@@ -281,12 +281,12 @@ static void update_error_file(int err)
 static void update_gui_writing(int32_t currentTrack, DiskSurface currentSide)
 {
     sprintf(shmCommand, "TRACK:%03d", currentTrack);
-    if (sockfd != INVALID_SOCKET) send(sockfd, shmCommand, strlen( shmCommand ), 0);
+    if (sockfd != INVALID_SOCKET) send(sockfd, shmCommand, static_cast<int>(strlen(shmCommand)), 0);
     // Do not hog the CPU for an housekeeping busy-loop
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     sprintf(shmCommand, "SIDE:%02d", (currentSide == DiskSurface::dsUpper) ? 1 : 0);
-    if (sockfd != INVALID_SOCKET) send(sockfd, shmCommand, strlen( shmCommand ), 0);
+    if (sockfd != INVALID_SOCKET) send(sockfd, shmCommand, static_cast<int>(strlen(shmCommand)), 0);
     // Do not hog the CPU for an housekeeping busy-loop
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
@@ -295,7 +295,7 @@ static void update_gui(int32_t currentTrack, DiskSurface currentSide, int32_t ba
 {
     update_gui_writing(currentTrack, currentSide);
     sprintf(shmCommand, "STATUS:%02d", badSectorsFound);
-    if (sockfd != INVALID_SOCKET) send(sockfd, shmCommand, strlen( shmCommand ), 0);
+    if (sockfd != INVALID_SOCKET) send(sockfd, shmCommand, static_cast<int>(strlen(shmCommand)), 0);
     // Do not hog the CPU for an housekeeping busy-loop
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
@@ -364,6 +364,10 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 
     ADFResult result;
     if (isIPF) {
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable: 4100)
+#endif
         result = writer.IPFToDisk(filename, eraseFirst, [skipWriteError](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
             if (isVerifyError) {
                 if (skipWriteError) {
@@ -405,8 +409,15 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 #endif
             return WriteResponse::wrContinue;
         });
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
     }
     else
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable: 4100)
+#endif
     if (isSCP) {
         result = writer.SCPToDisk(filename, eraseFirst, [skipWriteError](const int currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
             if (isVerifyError) {
@@ -449,7 +460,12 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 #endif
             return WriteResponse::wrContinue;
             });
-    } else {
+    }
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable: 4100)
+#endif
+    else {
         result = writer.ADFToDisk(filename, hdMode, verify, preComp, eraseFirst, writeFromIndex, [skipWriteError](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
             if (isVerifyError) {
                 if (skipWriteError) {
@@ -492,6 +508,9 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
             return WriteResponse::wrContinue;
         });
     }
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 	switch (result) {
     case ADFResult::adfrBadSCPFile:				    printf("\nBad, invalid or unsupported SCP file                                               "); lastResponse = DiagnosticResponse::drError; break;
@@ -550,6 +569,10 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool ski
 
 //    bool hdMode = false;
 
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable: 4100)
+#endif
     auto callback = [isADF, hdMode, skipReadError](const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound, const int totalSectors, const CallbackOperation operation) ->WriteResponse {
         //qDebug() << __PRETTY_FUNCTION__ << "Callback entered. Track:" << currentTrack << "Side:" << (int)currentSide << "Retry:" << retryCounter << "Bad Sectors:" << badSectorsFound;
 		if (retryCounter > 20) {
@@ -600,6 +623,9 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool ski
         //qDebug() << __PRETTY_FUNCTION__ << "Returning wrContinue for Track:" << currentTrack;
 		return WriteResponse::wrContinue;
 	};
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 	ADFResult result;
 	

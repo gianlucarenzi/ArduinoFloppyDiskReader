@@ -2586,6 +2586,10 @@ void ArduinoInterface::enumeratePorts(std::vector<std::wstring>& portList) {
 	}
 }
 
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable: 4100)
+#endif
 // Reset reason information
 DiagnosticResponse ArduinoInterface::getResetReason(bool& WD, bool& BOD, bool& ExtReset, bool& PowerOn) {
 	if ((m_version.major > 1) || ((m_version.major == 1) && (m_version.minor > 9)) || ((m_version.major == 1) && (m_version.minor == 9) && (m_version.buildNumber >= 26))) {
@@ -2594,6 +2598,9 @@ DiagnosticResponse ArduinoInterface::getResetReason(bool& WD, bool& BOD, bool& E
 	}
 	return DiagnosticResponse::drOldFirmware;
 }
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 DiagnosticResponse ArduinoInterface::clearResetReason() {
 	if ((m_version.major > 1) || ((m_version.major == 1) && (m_version.minor > 9)) || ((m_version.major == 1) && (m_version.minor == 9) && (m_version.buildNumber >= 26))) {
 		// TODO

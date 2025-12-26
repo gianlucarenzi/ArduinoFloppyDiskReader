@@ -85,7 +85,7 @@ namespace IBM {
 		unsigned char crc[2];
 	} IBMSectorData;
 
-	typedef struct {
+	typedef struct IBMSector_t {
 		IBMSectorHeader header;
 		IBMSectorData data;
 		uint32_t headerErrors;   // number of errors in the header. 0 means PERFECT!
@@ -397,6 +397,10 @@ namespace IBM {
 		return 8;
 	}
 
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable: 4100)
+#endif
 	// Encode the track supplied into a raw MFM bit-stream
 	uint32_t encodeSectorsIntoMFM_IBM(const bool isHD, bool forceAtariTiming, DecodedTrack* decodedTrack, const uint32_t trackNumber, uint32_t mfmBufferSizeBytes, void* trackData) {
 		uint8_t lastByte = 0x55;
@@ -499,5 +503,8 @@ namespace IBM {
 		mem += gapFillMFM(mem, gap4bSize / 2, 0x4E, lastByte, memOverflow);
 		return (uint32_t)(mem - ((uint8_t*)trackData));
 	}
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 }

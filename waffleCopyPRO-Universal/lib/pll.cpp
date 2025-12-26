@@ -40,6 +40,10 @@ using namespace PLL;
 #define CLOCK_MIN ((CLOCK_CENTRE * (100 - CLOCK_MAX_ADJ)) / 100)
 #define CLOCK_MAX ((CLOCK_CENTRE * (100 + CLOCK_MAX_ADJ)) / 100)
 
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable: 4100)
+#endif
 // Constructor
 BridgePLL::BridgePLL(bool enabled, bool enableReplay) : m_enabled(enabled)
 #ifdef ENABLE_REPLY
@@ -48,6 +52,9 @@ BridgePLL::BridgePLL(bool enabled, bool enableReplay) : m_enabled(enabled)
 {
     reset();
 }
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 // Reset the PLL
 void BridgePLL::reset() {
@@ -71,6 +78,10 @@ void BridgePLL::prepareExtractor(bool isHD, const RotationExtractor::IndexSequen
     m_extractor->setIndexSequence(indexSequence);
 }
 
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable: 4100)
+#endif
 // Re-plays the data back into the rotation extractor
 void BridgePLL::rePlayData(const unsigned int maxBufferSize, RotationExtractor::MFMSample* buffer, RotationExtractor::IndexSequenceMarker& indexMarker,
         std::function<bool(RotationExtractor::MFMSample* mfmData, const unsigned int dataLengthInBits)> onRotation) {
@@ -109,6 +120,9 @@ void BridgePLL::rePlayData(const unsigned int maxBufferSize, RotationExtractor::
     m_useReplay = true;
 #endif
 }
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 // Submit flux to the PLL
 void BridgePLL::submitFlux(uint32_t timeInNanoSeconds, bool isAtIndex) {

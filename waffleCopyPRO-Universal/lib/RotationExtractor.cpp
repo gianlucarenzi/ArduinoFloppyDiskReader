@@ -509,6 +509,10 @@ bool RotationExtractor::extractRotation(MFMSample* output, uint32_t& outputBits,
 }
 
 
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable: 4100)
+#endif
 // Reset this back to "empty"
 void LinearExtractor::reset(bool isHD) {
 	m_totalTime = 0;
@@ -516,6 +520,9 @@ void LinearExtractor::reset(bool isHD) {
 	m_outputStreamPos = 0;
 	m_outputStreamBit = 0;
 }
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 // Set where the data should be saved to
 void LinearExtractor::setOutputBuffer(void* outputBuffer, const uint32_t bufferSizeInBytes) {
@@ -556,6 +563,10 @@ void LinearExtractor::copyToBuffer(void* data, const uint32_t dataSize) {
 }
 
 
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable: 4100)
+#endif
 // Submit a single sequence to the list - abstract function
 void LinearExtractor::submitSequence(const MFMSequenceInfo& sequence, bool isIndex, bool discardEarlySamples) {
 	if (!m_currentPosition) return;
@@ -568,6 +579,9 @@ void LinearExtractor::submitSequence(const MFMSequenceInfo& sequence, bool isInd
 	for (uint32_t s = 0; s < bitsToWrite; s++) writeLinearBit(false);
 	if (sequence.mfm != MFMSequence::mfm000) writeLinearBit(true);
 }
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 // Finalise the buffer (shifting the bits for the current byte into place) and returns the total number of bits received
 uint32_t LinearExtractor::finaliseAndGetNumBits() {

@@ -1134,7 +1134,7 @@ bool ADFWriter::runDiagnostics(const std::wstring& portName, std::function<void(
 	memset(disktrackHD.filler2, 0xAA, sizeof(disktrackHD.filler2));  // Pad with "0"s which as an MFM encoded byte is 0xAA
 
 	// Get length
-	int sequenceLength = strlen(TEST_BYTE_SEQUENCE);
+	int sequenceLength = static_cast<int>(strlen(TEST_BYTE_SEQUENCE));
 
 	// Attempt to write, with verify
 	bool eraseOK = false;
@@ -1486,7 +1486,7 @@ ADFResult ADFWriter::sectorFileToDisk(const std::wstring& inputFile, const bool 
 			trk.sectors.insert({ i, sectorDecoded });
 		}
 	
-		const uint32_t totalBytesToWrite = IBM::encodeSectorsIntoMFM_IBM(inHDMode, useAtariSTTiming, &trk, currentTrack, mfmBuffer.size(),  &mfmBuffer[0]);		
+		const uint32_t totalBytesToWrite = IBM::encodeSectorsIntoMFM_IBM(inHDMode, useAtariSTTiming, &trk, currentTrack, static_cast<uint32_t>(mfmBuffer.size()),  &mfmBuffer[0]);
 
 		// Keep looping until it wrote correctly
 		IBM::DecodedTrack trackRead;
@@ -1506,8 +1506,8 @@ ADFResult ADFWriter::sectorFileToDisk(const std::wstring& inputFile, const bool 
 				if (callback(cylinder, surface, false, failCount > 0 ? CallbackOperation::coRetryWriting : CallbackOperation::coWriting) == WriteResponse::wrAbort) return ADFResult::adfrAborted;
 
 			DiagnosticResponse resp;
-			resp = m_device.writeCurrentTrackPrecomp((const unsigned char*)& mfmBuffer[0], totalBytesToWrite, true, (cylinder >= 40) && usePrecompMode);
-			if (resp == DiagnosticResponse::drOldFirmware) resp = m_device.writeCurrentTrack((const unsigned char*)&mfmBuffer[0], totalBytesToWrite, true);
+			resp = m_device.writeCurrentTrackPrecomp((const unsigned char*)& mfmBuffer[0], static_cast<unsigned short>(totalBytesToWrite), true, (cylinder >= 40) && usePrecompMode);
+			if (resp == DiagnosticResponse::drOldFirmware) resp = m_device.writeCurrentTrack((const unsigned char*)&mfmBuffer[0], static_cast<unsigned short>(totalBytesToWrite), true);
 
 			switch (resp) {
 			case DiagnosticResponse::drWriteProtected: return ADFResult::adfrDiskWriteProtected;
@@ -1845,7 +1845,7 @@ ADFResult ADFWriter::ADFToDisk(const std::wstring& inputFile, bool mediaIsHD, bo
 				encodeSector(currentTrack, surface, mediaIsHD, sector, (*tracks.trackHD)[sector], tracks.disktrackHD->sectors[sector], lastByte);
 
 			if (lastByte & 1) tracks.disktrackHD->filler2[7] = 0x2F; else tracks.disktrackHD->filler2[7] = 0xFF;
-			dataToWrite = sizeof(FullDiskTrackHD) - (writeFromIndex ? (sizeof(tracks.disktrackHD->filler1)-2) : 0);
+			dataToWrite = static_cast<unsigned int>(sizeof(FullDiskTrackHD) - (writeFromIndex ? (sizeof(tracks.disktrackHD->filler1)-2) : 0));
 			dataToWritePtr = writeFromIndex ? &tracks.disktrackHD->filler1[sizeof(tracks.disktrackHD->filler1) - 2] : (unsigned char*)tracks.disktrackHD;
 		}
 		else {
@@ -1856,7 +1856,7 @@ ADFResult ADFWriter::ADFToDisk(const std::wstring& inputFile, bool mediaIsHD, bo
 
 			if (lastByte & 1) tracks.disktrackDD->filler2[7] = 0x2F; else tracks.disktrackDD->filler2[7] = 0xFF;
 
-			dataToWrite = sizeof(FullDiskTrackDD) - (writeFromIndex ? (sizeof(tracks.disktrackDD->filler1) - 2) : 0);
+			dataToWrite = static_cast<unsigned int>(sizeof(FullDiskTrackDD) - (writeFromIndex ? (sizeof(tracks.disktrackDD->filler1) - 2) : 0));
 			dataToWritePtr = writeFromIndex ? &tracks.disktrackDD->filler1[sizeof(tracks.disktrackDD->filler1) - 2] : (unsigned char*)tracks.disktrackDD;
 		}
 
@@ -1885,8 +1885,8 @@ ADFResult ADFWriter::ADFToDisk(const std::wstring& inputFile, bool mediaIsHD, bo
 				}
 
 			DiagnosticResponse resp;
-			resp = m_device.writeCurrentTrackPrecomp(dataToWritePtr, dataToWrite, writeFromIndex, (currentTrack >= 40) && usePrecompMode);
-			if (resp == DiagnosticResponse::drOldFirmware) resp = m_device.writeCurrentTrack(dataToWritePtr, dataToWrite, writeFromIndex);
+			resp = m_device.writeCurrentTrackPrecomp(dataToWritePtr, static_cast<unsigned short>(dataToWrite), writeFromIndex, (currentTrack >= 40) && usePrecompMode);
+			if (resp == DiagnosticResponse::drOldFirmware) resp = m_device.writeCurrentTrack(dataToWritePtr, static_cast<unsigned short>(dataToWrite), writeFromIndex);
 
 			switch (resp) {
 			case DiagnosticResponse::drWriteProtected:	hADFFile.close();
@@ -2244,13 +2244,13 @@ ADFResult ADFWriter::DiskToSCP(const std::wstring& outputFile, bool isHDMode, co
 					hADFFile.close();
 					return ADFResult::adfrFileIOError;
 				}
-				dataPos += track.revolutionData[a].size() * 2;
+				dataPos += static_cast<unsigned int>(track.revolutionData[a].size() * 2);
 			}
 
 			// Now write out the data
 			for (unsigned int a = 0; a < track.revolutionData.size(); a++) {
 				try {
-					hADFFile.write((const char*)track.revolutionData[a].data(), track.revolutionData[a].size() * 2);
+					hADFFile.write((const char*)track.revolutionData[a].data(), static_cast<std::streamsize>(track.revolutionData[a].size() * 2));
 				} catch (...) {
 					hADFFile.close();
 					return ADFResult::adfrFileIOError;
@@ -2346,7 +2346,7 @@ ADFResult ADFWriter::SCPToDisk(const std::wstring& inputFile, bool extraErases, 
 	std::vector<uint32_t> trackOffsets;
 	trackOffsets.resize(168);
 	try {
-		hADFFile.read((char*)trackOffsets.data(), sizeof(uint32_t) * trackOffsets.size());
+		hADFFile.read((char*)trackOffsets.data(), static_cast<std::streamsize>(sizeof(uint32_t) * trackOffsets.size()));
 	}
 	catch (...) {
 		hADFFile.close();
@@ -2480,18 +2480,17 @@ ADFResult ADFWriter::DiskToADF(const std::wstring& outputFile, const bool inHDMo
 	DecodedTrack track;
 	bool includesBadSectors = false;
 
-	const unsigned int readSize = inHDMode ? sizeof(ArduinoFloppyReader::RawTrackDataHD) : sizeof(ArduinoFloppyReader::RawTrackDataDD);
-	const unsigned int maxSectorsPerTrack = inHDMode ? NUM_SECTORS_PER_TRACK_HD : NUM_SECTORS_PER_TRACK_DD;
-
-	// Do all tracks
-	for (unsigned int currentTrack = 0; currentTrack < numTracks; currentTrack++) {
-
-		// Select the track we're working on
-		if (m_device.selectTrack(currentTrack) != DiagnosticResponse::drOK) {
-			hADFFile.close();
-			return ADFResult::adfrCompletedWithErrors;
-		}
-		
+	    const unsigned int readSize = inHDMode ? sizeof(ArduinoFloppyReader::RawTrackDataHD) : sizeof(ArduinoFloppyReader::RawTrackDataDD);
+	    const unsigned int maxSectorsPerTrack = inHDMode ? NUM_SECTORS_PER_TRACK_HD : NUM_SECTORS_PER_TRACK_DD;
+	
+	    // Do all tracks
+	    for (unsigned int currentTrack = 0; currentTrack < numTracks; currentTrack++) {
+	
+	        // Select the track we're working on
+	        if (m_device.selectTrack(static_cast<unsigned char>(currentTrack)) != DiagnosticResponse::drOK) {
+	            hADFFile.close();
+	            return ADFResult::adfrCompletedWithErrors;
+	        }		
 		// Now select the side
 		for (unsigned int surfaceIndex = 0; surfaceIndex < 2; surfaceIndex++) {
 			// Surface 
@@ -2683,7 +2682,7 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
 	for (size_t cyl = fileInfo.mincylinder; cyl <= topRange; cyl++) {
 
 		// Lets get into the cotrrect position
-		if (m_device.selectTrack((unsigned char)cyl) != DiagnosticResponse::drOK) {
+		if (m_device.selectTrack(static_cast<unsigned char>(cyl)) != DiagnosticResponse::drOK) {
 			CapsUnlockImage(image);
 			CapsRemImage(image);
 			return ADFResult::adfrDriveError;
@@ -2697,7 +2696,7 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
 			}
 
 			if (callback)
-				if (callback(cyl, head ? DiskSurface::dsUpper : DiskSurface::dsLower, false, CallbackOperation::coWriting) == WriteResponse::wrAbort) {
+				if (callback(static_cast<int>(cyl), head ? DiskSurface::dsUpper : DiskSurface::dsLower, false, CallbackOperation::coWriting) == WriteResponse::wrAbort) {
 					CapsUnlockImage(image);
 					CapsRemImage(image);
 					return ADFResult::adfrAborted;
@@ -2706,7 +2705,7 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
 			// Read information about this from the library
 			CapsTrackInfoT2 trackInfo = { 0 };
 			trackInfo.type = 2;
-			if (CapsLockTrack((PCAPSTRACKINFO)&trackInfo, image, cyl, head, DI_LOCK_DENVAR | DI_LOCK_UPDATEFD | DI_LOCK_TYPE | DI_LOCK_OVLBIT | DI_LOCK_TRKBIT) != imgeOk) {
+			if (CapsLockTrack((PCAPSTRACKINFO)&trackInfo, image, static_cast<UDWORD>(cyl), head, DI_LOCK_DENVAR | DI_LOCK_UPDATEFD | DI_LOCK_TYPE | DI_LOCK_OVLBIT | DI_LOCK_TRKBIT) != imgeOk) {
 				CapsUnlockImage(image);
 				CapsRemImage(image);
 				return  ADFResult::adfrFileError;
@@ -2744,7 +2743,7 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
 			std::vector<WeakData> weakList;
 			for (size_t weak = 0; weak < trackInfo.weakcnt; weak++) {
 				CapsDataInfo wInfo;
-				if (CapsGetInfo(&wInfo, image, cyl, head, cgiitWeak, weak) != imgeOk) {
+				if (CapsGetInfo(&wInfo, image, static_cast<UDWORD>(cyl), head, cgiitWeak, static_cast<UDWORD>(weak)) != imgeOk) {
 					CapsUnlockTrack(image, cyl, head);
 					CapsUnlockImage(image);
 					CapsRemImage(image);

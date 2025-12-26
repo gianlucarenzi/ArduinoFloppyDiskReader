@@ -241,6 +241,10 @@ public:
 };
 
 
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable: 4100)
+#endif
 // Simple class to just receive that data being sent from the PLL into a linear MFM buffer. It doesn't try to find rotations 
 class LinearExtractor : public MFMExtractionTarget {
 private:
@@ -282,6 +286,9 @@ public:
 	// Submit a single sequence to the list - abstract function
 	virtual void submitSequence(const MFMSequenceInfo& sequence, bool isIndex, bool discardEarlySamples = true) override;
 };
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 
 

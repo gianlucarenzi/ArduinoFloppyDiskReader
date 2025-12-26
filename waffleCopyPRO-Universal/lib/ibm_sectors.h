@@ -27,7 +27,7 @@ namespace IBM {
 	typedef std::vector<uint8_t> RawDecodedSector;
 
 	// Structure to hold data while we decode it
-	typedef struct {
+	typedef struct DecodedSector_t {
 		uint32_t numErrors = 0;					// Number of decoding errors found
 		RawDecodedSector data;          // decoded sector data
 	} DecodedSector;
