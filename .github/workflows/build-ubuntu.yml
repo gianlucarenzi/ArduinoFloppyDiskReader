@@ -52,7 +52,7 @@ jobs:
           cd waffleCopyPRO-Universal
           mkdir release
           # Use linuxdeployqt to deploy Qt dependencies
-          linuxdeployqt waffleCopyPRO-Universal -appimage -bundle-non-qt-libs -verbose=2
+          /tmp/linuxdeployqt/squashfs-root/AppRun waffleCopyPRO-Universal -appimage -bundle-non-qt-libs -verbose=2
           
           # Copy additional assets
           cp -r fonts release/
