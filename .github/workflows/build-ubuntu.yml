@@ -44,16 +44,8 @@ jobs:
           mkdir -p /tmp/linuxdeployqt
           wget -c -nv https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage -O /tmp/linuxdeployqt/linuxdeployqt.AppImage
           chmod a+x /tmp/linuxdeployqt/linuxdeployqt.AppImage
-          /tmp/linuxdeployqt/linuxdeployqt.AppImage --appimage-extract # This extracts to squashfs-root in /tmp/linuxdeployqt
-          
-          echo "--- Contents of /tmp/linuxdeployqt/squashfs-root ---"
-          ls -la /tmp/linuxdeployqt/squashfs-root
-          echo "--- Contents of /tmp/linuxdeployqt/squashfs-root/usr/bin ---"
-          ls -la /tmp/linuxdeployqt/squashfs-root/usr/bin
-          echo "--- File type of AppRun ---"
-          file /tmp/linuxdeployqt/squashfs-root/AppRun
-          echo "--- File type of linuxdeployqt binary ---"
-          file /tmp/linuxdeployqt/squashfs-root/usr/bin/linuxdeployqt
+          cd /tmp/linuxdeployqt # Change directory before extracting
+          ./linuxdeployqt.AppImage --appimage-extract # This extracts to squashfs-root in /tmp/linuxdeployqt
           
           echo "/tmp/linuxdeployqt/squashfs-root" >> $GITHUB_PATH
 
