@@ -33,8 +33,17 @@ jobs:
           msbuild waffleCopyPRO-Universal.vcxproj /p:Configuration=Release
         shell: cmd
 
+      - name: Deploy and Package
+        run: |
+          $RELEASE_DIR = "waffleCopyPRO-Universal/release"
+          & "${{ env.Qt5_Dir }}\bin\windeployqt.exe" --force --no-translations --no-compiler-runtime --dir $RELEASE_DIR "$RELEASE_DIR\waffleCopyPRO-Universal.exe"
+          Copy-Item -Path "waffleCopyPRO-Universal/fonts" -Destination $RELEASE_DIR -Recurse
+          Copy-Item -Path "waffleCopyPRO-Universal/WaffleUI" -Destination $RELEASE_DIR -Recurse
+          Compress-Archive -Path "$RELEASE_DIR/*" -DestinationPath "waffleCopyPRO-Universal-Windows.zip"
+        shell: pwsh
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: waffleCopyPRO-Universal-Windows
-          path: waffleCopyPRO-Universal/release/waffleCopyPRO-Universal.exe
+          path: waffleCopyPRO-Universal-Windows.zip
