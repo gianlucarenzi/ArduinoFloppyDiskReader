@@ -25,6 +25,8 @@ jobs:
           dir:          ${{ runner.temp }}
           setup-python: false
           
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
 
       - name: Build Project
         run: |
