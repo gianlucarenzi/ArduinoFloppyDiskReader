@@ -112,6 +112,22 @@ bool iequals(const std::string& a, const std::string& b) {
 		});
 }
 
+bool isValidFileExtension(const std::wstring& filename) {
+    const wchar_t* extension = wcsrchr(filename.c_str(), L'.');
+    if (extension) {
+        extension++;
+        if (iequals(extension, L"ADF") ||
+            iequals(extension, L"SCP") ||
+            iequals(extension, L"IMA") ||
+            iequals(extension, L"IMG") ||
+            iequals(extension, L"ST") ||
+            iequals(extension, L"IPF")) {
+            return true;
+        }
+    }
+    return false;
+}
+
 
 void internalListSettings(ArduinoFloppyReader::ArduinoInterface& io) {
 	for (int a = 0; a < MAX_SETTINGS; a++) {
@@ -490,6 +506,29 @@ void runDiagnostics(const std::wstring& port) {
 	writer.closeDevice();
 }
 
+void printUsage() {
+	printf("Usage:\r\n\n");
+	printf("To read a disk to a file (TYPE can be ADF, SCP, IMA, IMG, ST):\r\n");
+	printf("ArduinoFloppyReader <COMPORT> OutputFilename.TYPE [READ]\r\n\r\n");
+	printf("To write a file to disk (TYPE can be ADF, SCP, IMA, IMG, ST, IPF):\r\n");
+	printf("ArduinoFloppyReader <COMPORT> InputFilename.TYPE WRITE [VERIFY]\r\n\r\n");
+	printf("To start interface diagnostics:\r\n");
+	printf("ArduinoFloppyReader <COMPORT> DIAGNOSTIC\r\n\r\n");
+	printf("To start disk drive head cleaning:\r\n");
+	printf("ArduinoFloppyReader <COMPORT> CLEAN\r\n\r\n");
+	printf("To see the current EEPROM Ssettings:\r\n");
+	printf("ArduinoFloppyReader <COMPORT> SETTINGS\r\n\r\n");
+	printf("To set the status of one of the see EEPROM settings:\r\n");
+	printf("ArduinoFloppyReader <COMPORT> SETTINGS SET <NAME> 0/1\r\n\r\n");
+
+	printf("Detected Serial Devices:\r\n");
+	std::vector<std::wstring> portList;
+	ArduinoFloppyReader::ArduinoInterface::enumeratePorts(portList);
+	for (const std::wstring& port : portList)
+		printf("    %ls\n", port.c_str());
+	printf("\r\n");
+}
+
 #ifdef _WIN32
 int wmain(int argc, wchar_t* argv[], wchar_t *envp[])
 #else
@@ -500,96 +539,101 @@ int main(int argc, char* argv[], char *envp[])
 	printf("Full sourcecode and documentation at https://amiga.robsmithdev.co.uk\r\n");
 	printf("This is free software licenced under the GNU General Public Licence V3\r\n\r\n");
 
-	if (argc < 2) {
-		printf("Usage:\r\n\n");
-		printf("To read a disk to a file (TYPE can be ADF, SCP, IMA, IMG, ST):\r\n");
-		printf("ArduinoFloppyReader <COMPORT> OutputFilename.TYPE [READ]\r\n\r\n");
-		printf("To write a file to disk (TYPE can be ADF, SCP, IMA, IMG, ST, IPF):\r\n");
-		printf("ArduinoFloppyReader <COMPORT> InputFilename.TYPE WRITE [VERIFY]\r\n\r\n");
-		printf("To start interface diagnostics:\r\n");
-		printf("ArduinoFloppyReader <COMPORT> DIAGNOSTIC\r\n\r\n");
-		printf("To start disk drive head cleaning:\r\n");
-		printf("ArduinoFloppyReader <COMPORT> CLEAN\r\n\r\n");
-		printf("To see the current EEPROM Ssettings:\r\n");
-		printf("ArduinoFloppyReader <COMPORT> SETTINGS\r\n\r\n");
-		printf("To set the status of one of the see EEPROM settings:\r\n");
-		printf("ArduinoFloppyReader <COMPORT> SETTINGS SET <NAME> 0/1\r\n\r\n");
+	// Convert char* argv to std::wstring for easier and safer processing
+	std::vector<std::wstring> wargs;
+	for (int i = 0; i < argc; ++i) {
+#ifdef _WIN32
+		wargs.push_back(argv[i]);
+#else
+		wargs.push_back(atw(argv[i]));
+#endif
+	}
 
-		printf("Detected Serial Devices:\r\n");
-		std::vector<std::wstring> portList;
-		ArduinoFloppyReader::ArduinoInterface::enumeratePorts(portList);
-		for (const std::wstring& port : portList)
-			printf("    %ls\n", port.c_str());
-		printf("\r\n");
+	// Handle --version or -v argument explicitly
+	if (wargs.size() >= 2 && (iequals(wargs[1], L"--version") || iequals(wargs[1], L"-v"))) {
+		return 0; // Version already printed, just exit
+	}
 
+	// If no arguments or only executable name, print usage
+	if (wargs.size() < 2) {
+		printUsage();
 		return 0;
 	}
 
-#ifdef _WIN32
-	std::wstring port = argv[1];
-	int i = _wtoi(argv[1]);
-	if (i) port = L"COM" + std::to_wstring(i); else port = argv[1];
-#else
-	std::wstring port = atw(argv[1]);
-#endif
+	// Now, wargs[1] is guaranteed to exist and is the COMPORT or command
+	std::wstring port_arg = wargs[1];
+	std::wstring port;
 
 #ifdef _WIN32
-	bool eepromMode = (argc > 2) && (iequals(argv[2], L"SETTINGS"));
+	int i = _wtoi(port_arg.c_str()); // Use c_str() for _wtoi
+	if (i) port = L"COM" + std::to_wstring(i); else port = port_arg;
 #else
-	bool eepromMode = (argc > 2) && (iequals(argv[2], "SETTINGS"));
+	port = port_arg; // On Linux, port_arg is already the port name
 #endif
 
-	if (eepromMode) {
+	// Now, parse commands based on wargs[2], wargs[3], etc.
+	if (wargs.size() >= 3) {
+		std::wstring command = wargs[2];
 
-		if (argc >= 4) {
-#ifdef _WIN32
-			bool settingValue = iequals(argv[4], L"1");
-			std::wstring settingName = argv[3];
-			std::wstring port = argv[1];
-			int i = _wtoi(argv[1]);
-			if (i) port = L"COM" + std::to_wstring(i); else port = argv[1];
-#else
-			bool settingValue = iequals(argv[4], "1");
-			std::wstring settingName = atw(argv[3]);
-			std::wstring port = atw(argv[1]);
-#endif
-			programmeSetting(port, settingName, settingValue);
-			return 0;
-		}
-
-		listSettings(port);
-		return 0;
-	}
-
-	
-#ifdef _WIN32	
-	bool writeMode = (argc > 3) && (iequals(argv[3], L"WRITE"));
-	bool verify = (argc > 4) && (iequals(argv[4], L"VERIFY"));
-	if (argc >= 3) {
-		std::wstring filename = argv[2];
-#else
-	bool writeMode = (argc > 3) && (iequals(argv[3], "WRITE"));
-	bool verify = (argc > 4) && (iequals(argv[4], "VERIFY"));
-	if (argc >= 2) {
-		std::wstring filename = atw(argv[2]);
-#endif		
-		if (iequals(filename, L"DIAGNOSTIC")) {
+		if (iequals(command, L"DIAGNOSTIC")) {
 			runDiagnostics(port);
-		} else
-		if (!writer.openDevice(port)) {
-			printf("\rError opening COM port: %s  ", writer.getLastError().c_str());
-		}
-		else {
-			if (iequals(filename, L"CLEAN")) {
-				runCleaning(port);
+		} else if (iequals(command, L"CLEAN")) {
+			runCleaning(port);
+		} else if (iequals(command, L"SETTINGS")) {
+			if (wargs.size() >= 4 && iequals(wargs[3], L"SET")) {
+				if (wargs.size() >= 6) { // SETTINGS SET <NAME> 0/1
+					std::wstring settingName = wargs[4];
+					bool settingValue = iequals(wargs[5], L"1");
+					programmeSetting(port, settingName, settingValue);
+				} else {
+					printf("Error: Missing arguments for SETTINGS SET. Usage: <COMPORT> SETTINGS SET <NAME> 0/1\n");
+					printUsage();
+					return 1; // Indicate error
+				}
+			} else { // SETTINGS (list)
+				listSettings(port);
 			}
-			else {
-				if (writeMode) file2Disk(filename.c_str(), verify); else disk2file(filename.c_str());
+		} else if (isValidFileExtension(command)) { // It's a filename
+			std::wstring filename = command;
+
+			bool writeMode = false;
+			bool verify = false;
+
+			if (wargs.size() >= 4) {
+				if (iequals(wargs[3], L"WRITE")) {
+					writeMode = true;
+					if (wargs.size() >= 5 && iequals(wargs[4], L"VERIFY")) {
+						verify = true;
+					}
+				} else if (iequals(wargs[3], L"READ")) {
+					// READ is default, no action needed
+				} else {
+					printf("Error: Invalid argument for file operation: %ls. Expected WRITE or READ.\n", wargs[3].c_str());
+					printUsage();
+					return 1; // Indicate error
+				}
 			}
-			writer.closeDevice();
-		}
+            // If wargs.size() == 3, then it's just <COMPORT> <FILENAME>, which implies READ.
+
+			if (!writer.openDevice(port)) {
+				printf("\rError opening COM port: %s  ", writer.getLastError().c_str());
+			} else {
+				if (writeMode) file2Disk(filename, verify); else disk2file(filename);
+				writer.closeDevice();
+			}
+		} else { // Unrecognized command
+            printf("Error: Unrecognized command or invalid filename: %ls\n", command.c_str());
+            printUsage();
+            return 1;
+        }
+	} else { // wargs.size() == 2, only port provided, or port and invalid command
+		// This case is for "ArduinoFloppyReader <COMPORT>"
+		// It should print usage or indicate missing command.
+		printf("Error: Missing command or filename. Usage:\n");
+		printUsage();
+		return 1; // Indicate error
 	}
-	
+
 	printf("\r\n\r\n");
 	
     return 0;
