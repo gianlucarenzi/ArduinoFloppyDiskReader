@@ -39,6 +39,7 @@ HEADERS += \
     lib/capsapi/CapsLib.h \
     lib/capsapi/CapsPlug.h \
     lib/capsapi/Comtype.h \
+    lib/ibm_sectors.h \
     \
 
 
@@ -54,8 +55,8 @@ SOURCES += \
     lib/ftdi.cpp \
     lib/pll.cpp \
     lib/capsapi/CapsPlug.cpp \
+    lib/ibm_sectors.cpp \
     \
-    src/socketserver.cpp
 
 
 SOURCES += \
@@ -64,6 +65,7 @@ SOURCES += \
     src/main.cpp \
     src/mainwindow.cpp \
     src/qtdrawbridge.cpp \
+    src/socketserver.cpp \
     \
 
 
