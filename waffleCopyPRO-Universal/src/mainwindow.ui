@@ -597,28 +597,6 @@ background-color: rgb(61, 56, 70);</string>
      <string notr="true">HIGH DENSITY DISK SELECTION</string>
     </property>
    </widget>
-   <widget class="QCheckBox" name="skipBadTracksWhenReading">
-    <property name="enabled">
-     <bool>false</bool>
-    </property>
-    <property name="geometry">
-     <rect>
-      <x>240</x>
-      <y>450</y>
-      <width>161</width>
-      <height>25</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string extracomment="Skipping Bad Tracks when reading bad disks"/>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">color: rgb(255, 255, 255);</string>
-    </property>
-    <property name="text">
-     <string notr="true">Skip Bad Tracks</string>
-    </property>
-   </widget>
    <zorder>busy</zorder>
    <zorder>background</zorder>
    <zorder>stopButton</zorder>
@@ -643,7 +621,6 @@ background-color: rgb(61, 56, 70);</string>
    <zorder>version</zorder>
    <zorder>errorDialog</zorder>
    <zorder>hdModeSelection</zorder>
-   <zorder>skipBadTracksWhenReading</zorder>
   </widget>
  </widget>
  <customwidgets>
