@@ -143,7 +143,7 @@ static void setupSocketClient(void)
         hints.ai_protocol = IPPROTO_TCP;
 
         // Resolve the server address and port
-        rval = getaddrinfo(argv[1], SOCKET_PORT, &hints, &result);
+        rval = getaddrinfo("127.0.0.1", SOCKET_PORT, &hints, &result);
         if ( rval != 0 ) {
             printf("getaddrinfo failed with error: %d\n", rval);
             WSACleanup();

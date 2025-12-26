@@ -191,16 +191,21 @@ void SocketServer::process()
                 connfd = accept(sockfd, NULL, NULL);
                 if (connfd == INVALID_SOCKET)
                 {
+                    qDebug() << __FUNCTION__ << "server accept failed";
+                    emit NoAccept();
+                    rval = connfd;
+                    break;
+                }
 #else
                 connfd = accept(sockfd, (sockaddr*) &cli, &len);
                 if (connfd < 0)
-#endif
                 {
                     qDebug() << __FUNCTION__ << "server accept failed";
                     emit NoAccept();
                     rval = connfd;
                     break;
                 }
+#endif
             }
             else
             {
