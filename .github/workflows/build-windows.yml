@@ -16,12 +16,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v2
+        uses: jurplel/install-qt-action@v3
         with:
-          version:	5.15.2
-          host:		windows
-          target: 	desktop
-          arch: 	win64_msvc2019_64
+          version:	    5.15.2
+          host:		    windows
+          target: 	    desktop
+          arch:      	win64_msvc2019_64
+          dir:          ${{ runner.temp }}
+          setup-python: false
+          
 
       - name: Build Project
         run: |
