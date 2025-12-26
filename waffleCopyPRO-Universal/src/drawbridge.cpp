@@ -508,7 +508,8 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 
 
 // Read a disk and save it to ADF or SCP files
-void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode) {
+void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool skipReadError) {
+//    qDebug() << __PRETTY_FUNCTION__ << "START";
 	const wchar_t* extension = wcsrchr(filename.c_str(), L'.');
 	bool isADF = true;
 
@@ -536,8 +537,13 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode) {
 
 //    bool hdMode = false;
 
-    auto callback = [isADF, hdMode](const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound, const int totalSectors, const CallbackOperation operation) ->WriteResponse {
+    auto callback = [isADF, hdMode, skipReadError](const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound, const int totalSectors, const CallbackOperation operation) ->WriteResponse {
+//        qDebug() << __PRETTY_FUNCTION__ << "Callback entered. Track:" << currentTrack << "Side:" << (int)currentSide << "Retry:" << retryCounter << "Bad Sectors:" << badSectorsFound;
 		if (retryCounter > 20) {
+            if (skipReadError) {
+//                qDebug() << __PRETTY_FUNCTION__ << "skipReadError is true, returning wrSkipBadChecksums for Track:" << currentTrack;
+                return WriteResponse::wrSkipBadChecksums;
+            }
 			char input;
 			do {
 #ifdef __USE_GUI__
@@ -578,6 +584,7 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode) {
 #ifndef _WIN32
 		fflush(stdout);		
 #endif		
+//        qDebug() << __PRETTY_FUNCTION__ << "Returning wrContinue for Track:" << currentTrack;
 		return WriteResponse::wrContinue;
 	};
 
@@ -586,7 +593,14 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode) {
     if (numTracks > 83)
         numTracks = 83;
 
-    if (isADF) result = writer.DiskToADF(filename, hdMode, numTracks, callback); else result = writer.DiskToSCP(filename, hdMode, numTracks, 3, callback);
+    if (isADF) {
+        //qDebug() << __PRETTY_FUNCTION__ << "Calling DiskToADF";
+        result = writer.DiskToADF(filename, hdMode, numTracks, callback);
+    } else {
+        //qDebug() << __PRETTY_FUNCTION__ << "Calling DiskToSCP";
+        result = writer.DiskToSCP(filename, hdMode, numTracks, 3, callback);
+    }
+    qDebug() << __PRETTY_FUNCTION__ << "Disk read operation finished with result:" << (int)result;
 
 	switch (result) {
     case ADFResult::adfrComplete:					printf("\rFile created successfully.                                                     "); lastResponse = DiagnosticResponse::drOK; break;
@@ -646,6 +660,7 @@ int wmain(QStringList list)
     bool preComp = list.contains("PRECOMP");
     bool eraseBeforeWrite = list.contains("ERASEBEFOREWRITE");
     bool num82Tracks = list.contains("TRACKSNUM82");
+    bool skipReadError = list.contains("SKIPREADERROR");
     int numTracks = 80;
     bool isOpened = false;
     bool isHDMode = list.contains("HD");
@@ -665,6 +680,7 @@ int wmain(QStringList list)
     qDebug() << "eraseBeforeWrite" << eraseBeforeWrite;
     qDebug() << "TRACKS" << numTracks;
     qDebug() << "HD" << isHDMode;
+    qDebug() << "SKIPREADERROR" << skipReadError;
 
     userInputDone = false; // It will be changed by the user on errors
 
@@ -680,7 +696,7 @@ int wmain(QStringList list)
             if (writeMode) {
                 adf2Disk(filename.c_str(), verify, preComp, eraseBeforeWrite, isHDMode);
             } else {
-                disk2ADF(filename.c_str(), numTracks, isHDMode);
+                disk2ADF(filename.c_str(), numTracks, isHDMode, skipReadError);
                 lastResponse = writer.getLastErrorCode();
             }
 		}
