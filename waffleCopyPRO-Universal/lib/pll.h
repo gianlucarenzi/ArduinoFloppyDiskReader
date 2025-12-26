@@ -77,7 +77,7 @@ namespace PLL {
 		bool m_indexFound = false;
 
 		// Add data to the Rotation Extractor
-		void addToExtractor(unsigned int numZeros, unsigned int pllTimeInNS, unsigned int realTimeInNS);
+		void addToExtractor(int numZeros, unsigned int pllTimeInNS, unsigned int realTimeInNS);
 
 	public:
 		// Make me - if disabled this behaves very basic which might be useful for extraction of flux to SCP

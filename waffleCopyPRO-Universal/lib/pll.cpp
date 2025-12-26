@@ -177,7 +177,7 @@ void BridgePLL::submitFlux(uint32_t timeInNanoSeconds, bool isAtIndex) {
 }
 
 // Add data to the Rotation Extractor
-void BridgePLL::addToExtractor(unsigned int numZeros, unsigned int pllTimeInNS, unsigned int realTimeInNS) {
+void BridgePLL::addToExtractor(int numZeros, unsigned int pllTimeInNS, unsigned int realTimeInNS) {
     if (numZeros < 0) numZeros = 0;
 
     // More than 3 zeros.  This is not normal MFM, but is allowed
