@@ -23,6 +23,7 @@ jobs:
 
       - name: Build Project
         run: |
+          cd waffleCopyPRO-Universal
           qmake -tp vc waffleCopyPRO-Universal.pro
           msbuild waffleCopyPRO-Universal.vcxproj /p:Configuration=Release
         shell: pwsh
@@ -31,4 +32,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: waffleCopyPRO-Universal-Windows
-          path: release/waffleCopyPRO-Universal.exe
+          path: waffleCopyPRO-Universal/release/waffleCopyPRO-Universal.exe
