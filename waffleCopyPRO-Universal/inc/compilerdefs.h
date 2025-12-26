@@ -5,4 +5,10 @@
 #define __PRETTY_FUNCTION__ __FUNCSIG__
 #endif
 
+#ifdef _WIN32
+#ifndef UNREFERENCED_PARAMETER
+#define UNREFERENCED_PARAMETER(P) (P)
+#endif
+#endif
+
 #endif // COMPILERDEFS_H

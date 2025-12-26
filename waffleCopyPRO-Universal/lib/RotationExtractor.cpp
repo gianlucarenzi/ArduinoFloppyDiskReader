@@ -509,12 +509,11 @@ bool RotationExtractor::extractRotation(MFMSample* output, uint32_t& outputBits,
 }
 
 
-#ifdef _WIN32
-#pragma warning(push)
-#pragma warning(disable: 4100)
-#endif
 // Reset this back to "empty"
 void LinearExtractor::reset(bool isHD) {
+#ifdef _WIN32
+	UNREFERENCED_PARAMETER(isHD);
+#endif
 	m_totalTime = 0;
 	m_currentPosition = m_outputBuffer;
 	m_outputStreamPos = 0;
@@ -563,12 +562,13 @@ void LinearExtractor::copyToBuffer(void* data, const uint32_t dataSize) {
 }
 
 
-#ifdef _WIN32
-#pragma warning(push)
-#pragma warning(disable: 4100)
-#endif
 // Submit a single sequence to the list - abstract function
 void LinearExtractor::submitSequence(const MFMSequenceInfo& sequence, bool isIndex, bool discardEarlySamples) {
+#ifdef _WIN32
+	UNREFERENCED_PARAMETER(sequence);
+	UNREFERENCED_PARAMETER(isIndex);
+	UNREFERENCED_PARAMETER(discardEarlySamples);
+#endif
 	if (!m_currentPosition) return;
 
 	m_totalTime += sequence.timeNS;

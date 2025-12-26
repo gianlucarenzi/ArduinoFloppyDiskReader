@@ -60,6 +60,7 @@
 #define INDEX_NOT_FOUND					0xFFFFFFFF
 
 #include <stdint.h>
+#include "compilerdefs.h"
 
 // A class that can receive data 
 class MFMExtractionTarget {
@@ -241,10 +242,6 @@ public:
 };
 
 
-#ifdef _WIN32
-#pragma warning(push)
-#pragma warning(disable: 4100)
-#endif
 // Simple class to just receive that data being sent from the PLL into a linear MFM buffer. It doesn't try to find rotations 
 class LinearExtractor : public MFMExtractionTarget {
 private:
@@ -259,11 +256,27 @@ private:
 	inline void writeLinearBit(const bool value);
 public: 
 	// Dont care about this
-	virtual void setIndexSequence(const IndexSequenceMarker& sequence) override {};
-	virtual void getIndexSequence(IndexSequenceMarker& sequence) const override {};
+	virtual void setIndexSequence(const IndexSequenceMarker& sequence) override {
+#ifdef _WIN32
+		UNREFERENCED_PARAMETER(sequence);
+#endif
+	};
+	virtual void getIndexSequence(IndexSequenceMarker& sequence) const override {
+#ifdef _WIN32
+		UNREFERENCED_PARAMETER(sequence);
+#endif
+	};
 	virtual bool hasLearntRotationSpeed() const override { return true; };
 	virtual bool isInIndexMode() const override { return false; };
-	virtual bool extractRotation(MFMSample* output, uint32_t& outputBits, uint32_t maxBufferSizeBytes, bool usePLLTime = false) override { return false; };
+	virtual bool extractRotation(MFMSample* output, uint32_t& outputBits, uint32_t maxBufferSizeBytes, bool usePLLTime = false) override { 
+#ifdef _WIN32
+		UNREFERENCED_PARAMETER(output);
+		UNREFERENCED_PARAMETER(outputBits);
+		UNREFERENCED_PARAMETER(maxBufferSizeBytes);
+		UNREFERENCED_PARAMETER(usePLLTime);
+#endif
+		return false; 
+	};
 
 	// Returns TRUE if we are readt to extract (eg: full revolution or buffer full)
 	virtual bool canExtract() const override { return m_outputStreamPos >= m_totalSize; };
@@ -286,9 +299,6 @@ public:
 	// Submit a single sequence to the list - abstract function
 	virtual void submitSequence(const MFMSequenceInfo& sequence, bool isIndex, bool discardEarlySamples = true) override;
 };
-#ifdef _WIN32
-#pragma warning(pop)
-#endif
 
 
 
