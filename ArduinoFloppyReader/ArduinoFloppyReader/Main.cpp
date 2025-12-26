@@ -506,20 +506,20 @@ void runDiagnostics(const std::wstring& port) {
 	writer.closeDevice();
 }
 
-void printUsage() {
+void printUsage(const char *fileName) {
 	printf("Usage:\r\n\n");
 	printf("To read a disk to a file (TYPE can be ADF, SCP, IMA, IMG, ST):\r\n");
-	printf("ArduinoFloppyReader <COMPORT> OutputFilename.TYPE [READ]\r\n\r\n");
+	printf("%s <COMPORT> OutputFilename.TYPE [READ]\r\n\r\n", fileName);
 	printf("To write a file to disk (TYPE can be ADF, SCP, IMA, IMG, ST, IPF):\r\n");
-	printf("ArduinoFloppyReader <COMPORT> InputFilename.TYPE WRITE [VERIFY]\r\n\r\n");
+	printf("%s <COMPORT> InputFilename.TYPE WRITE [VERIFY]\r\n\r\n", fileName);
 	printf("To start interface diagnostics:\r\n");
-	printf("ArduinoFloppyReader <COMPORT> DIAGNOSTIC\r\n\r\n");
+	printf("%s <COMPORT> DIAGNOSTIC\r\n\r\n", fileName);
 	printf("To start disk drive head cleaning:\r\n");
-	printf("ArduinoFloppyReader <COMPORT> CLEAN\r\n\r\n");
-	printf("To see the current EEPROM Ssettings:\r\n");
-	printf("ArduinoFloppyReader <COMPORT> SETTINGS\r\n\r\n");
+	printf("%s <COMPORT> CLEAN\r\n\r\n", fileName);
+	printf("To see the current EEPROM settings:\r\n");
+	printf("%s <COMPORT> SETTINGS\r\n\r\n", fileName);
 	printf("To set the status of one of the see EEPROM settings:\r\n");
-	printf("ArduinoFloppyReader <COMPORT> SETTINGS SET <NAME> 0/1\r\n\r\n");
+	printf("%s <COMPORT> SETTINGS SET <NAME> 0/1\r\n\r\n", fileName);
 
 	printf("Detected Serial Devices:\r\n");
 	std::vector<std::wstring> portList;
@@ -556,7 +556,7 @@ int main(int argc, char* argv[], char *envp[])
 
 	// If no arguments or only executable name, print usage
 	if (wargs.size() < 2) {
-		printUsage();
+		printUsage(argv[0]);
 		return 0;
 	}
 
@@ -587,7 +587,7 @@ int main(int argc, char* argv[], char *envp[])
 					programmeSetting(port, settingName, settingValue);
 				} else {
 					printf("Error: Missing arguments for SETTINGS SET. Usage: <COMPORT> SETTINGS SET <NAME> 0/1\n");
-					printUsage();
+					printUsage(argv[0]);
 					return 1; // Indicate error
 				}
 			} else { // SETTINGS (list)
@@ -609,7 +609,7 @@ int main(int argc, char* argv[], char *envp[])
 					// READ is default, no action needed
 				} else {
 					printf("Error: Invalid argument for file operation: %ls. Expected WRITE or READ.\n", wargs[3].c_str());
-					printUsage();
+					printUsage(argv[0]);
 					return 1; // Indicate error
 				}
 			}
@@ -623,14 +623,14 @@ int main(int argc, char* argv[], char *envp[])
 			}
 		} else { // Unrecognized command
             printf("Error: Unrecognized command or invalid filename: %ls\n", command.c_str());
-            printUsage();
+            printUsage(argv[0]);
             return 1;
         }
 	} else { // wargs.size() == 2, only port provided, or port and invalid command
 		// This case is for "ArduinoFloppyReader <COMPORT>"
 		// It should print usage or indicate missing command.
 		printf("Error: Missing command or filename. Usage:\n");
-		printUsage();
+		printUsage(argv[0]);
 		return 1; // Indicate error
 	}
 
