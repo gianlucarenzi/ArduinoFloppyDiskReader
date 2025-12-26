@@ -1,3 +1,7 @@
+#ifdef _WIN32
+#include <winsock2.h>
+#include <windows.h>
+#endif
 /* ArduinoFloppyReader (and writer)
 *
 * Copyright (C) 2017-2021 Robert Smith (@RobSmithDev)
