@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -39,28 +39,24 @@ jobs:
           qmake waffleCopyPRO-Universal.pro
           make -j$(nproc)
 
-      - name: Install linuxdeployqt
+      - name: Deploy with linuxdeployqt in Docker
+        container: ubuntu:16.04
         run: |
+          apt-get update && apt-get install -y wget build-essential libgl1-mesa-dev patchelf zip qt5-default qtbase5-dev qtchooser
+          
           mkdir -p /tmp/linuxdeployqt
           wget -c -nv https://github.com/probonopd/linuxdeployqt/releases/download/7/linuxdeployqt-7-x86_64.AppImage -O /tmp/linuxdeployqt/linuxdeployqt.AppImage
           chmod a+x /tmp/linuxdeployqt/linuxdeployqt.AppImage
-          cd /tmp/linuxdeployqt # Change directory before extracting
-          ./linuxdeployqt.AppImage --appimage-extract # This extracts to squashfs-root in /tmp/linuxdeployqt
+          cd /tmp/linuxdeployqt
+          ./linuxdeployqt.AppImage --appimage-extract
           
-          echo "/tmp/linuxdeployqt/squashfs-root" >> $GITHUB_PATH
-
-      - name: Deploy and Package
-        run: |
-          cd waffleCopyPRO-Universal
+          cd /github/workspace/waffleCopyPRO-Universal
           mkdir release
-          # Use linuxdeployqt to deploy Qt dependencies
           /tmp/linuxdeployqt/squashfs-root/AppRun waffleCopyPRO-Universal -appimage -bundle-non-qt-libs -verbose=2
           
-          # Copy additional assets
           cp -r fonts release/
           cp -r WaffleUI release/
           
-          # Create zip archive
           zip -r ../waffleCopyPRO-Universal-Linux-amd64.zip release/
 
       - name: Upload Artifact
