@@ -290,7 +290,7 @@ bool attemptFixSector(const DecodedTrack& decodedTrack, DecodedSector& outputSec
 	SectorCounter* sectorSum = new SectorCounter[SECTOR_BYTES + SECTOR_BYTES];
 	if (!sectorSum) return false;
 
-	memset(sectorSum, 0, sizeof(sectorSum));
+	memset(sectorSum, 0, (SECTOR_BYTES + SECTOR_BYTES) * sizeof(SectorCounter));
 
 	// Calculate the number of '1's and '0's in each block
 	for (const DecodedSector& sec : decodedTrack.invalidSectors[sectorNumber]) 
@@ -1603,7 +1603,7 @@ ADFResult ADFWriter::diskToIBMST(const std::wstring& outputFile, const bool inHD
 	// First step is to ID the disk
 	// Select the track we're working on
 	if (m_device.selectTrack(0) != DiagnosticResponse::drOK) return ADFResult::adfrDriveError;
-	if (m_device.selectSurface(DiskSurface::dsLower) != DiagnosticResponse::drOK) ADFResult::adfrDriveError;
+	if (m_device.selectSurface(DiskSurface::dsLower) != DiagnosticResponse::drOK) return ADFResult::adfrDriveError;
 	
 	// To hold a raw track
 	RawTrackDataHD data;
@@ -1658,8 +1658,8 @@ ADFResult ADFWriter::diskToIBMST(const std::wstring& outputFile, const bool inHD
 		const DiskSurface surface = ((currentTrack % numHeads) == 1) ? DiskSurface::dsUpper : DiskSurface::dsLower;
 
 		// Select the track we're working on
-		if (m_device.selectTrack(cylinder) != DiagnosticResponse::drOK) ADFResult::adfrCompletedWithErrors;
-		if (m_device.selectSurface(surface) != DiagnosticResponse::drOK) ADFResult::adfrCompletedWithErrors;
+		if (m_device.selectTrack(cylinder) != DiagnosticResponse::drOK) return ADFResult::adfrCompletedWithErrors;
+		if (m_device.selectSurface(surface) != DiagnosticResponse::drOK) return ADFResult::adfrCompletedWithErrors;
 
 		// Reset (but keep the initial ones!)
 		if (currentTrack > 0) decodedTrack.sectors.clear();
