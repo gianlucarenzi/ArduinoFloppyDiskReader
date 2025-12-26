@@ -12,6 +12,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: ubuntu:16.04
 
     steps:
       - name: Checkout code
@@ -40,7 +41,6 @@ jobs:
           make -j$(nproc)
 
       - name: Deploy with linuxdeployqt in Docker
-        container: ubuntu:16.04
         run: |
           apt-get update && apt-get install -y wget build-essential libgl1-mesa-dev patchelf zip qt5-default qtbase5-dev qtchooser
           
