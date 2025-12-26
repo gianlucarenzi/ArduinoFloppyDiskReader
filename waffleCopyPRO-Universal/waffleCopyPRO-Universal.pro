@@ -71,6 +71,10 @@ SOURCES += \
 
 DEFINES += __USE_GUI__
 
+win32 {
+    CONFIG += moc_predefs
+}
+
 unix {
     LIBS += -ldl
 }
