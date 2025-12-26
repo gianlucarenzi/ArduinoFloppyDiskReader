@@ -328,7 +328,7 @@ bool iequals(const std::string& a, const std::string& b) {
 
 
 // Read an ADF file and write it to disk
-void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eraseFirst, bool hdMode) {
+void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eraseFirst, bool hdMode, bool skipWriteError) {
     bool isSCP = true;
     bool isIPF = false;
     bool writeFromIndex = true;
@@ -360,8 +360,11 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 
     ADFResult result;
     if (isIPF) {
-        result = writer.IPFToDisk(filename, eraseFirst, [](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
+        result = writer.IPFToDisk(filename, eraseFirst, [skipWriteError](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
             if (isVerifyError) {
+                if (skipWriteError) {
+                    return WriteResponse::wrSkipBadChecksums;
+                }
                 char input;
                 do {
                     printf("\rDisk write verify error on track %i, %s side. [R]etry, [S]kip, [A]bort?                                              ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
@@ -401,8 +404,11 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
     }
     else
     if (isSCP) {
-        result = writer.SCPToDisk(filename, eraseFirst, [](const int currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
+        result = writer.SCPToDisk(filename, eraseFirst, [skipWriteError](const int currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
             if (isVerifyError) {
+                if (skipWriteError) {
+                    return WriteResponse::wrSkipBadChecksums;
+                }
                 char input;
                 do {
                     printf("\rDisk write verify error on track %i, %s side. [R]etry, [S]kip, [A]bort?                                   ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
@@ -440,8 +446,11 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
             return WriteResponse::wrContinue;
             });
     } else {
-        result = writer.ADFToDisk(filename, hdMode, verify, preComp, eraseFirst, writeFromIndex, [](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
+        result = writer.ADFToDisk(filename, hdMode, verify, preComp, eraseFirst, writeFromIndex, [skipWriteError](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
             if (isVerifyError) {
+                if (skipWriteError) {
+                    return WriteResponse::wrSkipBadChecksums;
+                }
                 char input;
                 do {
     #ifdef __USE_GUI__
@@ -661,6 +670,7 @@ int wmain(QStringList list)
     bool eraseBeforeWrite = list.contains("ERASEBEFOREWRITE");
     bool num82Tracks = list.contains("TRACKSNUM82");
     bool skipReadError = list.contains("SKIPREADERROR");
+    bool skipWriteError = list.contains("SKIPWRITEERROR");
     int numTracks = 80;
     bool isOpened = false;
     bool isHDMode = list.contains("HD");
@@ -681,6 +691,7 @@ int wmain(QStringList list)
     qDebug() << "TRACKS" << numTracks;
     qDebug() << "HD" << isHDMode;
     qDebug() << "SKIPREADERROR" << skipReadError;
+    qDebug() << "SKIPWRITEERROR" << skipWriteError;
 
     userInputDone = false; // It will be changed by the user on errors
 
@@ -694,7 +705,7 @@ int wmain(QStringList list)
             setupSocketClient();
             isOpened = true;
             if (writeMode) {
-                adf2Disk(filename.c_str(), verify, preComp, eraseBeforeWrite, isHDMode);
+                adf2Disk(filename.c_str(), verify, preComp, eraseBeforeWrite, isHDMode, skipWriteError);
             } else {
                 disk2ADF(filename.c_str(), numTracks, isHDMode, skipReadError);
                 lastResponse = writer.getLastErrorCode();

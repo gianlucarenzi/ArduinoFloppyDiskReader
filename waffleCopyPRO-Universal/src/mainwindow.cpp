@@ -33,6 +33,7 @@ MainWindow::MainWindow(QWidget *parent)
   diskDriveHDensityMode(false),
   doRefresh(true),
   skipReadError(false),
+  skipWriteError(false),
   serialPort(1)
 {
     ui->setupUi(this);
@@ -89,6 +90,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->serial, SIGNAL(valueChanged(int)), this, SLOT(manageSerialPort(int)));
     connect(ui->hdModeSelection, SIGNAL(clicked()), this, SLOT(toggleDiskDensityMode()));
     connect(ui->skipReadError, SIGNAL(clicked()), this, SLOT(toggleSkipReadError()));
+    connect(ui->skipWriteError, SIGNAL(clicked()), this, SLOT(toggleSkipWriteError()));
     ui->copyCompleted->hide();
     ui->copyError->hide();
     // Busy background is invisible now
@@ -106,12 +108,14 @@ MainWindow::MainWindow(QWidget *parent)
     qDebug() << "BEFORE ERASEBEFOREWRITE" << eraseBeforeWrite;
     qDebug() << "BEFORE TRACKS82" << tracks82;
     qDebug() << "BEFORE SKIPREADERROR" << skipReadError;
+    qDebug() << "BEFORE SKIPWRITEERROR" << skipWriteError;
     qDebug() << "BEFORE COM PORT" << serialPort;
 
     preComp = settings.value("PRECOMP", true).toBool();
     eraseBeforeWrite = settings.value("ERASEBEFOREWRITE", false).toBool();
     tracks82 = settings.value("TRACKS82", false).toBool();
     skipReadError = settings.value("SKIPREADERROR", false).toBool();
+    skipWriteError = settings.value("SKIPWRITEERROR", false).toBool();
     serialPort = settings.value("SERIALPORT", 1).toInt();
     diskDriveHDensityMode = settings.value("HD", false).toBool();
 
@@ -120,12 +124,14 @@ MainWindow::MainWindow(QWidget *parent)
     ui->eraseBeforeWrite->setChecked(eraseBeforeWrite);
     ui->numTracks->setChecked(tracks82);
     ui->skipReadError->setChecked(skipReadError);
+    ui->skipWriteError->setChecked(skipWriteError);
     ui->serial->setValue(serialPort);
 
     qDebug() << "AFTER PRECOMP" << preComp;
     qDebug() << "AFTER ERASEBEFOREWRITE" << eraseBeforeWrite;
     qDebug() << "AFTER TRACKS82" << tracks82;
     qDebug() << "AFTER SKIPREADERROR" << skipReadError;
+    qDebug() << "AFTER SKIPWRITEERROR" << skipWriteError;
     qDebug() << "AFTER COM PORT" << serialPort;
 
     ui->errorDialog->hide();
@@ -218,6 +224,18 @@ void MainWindow::toggleSkipReadError(void)
     settings.sync();
 }
 
+void MainWindow::toggleSkipWriteError(void)
+{
+    skipWriteError = !skipWriteError;
+    if (skipWriteError)
+        qDebug() << "SKIP WRITE ERROR ENABLED";
+    else
+        qDebug() << "SKIP WRITE ERROR DISABLED";
+    ui->skipWriteError->setChecked(skipWriteError);
+    settings.setValue("SKIPWRITEERROR", skipWriteError);
+    settings.sync();
+}
+
 void MainWindow::doneWork(void)
 {
     qDebug() << "doneWork" << "status:" << status;
@@ -294,6 +312,7 @@ void MainWindow::doScroll(void)
         ui->errorMessage->setFont(this->font());
         ui->hdModeSelection->setFont(this->font());
         ui->skipReadError->setFont(this->font());
+        ui->skipWriteError->setFont(this->font());
         doRefresh = ! doRefresh;
     }
 }
@@ -390,6 +409,9 @@ void MainWindow::checkStartWrite(void)
 
     if (diskDriveHDensityMode)
         command.append("HD");
+
+    if (skipWriteError)
+        command.append("SKIPWRITEERROR");
 
     qDebug() << "PORT: " << port;
     qDebug() << "FILENAME: " << filename;

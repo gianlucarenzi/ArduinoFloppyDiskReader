@@ -53,6 +53,7 @@ private:
     bool diskDriveHDensityMode;
     bool doRefresh;
     bool skipReadError;
+    bool skipWriteError;
     void startWrite(void);
     void startRead(void);
     void showSetupError(QString err);
@@ -81,6 +82,7 @@ private slots:
     void toggleNumTracks(void);
     void toggleDiskDensityMode(void);
     void toggleSkipReadError(void);
+    void toggleSkipWriteError(void);
     void manageError(void);
     void wSysWatcher(void);
     void manageSerialPort(int p);

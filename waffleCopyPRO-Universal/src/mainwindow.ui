@@ -431,7 +431,7 @@ background-color: rgb(61, 56, 70);</string>
     </property>
     <property name="geometry">
      <rect>
-      <x>260</x>
+      <x>180</x>
       <y>280</y>
       <width>51</width>
       <height>25</height>
@@ -445,6 +445,22 @@ background-color: rgb(61, 56, 70);</string>
     </property>
     <property name="checked">
      <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="skipWriteError">
+    <property name="geometry">
+     <rect>
+      <x>250</x>
+      <y>280</y>
+      <width>150</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string notr="true">Skip Write Errors</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="eraseBeforeWrite">
@@ -635,6 +651,7 @@ background-color: rgb(61, 56, 70);</string>
    <zorder>eraseBeforeWrite</zorder>
    <zorder>numTracks</zorder>
    <zorder>skipReadError</zorder>
+   <zorder>skipWriteError</zorder>
    <zorder>version</zorder>
    <zorder>errorDialog</zorder>
    <zorder>hdModeSelection</zorder>
