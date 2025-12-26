@@ -9,17 +9,19 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2019
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v2
         with:
-          version: '5.15.2'
-          arch: 'win64_msvc2019'
+          version:	5.15.2
+          host:		windows
+          target: 	desktop
+          arch: 	win64_msvc2019_64
 
       - name: Build Project
         run: |
