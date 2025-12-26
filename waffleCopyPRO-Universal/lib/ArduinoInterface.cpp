@@ -2586,12 +2586,14 @@ void ArduinoInterface::enumeratePorts(std::vector<std::wstring>& portList) {
 	}
 }
 
-#ifdef _WIN32
-#pragma warning(push)
-#pragma warning(disable: 4100)
-#endif
 // Reset reason information
 DiagnosticResponse ArduinoInterface::getResetReason(bool& WD, bool& BOD, bool& ExtReset, bool& PowerOn) {
+#ifdef _WIN32
+	UNREFERENCED_PARAMETER(WD);
+	UNREFERENCED_PARAMETER(BOD);
+	UNREFERENCED_PARAMETER(ExtReset);
+	UNREFERENCED_PARAMETER(PowerOn);
+#endif
 	if ((m_version.major > 1) || ((m_version.major == 1) && (m_version.minor > 9)) || ((m_version.major == 1) && (m_version.minor == 9) && (m_version.buildNumber >= 26))) {
 		// TODO
 		return DiagnosticResponse::drOldFirmware;

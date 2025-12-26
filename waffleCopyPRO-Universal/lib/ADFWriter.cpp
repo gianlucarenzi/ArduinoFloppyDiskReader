@@ -2235,7 +2235,7 @@ ADFResult ADFWriter::DiskToSCP(const std::wstring& outputFile, bool isHDMode, co
 			}
 
 			// Write out the revolution headers
-			unsigned int dataPos = sizeof(track.header) + (track.revolution.size() * sizeof(SCPTrackRevolution));
+			unsigned int dataPos = static_cast<unsigned int>(sizeof(track.header) + (track.revolution.size() * sizeof(SCPTrackRevolution)));
 			for (unsigned int a = 0; a < track.revolution.size(); a++) {
 				track.revolution[a].dataOffset = dataPos;
 				try {
@@ -2401,7 +2401,7 @@ ADFResult ADFWriter::SCPToDisk(const std::wstring& inputFile, bool extraErases, 
 				hADFFile.seekp(trk.revolution[r].dataOffset + trackOffsets[track], std::fstream::beg);
 
 				allData.resize(trk.revolution[r].trackLength);
-				trk.revolution[r].dataOffset = actualFluxTimes.size();  // for use later on
+				trk.revolution[r].dataOffset = static_cast<uint32_t>(actualFluxTimes.size());  // for use later on
 				try {
 					hADFFile.read((char*)allData.data(), trk.revolution[r].trackLength * 2);
 					// Convert allData into proper flux times in nanoseconds
@@ -2416,7 +2416,7 @@ ADFResult ADFWriter::SCPToDisk(const std::wstring& inputFile, bool extraErases, 
 						}
 					}
 
-					trk.revolution[r].trackLength = actualFluxTimes.size() - trk.revolution[r].dataOffset;
+					trk.revolution[r].trackLength = static_cast<uint32_t>(actualFluxTimes.size() - trk.revolution[r].dataOffset);
 				}
 				catch (...) {
 					hADFFile.close();
@@ -2531,7 +2531,7 @@ ADFResult ADFWriter::DiskToADF(const std::wstring& outputFile, const bool inHDMo
 						m_device.selectTrack(currentTrack);
 					}
 
-					switch (callback(currentTrack, surface, failureTotal, track.validSectors.size(), total, maxSectorsPerTrack, failureTotal > 0 ? CallbackOperation::coRetryReading : CallbackOperation::coReading)) {
+					switch (callback(static_cast<int>(currentTrack), surface, failureTotal, track.validSectors.size(), total, maxSectorsPerTrack, failureTotal > 0 ? CallbackOperation::coRetryReading : CallbackOperation::coReading)) {
 						case WriteResponse::wrContinue: break;  // do nothing
 						case WriteResponse::wrRetry:    failureTotal = 0; break;
 						case WriteResponse::wrAbort:    hADFFile.close();
@@ -2775,16 +2775,16 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
 
 			// Now convert this data into flux timings, based on the data
 			flux.clear();
-			DWORD fluxSoFar = 0;
-			DWORD fluxSoFarOut = 0;
-			DWORD numbits = 0;
+			uint32_t fluxSoFar = 0;
+			uint32_t fluxSoFarOut = 0;
+			uint32_t numbits = 0;
 			int64_t fluxTimeAtOverlap = 0;
 			int overlapPos = trackInfo.overlap % trackInfo.tracklen;
 			if (overlapPos < 0) overlapPos += trackInfo.tracklen;
 			uint64_t totalTime = 0;
 
 			for (size_t i = 0; i < data.size(); i++) {
-				size_t time = (DWORD)DensityToNS(data[i].density);
+				uint32_t time = DensityToNS(data[i].density);
 				fluxSoFar += time;
 				fluxSoFarOut = 0;
 				numbits++;

@@ -37,6 +37,7 @@
 #include "RotationExtractor.h"
 #include "pll.h"
 #include "SerialIO.h"
+#include "compilerdefs.h"
 
 // Paula on the Amiga used to find the SYNC then read 1900 WORDS. (12868 bytes)
 // As the PC is doing the SYNC we need to read more than this to allow a further overlap
