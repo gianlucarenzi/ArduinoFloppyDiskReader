@@ -5,6 +5,8 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -47,3 +49,11 @@ jobs:
         with:
           name: waffleCopyPRO-Universal-Windows
           path: waffleCopyPRO-Universal-Windows.zip
+
+      - name: Upload Release Asset
+        if: github.event_name == 'release' && github.event.action == 'published'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: waffleCopyPRO-Universal-Windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
