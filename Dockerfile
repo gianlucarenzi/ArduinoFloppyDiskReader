@@ -77,6 +77,10 @@ RUN mkdir -p AppDir/lib64 && \
 RUN cp ./WaffleUI/waffleCopyPRO-icon.png AppDir/waffleCopyPRO-Universal-icon.png
 RUN cp ./WaffleUI/waffleCopyPRO-icon.png AppDir/.DirIcon
 
+# Create directories for Qt plugins
+RUN mkdir -p AppDir/usr/lib/qt5/plugins/platforms && \
+    mkdir -p AppDir/usr/lib/qt5/plugins/imageformats
+
 # Copy essential Qt plugins
 RUN cp /usr/lib/x86_64-linux-gnu/qt5/plugins/platforms/libqxcb.so AppDir/usr/lib/qt5/plugins/platforms/ && \
     cp /usr/lib/x86_64-linux-gnu/qt5/plugins/imageformats/libqico.so AppDir/usr/lib/qt5/plugins/imageformats/ && \
