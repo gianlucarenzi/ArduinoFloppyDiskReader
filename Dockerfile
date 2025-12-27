@@ -47,8 +47,13 @@ RUN cp -r ./WaffleUI AppDir/usr/share/waffleCopyPRO-Universal/
 # Manually collect dependencies using ldd
 # This is a simplified version and might need iteration for all dependencies
 RUN executable="AppDir/usr/bin/waffleCopyPRO-Universal" && \
+    echo "ldd output for $executable:" && \
+    ldd "$executable" && \
     libs=$(ldd "$executable" | grep "=>" | awk '{print $3}' | xargs -I {} find /usr/lib /lib -name "$(basename {})" 2>/dev/null | sort -u) && \
-    for lib in $libs; do cp "$lib" AppDir/usr/lib/; done
+    echo "Libraries to copy: $libs" && \
+    for lib in $libs; do cp "$lib" AppDir/usr/lib/; done && \
+    echo "Contents of AppDir/usr/lib after copy:" && \
+    ls -l AppDir/usr/lib
 
 # Create a basic .desktop file for the AppImage
 RUN echo "[Desktop Entry]\nName=WaffleCopyPRO-Universal\nExec=waffleCopyPRO-Universal\nIcon=waffleCopyPRO-Universal-icon\nType=Application\nCategories=Utility;\n" > AppDir/waffleCopyPRO-Universal.desktop
