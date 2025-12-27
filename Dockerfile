@@ -51,11 +51,13 @@ RUN echo "Invalidating cache for library collection" && \
     echo "ldd output for $executable:" && \
     ldd_output=$(ldd "$executable") && \
     echo "$ldd_output" && \
-    libs=$(echo "$ldd_output" | grep "=>" | awk '{print $3}' | grep -v "ld-linux" | sort -u) && \
+    libs=$(echo "$ldd_output" | awk '{print $1, $3}' | sed 's/ =>//' | grep -v "linux-vdso" | grep -v "ld-linux" | sort -u | xargs -n1 realpath 2>/dev/null) && \
     echo "Libraries to copy: $libs" && \
     for lib in $libs; do \
-        mkdir -p AppDir/$(dirname "$lib") && \
-        cp "$lib" AppDir/$(dirname "$lib")/ || true; \
+        if [ -f "$lib" ]; then \
+            mkdir -p AppDir/$(dirname "$lib") && \
+            cp "$lib" AppDir/$(dirname "$lib")/ || true; \
+        fi \
     done && \
     echo "Contents of AppDir/usr/lib after copy:" && \
     ls -l AppDir/usr/lib
