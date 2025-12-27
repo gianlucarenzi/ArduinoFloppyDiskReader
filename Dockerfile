@@ -46,12 +46,17 @@ RUN cp -r ./WaffleUI AppDir/usr/share/waffleCopyPRO-Universal/
 
 # Manually collect dependencies using ldd
 # This is a simplified version and might need iteration for all dependencies
-RUN executable="AppDir/usr/bin/waffleCopyPRO-Universal" && \
+RUN echo "Invalidating cache for library collection" && \
+    executable="AppDir/usr/bin/waffleCopyPRO-Universal" && \
     echo "ldd output for $executable:" && \
-    ldd "$executable" && \
-    libs=$(ldd "$executable" | grep "=>" | awk '{print $3}' | xargs -I {} find /usr/lib /lib -name "$(basename {})" 2>/dev/null | sort -u) && \
+    ldd_output=$(ldd "$executable") && \
+    echo "$ldd_output" && \
+    libs=$(echo "$ldd_output" | grep "=>" | awk '{print $3}' | grep -v "ld-linux" | sort -u) && \
     echo "Libraries to copy: $libs" && \
-    for lib in $libs; do cp "$lib" AppDir/usr/lib/; done && \
+    for lib in $libs; do \
+        mkdir -p AppDir/$(dirname "$lib") && \
+        cp "$lib" AppDir/$(dirname "$lib")/ || true; \
+    done && \
     echo "Contents of AppDir/usr/lib after copy:" && \
     ls -l AppDir/usr/lib
 
