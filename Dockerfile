@@ -30,6 +30,7 @@ WORKDIR /app/waffleCopyPRO-Universal
 
 # Build the project
 RUN qmake waffleCopyPRO-Universal.pro
+RUN make clean
 RUN make -j$(nproc)
 
 # Deploy and Package into AppImage
