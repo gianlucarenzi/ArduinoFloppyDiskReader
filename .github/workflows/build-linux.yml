@@ -1,0 +1,38 @@
+name: Build WaffleCopyPRO on Linux
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build AppImage
+        run: |
+          chmod +x build.sh
+          ./build.sh
+        shell: bash
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: waffleCopyPRO-Universal-Linux
+          path: dist/WaffleCopyPRO-Universal-x86_64.AppImage
+
+      - name: Upload Release Asset
+        if: github.event_name == 'release' && github.event.action == 'published'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/WaffleCopyPRO-Universal-x86_64.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
