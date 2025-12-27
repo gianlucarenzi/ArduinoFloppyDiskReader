@@ -66,7 +66,7 @@ RUN echo "Invalidating cache for library collection" && \
 RUN echo "[Desktop Entry]\nName=WaffleCopyPRO-Universal\nExec=waffleCopyPRO-Universal\nIcon=waffleCopyPRO-Universal-icon\nType=Application\nCategories=Utility;\n" > AppDir/waffleCopyPRO-Universal.desktop
 
 # Create the AppRun script
-RUN echo '#!/bin/bash\nHERE="$(dirname "$(readlink -f "${0}")")"\nexport LD_LIBRARY_PATH="$HERE"/usr/lib:"$HERE"/lib64:"$LD_LIBRARY_PATH"\nexec "$HERE"/usr/share/waffleCopyPRO-Universal/waffleCopyPRO-Universal "$@"' > AppDir/AppRun && \
+RUN echo '#!/bin/bash\nHERE="$(dirname "$(readlink -f "${0}")")"\nexport LD_LIBRARY_PATH="$HERE"/usr/lib:"$HERE"/lib64:"$LD_LIBRARY_PATH"\nexport QT_QPA_PLATFORM_PLUGIN_PATH="$HERE"/usr/lib/qt5/plugins\nexport QT_QPA_FONTDIR="$HERE"/usr/share/waffleCopyPRO-Universal/fonts\ncd "$HERE"/usr/share/waffleCopyPRO-Universal/\nexec "./waffleCopyPRO-Universal" "$@"' > AppDir/AppRun && \
     chmod +x AppDir/AppRun
 
 # Copy the dynamic linker
@@ -76,6 +76,11 @@ RUN mkdir -p AppDir/lib64 && \
 # Copy the existing icon for the .desktop file and .DirIcon
 RUN cp ./WaffleUI/waffleCopyPRO-icon.png AppDir/waffleCopyPRO-Universal-icon.png
 RUN cp ./WaffleUI/waffleCopyPRO-icon.png AppDir/.DirIcon
+
+# Copy essential Qt plugins
+RUN cp /usr/lib/x86_64-linux-gnu/qt5/plugins/platforms/libqxcb.so AppDir/usr/lib/qt5/plugins/platforms/ && \
+    cp /usr/lib/x86_64-linux-gnu/qt5/plugins/imageformats/libqico.so AppDir/usr/lib/qt5/plugins/imageformats/ && \
+    cp /usr/lib/x86_64-linux-gnu/qt5/plugins/imageformats/libqjpeg.so AppDir/usr/lib/qt5/plugins/imageformats/
 
 RUN ls -l AppDir # Debug: List files in AppDir before appimagetool
 
