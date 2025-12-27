@@ -10,13 +10,6 @@ RUN apt update && apt upgrade -y && \
     apt install -y build-essential git cmake libgl1-mesa-dev qt5-default qttools5-dev-tools libfuse2 curl xz-utils && \
     rm -rf /var/lib/apt/lists/*
 
-# Download and extract linuxdeployqt
-RUN curl -L https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage -o /tmp/linuxdeployqt.AppImage && \
-    chmod a+x /tmp/linuxdeployqt.AppImage && \
-    /tmp/linuxdeployqt.AppImage --appimage-extract && \
-    mv squashfs-root /usr/local/linuxdeployqt_extracted && \
-    rm /tmp/linuxdeployqt.AppImage
-
 # Download and extract appimagetool
 RUN curl -L https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -o /tmp/appimagetool.AppImage && \
     chmod a+x /tmp/appimagetool.AppImage && \
@@ -38,20 +31,39 @@ RUN make -j$(nproc)
 # Assuming it's in the current directory after make
 
 # Deploy and Package into AppImage
-# Run linuxdeployqt on the executable, letting it create the AppDir
-RUN bash -c "export PATH=$PATH:$(pwd) && pwd && ls -l ./waffleCopyPRO-Universal && /usr/local/linuxdeployqt_extracted/AppRun ./waffleCopyPRO-Universal"
+# Deploy and Package into AppImage
+# Create the AppDir structure
+RUN mkdir -p AppDir/usr/bin
+RUN mkdir -p AppDir/usr/lib
+RUN mkdir -p AppDir/usr/share/waffleCopyPRO-Universal
 
-# Find the created AppDir (e.g., waffleCopyPRO-Universal.AppDir)
-# and copy fonts and WaffleUI into it
-RUN APPLDIR=$(find . -maxdepth 1 -type d -name "*.AppDir" | head -n 1) && \
-    if [ -z "$APPLDIR" ]; then echo "AppDir not found!"; exit 1; fi && \
-    cp -r ./fonts "$APPLDIR/" && \
-    cp -r ./WaffleUI "$APPLDIR/"
+# Copy the executable into the AppDir
+RUN cp waffleCopyPRO-Universal AppDir/usr/bin/
+
+# Copy fonts and WaffleUI into the AppDir
+RUN cp -r ./fonts AppDir/usr/share/waffleCopyPRO-Universal/
+RUN cp -r ./WaffleUI AppDir/usr/share/waffleCopyPRO-Universal/
+
+# Manually collect dependencies using ldd
+# This is a simplified version and might need iteration for all dependencies
+RUN executable="AppDir/usr/bin/waffleCopyPRO-Universal" && \
+    libs=$(ldd "$executable" | grep "=>" | awk '{print $3}' | xargs -I {} find /usr/lib /lib -name "$(basename {})" 2>/dev/null | sort -u) && \
+    for lib in $libs; do cp "$lib" AppDir/usr/lib/; done
+
+# Create a basic .desktop file for the AppImage
+RUN echo "[Desktop Entry]\n\
+Name=WaffleCopyPRO-Universal\n\
+Exec=waffleCopyPRO-Universal\n\
+Icon=waffleCopyPRO-Universal\n\
+Type=Application\n\
+Categories=Utility;\n\
+" > AppDir/waffleCopyPRO-Universal.desktop
+
+# Create a .DirIcon
+RUN cp ./WaffleUI/waffleCopyPRO.png AppDir/.DirIcon
 
 # Convert AppDir to AppImage using appimagetool
-RUN APPLDIR=$(find . -maxdepth 1 -type d -name "*.AppDir" | head -n 1) && \
-    if [ -z "$APPLDIR" ]; then echo "AppDir not found!"; exit 1; fi && \
-    /usr/local/appimagetool_extracted/AppRun "$APPLDIR"
+RUN /usr/local/appimagetool_extracted/AppRun AppDir
 
 RUN mkdir -p /app/release
 RUN mv *.AppImage /app/release/
