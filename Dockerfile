@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Update apt and install build tools and Qt 5.12
 RUN apt update && apt upgrade -y && \
-    apt install -y build-essential git cmake libgl1-mesa-dev qt5-default qttools5-dev-tools libfuse2 curl xz-utils && \
+    apt install -y build-essential git cmake libgl1-mesa-dev qt5-default qttools5-dev-tools libfuse2 curl xz-utils imagemagick && \
     rm -rf /var/lib/apt/lists/*
 
 # Download and extract appimagetool
@@ -54,13 +54,17 @@ RUN executable="AppDir/usr/bin/waffleCopyPRO-Universal" && \
 RUN echo "[Desktop Entry]\n\
 Name=WaffleCopyPRO-Universal\n\
 Exec=waffleCopyPRO-Universal\n\
-Icon=waffleCopyPRO-Universal\n\
+Icon=waffleCopyPRO-Universal-icon\n\
 Type=Application\n\
 Categories=Utility;\n\
 " > AppDir/waffleCopyPRO-Universal.desktop
 
-# Create a .DirIcon
-RUN cp ./WaffleUI/waffleCopyPRO.png AppDir/.DirIcon
+# Create circular icon with transparent background
+RUN convert ./WaffleUI/waffleCopyPRO.png -alpha set -virtual-pixel transparent -channel A -morphology erode disk:5 -trim +repage -background none -gravity center -extent 256x256 ./waffleCopyPRO-icon.png
+
+# Copy the processed icon for the .desktop file and .DirIcon
+RUN cp ./waffleCopyPRO-icon.png AppDir/waffleCopyPRO-Universal-icon.png
+RUN cp ./waffleCopyPRO-icon.png AppDir/.DirIcon
 
 # Convert AppDir to AppImage using appimagetool
 RUN /usr/local/appimagetool_extracted/AppRun AppDir
