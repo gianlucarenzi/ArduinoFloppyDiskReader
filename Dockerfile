@@ -64,8 +64,12 @@ RUN echo "Invalidating cache for library collection" && \
 RUN echo "[Desktop Entry]\nName=WaffleCopyPRO-Universal\nExec=waffleCopyPRO-Universal\nIcon=waffleCopyPRO-Universal-icon\nType=Application\nCategories=Utility;\n" > AppDir/waffleCopyPRO-Universal.desktop
 
 # Create the AppRun script
-RUN echo "#!/bin/bash\nHERE=\"$(dirname \"$(readlink -f \"${0}\")\")\"\nexec \"$HERE\"/usr/bin/waffleCopyPRO-Universal \"$@\"" > AppDir/AppRun && \
+RUN echo "#!/bin/bash\nHERE=\"$(dirname \"$(readlink -f \"${0}\")\")\"\nexport LD_LIBRARY_PATH=\"$HERE\"/usr/lib:\"$HERE\"/lib64:\"$LD_LIBRARY_PATH\"\nexec \"$HERE\"/lib64/ld-linux-x86-64.so.2 --library-path \"$HERE\"/usr/lib \"$HERE\"/usr/bin/waffleCopyPRO-Universal \"$@\"" > AppDir/AppRun && \
     chmod +x AppDir/AppRun
+
+# Copy the dynamic linker
+RUN mkdir -p AppDir/lib64 && \
+    cp /lib64/ld-linux-x86-64.so.2 AppDir/lib64/
 
 # Copy the existing icon for the .desktop file and .DirIcon
 RUN cp ./WaffleUI/waffleCopyPRO-icon.png AppDir/waffleCopyPRO-Universal-icon.png
