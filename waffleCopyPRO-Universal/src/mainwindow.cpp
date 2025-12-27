@@ -627,9 +627,9 @@ void MainWindow::on_fileReadADF_clicked()
 
 void MainWindow::on_fileSaveADF_clicked()
 {
-        QString fileName = QFileDialog::getSaveFileName(this, tr("Write ADF FileName to be written on hard disk"),
+        QString fileName = QFileDialog::getSaveFileName(this, tr("Write Disk Image File to be written on hard disk"),
             ui->setADFFileName->text(),
-            tr("ADF Files(*.adf)"));    if (!fileName.isEmpty())
+            tr("Disk Images (*.adf *.scp *.ima *.img *.st);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st)"));    if (!fileName.isEmpty())
         ui->setADFFileName->setText(fileName);
 
 }
