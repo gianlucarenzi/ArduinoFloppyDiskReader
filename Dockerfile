@@ -78,6 +78,14 @@ RUN cp ./WaffleUI/waffleCopyPRO-icon.png AppDir/waffleCopyPRO-Universal-icon.png
 RUN cp ./WaffleUI/waffleCopyPRO-icon.png AppDir/.DirIcon
 
 RUN ls -l AppDir # Debug: List files in AppDir before appimagetool
+
+# Create directories for Qt plugins
+RUN mkdir -p AppDir/usr/lib/qt5/plugins/platforms && \
+    mkdir -p AppDir/usr/lib/qt5/plugins/imageformats
+
+# Debug: List system Qt plugin directories to identify plugins
+RUN ls -l /usr/lib/x86_64-linux-gnu/qt5/plugins/platforms/
+RUN ls -l /usr/lib/x86_64-linux-gnu/qt5/plugins/imageformats/
 # Convert AppDir to AppImage using appimagetool
 RUN /usr/local/appimagetool_extracted/AppRun AppDir
 
