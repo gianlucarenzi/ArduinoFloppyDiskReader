@@ -63,6 +63,8 @@ Categories=Utility;\n\
 RUN cp ./WaffleUI/waffleCopyPRO-icon.png AppDir/waffleCopyPRO-Universal-icon.png
 RUN cp ./WaffleUI/waffleCopyPRO-icon.png AppDir/.DirIcon
 
+RUN ls -l AppDir # Debug: List files in AppDir before appimagetool
+RUN ls -l AppDir/usr/bin # Debug: List files in AppDir/usr/bin before appimagetool
 # Convert AppDir to AppImage using appimagetool
 RUN /usr/local/appimagetool_extracted/AppRun AppDir
 
