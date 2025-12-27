@@ -37,22 +37,20 @@ RUN make -j$(nproc)
 # Assuming it's in the current directory after make
 
 # Deploy and Package into AppImage
-# Create a staging directory for the AppDir structure
-RUN mkdir -p /tmp/appdir_staging/usr/bin
-RUN mkdir -p /tmp/appdir_staging/usr/share/waffleCopyPRO-Universal
+# Run linuxdeployqt on the executable, letting it create the AppDir
+RUN /usr/local/linuxdeployqt_extracted/AppRun /app/waffleCopyPRO-Universal/waffleCopyPRO-Universal
 
-# Copy the executable into the staging directory
-RUN cp waffleCopyPRO-Universal /tmp/appdir_staging/usr/bin/
+# Find the created AppDir (e.g., waffleCopyPRO-Universal.AppDir)
+# and copy fonts and WaffleUI into it
+RUN APPLDIR=$(find . -maxdepth 1 -type d -name "*.AppDir" | head -n 1) && \
+    if [ -z "$APPLDIR" ]; then echo "AppDir not found!"; exit 1; fi && \
+    cp -r ./fonts "$APPLDIR/" && \
+    cp -r ./WaffleUI "$APPLDIR/"
 
-# Copy fonts and WaffleUI into the staging directory
-RUN cp -r ./fonts /tmp/appdir_staging/usr/share/waffleCopyPRO-Universal/
-RUN cp -r ./WaffleUI /tmp/appdir_staging/usr/share/waffleCopyPRO-Universal/
-
-# Run linuxdeployqt on the executable within the staging directory
-RUN /usr/local/linuxdeployqt_extracted/AppRun /tmp/appdir_staging/usr/bin/waffleCopyPRO-Universal -appdir=/tmp/appdir_staging
-
-# Convert the staging directory (AppDir) to AppImage using appimagetool
-RUN /usr/local/appimagetool_extracted/AppRun /tmp/appdir_staging
+# Convert AppDir to AppImage using appimagetool
+RUN APPLDIR=$(find . -maxdepth 1 -type d -name "*.AppDir" | head -n 1) && \
+    if [ -z "$APPLDIR" ]; then echo "AppDir not found!"; exit 1; fi && \
+    /usr/local/appimagetool_extracted/AppRun "$APPLDIR"
 
 RUN mkdir -p /app/release
-RUN mv /tmp/appdir_staging*.AppImage /app/release/
+RUN mv *.AppImage /app/release/
