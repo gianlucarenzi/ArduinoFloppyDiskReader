@@ -38,7 +38,7 @@ RUN ls -R
 # Assuming it's in the current directory after make
 
 # Create AppDir using linuxdeployqt
-RUN /usr/local/linuxdeployqt_extracted/AppRun waffleCopyPRO-Universal
+RUN /usr/local/linuxdeployqt_extracted/AppRun /app/waffleCopyPRO-Universal/waffleCopyPRO-Universal
 
 # Find the created AppDir (e.g., waffleCopyPRO-Universal.AppDir)
 # and copy fonts and WaffleUI into it
