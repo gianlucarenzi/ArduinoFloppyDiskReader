@@ -39,7 +39,7 @@ RUN make -j$(nproc)
 
 # Deploy and Package into AppImage
 # Run linuxdeployqt on the executable, letting it create the AppDir
-RUN cd /app/waffleCopyPRO-Universal && /usr/local/linuxdeployqt_extracted/AppRun ./waffleCopyPRO-Universal
+RUN pwd && ls -l ./waffleCopyPRO-Universal && /usr/local/linuxdeployqt_extracted/AppRun ./waffleCopyPRO-Universal
 
 # Find the created AppDir (e.g., waffleCopyPRO-Universal.AppDir)
 # and copy fonts and WaffleUI into it
