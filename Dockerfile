@@ -66,7 +66,7 @@ RUN echo "Invalidating cache for library collection" && \
 RUN echo "[Desktop Entry]\nName=WaffleCopyPRO-Universal\nExec=waffleCopyPRO-Universal\nIcon=waffleCopyPRO-Universal-icon\nType=Application\nCategories=Utility;\n" > AppDir/waffleCopyPRO-Universal.desktop
 
 # Create the AppRun script
-RUN echo "#!/bin/bash\nHERE=\"$$(dirname \"$$(readlink -f \"$${0}\")\")\"\nexport LD_LIBRARY_PATH=\"$$HERE\"/usr/lib:\"$$HERE\"/lib64:\"$$LD_LIBRARY_PATH\"\nexec \"$$HERE\"/usr/bin/waffleCopyPRO-Universal \"$$@\"" > AppDir/AppRun && \
+RUN echo '#!/bin/bash\nHERE="$(dirname "$(readlink -f "${0}")")"\nexport LD_LIBRARY_PATH="$HERE"/usr/lib:"$HERE"/lib64:"$LD_LIBRARY_PATH"\nexec "$HERE"/usr/bin/waffleCopyPRO-Universal "$@"' > AppDir/AppRun && \
     chmod +x AppDir/AppRun
 
 # Copy the dynamic linker
