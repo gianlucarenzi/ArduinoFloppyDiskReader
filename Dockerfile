@@ -31,6 +31,7 @@ WORKDIR /app/waffleCopyPRO-Universal
 # Build the project
 RUN qmake waffleCopyPRO-Universal.pro
 RUN make -j$(nproc)
+RUN ls -R
 
 # Deploy and Package into AppImage
 # The executable name will be waffleCopyPRO-Universal
