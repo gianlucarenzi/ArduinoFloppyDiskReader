@@ -450,7 +450,7 @@ background-color: rgb(61, 56, 70);</string>
    <widget class="QCheckBox" name="skipWriteError">
     <property name="geometry">
      <rect>
-      <x>250</x>
+      <x>236</x>
       <y>280</y>
       <width>150</width>
       <height>25</height>
