@@ -51,13 +51,11 @@ RUN executable="AppDir/usr/bin/waffleCopyPRO-Universal" && \
     for lib in $libs; do cp "$lib" AppDir/usr/lib/; done
 
 # Create a basic .desktop file for the AppImage
-RUN echo "[Desktop Entry]\n\
-Name=WaffleCopyPRO-Universal\n\
-Exec=waffleCopyPRO-Universal\n\
-Icon=waffleCopyPRO-Universal-icon\n\
-Type=Application\n\
-Categories=Utility;\n\
-" > AppDir/waffleCopyPRO-Universal.desktop
+RUN echo "[Desktop Entry]\nName=WaffleCopyPRO-Universal\nExec=waffleCopyPRO-Universal\nIcon=waffleCopyPRO-Universal-icon\nType=Application\nCategories=Utility;\n" > AppDir/waffleCopyPRO-Universal.desktop
+
+# Create the AppRun script
+RUN echo "#!/bin/bash\nHERE=\"$(dirname \"$(readlink -f \"${0}\")\")\"\nexec \"$HERE\"/usr/bin/waffleCopyPRO-Universal \"$@\"" > AppDir/AppRun && \
+    chmod +x AppDir/AppRun
 
 # Copy the existing icon for the .desktop file and .DirIcon
 RUN cp ./WaffleUI/waffleCopyPRO-icon.png AppDir/waffleCopyPRO-Universal-icon.png
