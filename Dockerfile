@@ -38,7 +38,7 @@ RUN mkdir -p AppDir/usr/lib
 RUN mkdir -p AppDir/usr/share/waffleCopyPRO-Universal
 
 # Copy the executable into the AppDir
-RUN cp waffleCopyPRO-Universal AppDir/usr/bin/
+RUN cp waffleCopyPRO-Universal AppDir/usr/share/waffleCopyPRO-Universal/
 
 # Copy fonts and WaffleUI into the AppDir
 RUN cp -r ./fonts AppDir/usr/share/waffleCopyPRO-Universal/
@@ -47,7 +47,7 @@ RUN cp -r ./WaffleUI AppDir/usr/share/waffleCopyPRO-Universal/
 # Manually collect dependencies using ldd
 # This is a simplified version and might need iteration for all dependencies
 RUN echo "Invalidating cache for library collection" && \
-    executable="AppDir/usr/bin/waffleCopyPRO-Universal" && \
+    executable="AppDir/usr/share/waffleCopyPRO-Universal/waffleCopyPRO-Universal" && \
     echo "ldd output for $executable:" && \
     ldd_output=$(ldd "$executable") && \
     echo "$ldd_output" && \
@@ -66,7 +66,7 @@ RUN echo "Invalidating cache for library collection" && \
 RUN echo "[Desktop Entry]\nName=WaffleCopyPRO-Universal\nExec=waffleCopyPRO-Universal\nIcon=waffleCopyPRO-Universal-icon\nType=Application\nCategories=Utility;\n" > AppDir/waffleCopyPRO-Universal.desktop
 
 # Create the AppRun script
-RUN echo '#!/bin/bash\nHERE="$(dirname "$(readlink -f "${0}")")"\nexport LD_LIBRARY_PATH="$HERE"/usr/lib:"$HERE"/lib64:"$LD_LIBRARY_PATH"\nexec "$HERE"/usr/bin/waffleCopyPRO-Universal "$@"' > AppDir/AppRun && \
+RUN echo '#!/bin/bash\nHERE="$(dirname "$(readlink -f "${0}")")"\nexport LD_LIBRARY_PATH="$HERE"/usr/lib:"$HERE"/lib64:"$LD_LIBRARY_PATH"\nexec "$HERE"/usr/share/waffleCopyPRO-Universal/waffleCopyPRO-Universal "$@"' > AppDir/AppRun && \
     chmod +x AppDir/AppRun
 
 # Copy the dynamic linker
@@ -78,7 +78,6 @@ RUN cp ./WaffleUI/waffleCopyPRO-icon.png AppDir/waffleCopyPRO-Universal-icon.png
 RUN cp ./WaffleUI/waffleCopyPRO-icon.png AppDir/.DirIcon
 
 RUN ls -l AppDir # Debug: List files in AppDir before appimagetool
-RUN ls -l AppDir/usr/bin # Debug: List files in AppDir/usr/bin before appimagetool
 # Convert AppDir to AppImage using appimagetool
 RUN /usr/local/appimagetool_extracted/AppRun AppDir
 
