@@ -45,8 +45,8 @@ RUN mkdir -p /tmp/appdir_staging/usr/share/waffleCopyPRO-Universal
 RUN cp waffleCopyPRO-Universal /tmp/appdir_staging/usr/bin/
 
 # Copy fonts and WaffleUI into the staging directory
-RUN cp -r ../fonts /tmp/appdir_staging/usr/share/waffleCopyPRO-Universal/
-RUN cp -r ../WaffleUI /tmp/appdir_staging/usr/share/waffleCopyPRO-Universal/
+RUN cp -r ./fonts /tmp/appdir_staging/usr/share/waffleCopyPRO-Universal/
+RUN cp -r ./WaffleUI /tmp/appdir_staging/usr/share/waffleCopyPRO-Universal/
 
 # Run linuxdeployqt on the executable within the staging directory
 RUN /usr/local/linuxdeployqt_extracted/AppRun /tmp/appdir_staging/usr/bin/waffleCopyPRO-Universal -appdir=/tmp/appdir_staging
