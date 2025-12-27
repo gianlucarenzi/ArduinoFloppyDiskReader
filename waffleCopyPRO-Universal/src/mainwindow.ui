@@ -229,7 +229,7 @@ background-color: rgb(61, 56, 70);</string>
      </rect>
     </property>
     <property name="placeholderText">
-     <string>select ADF to write to Waffle</string>
+     <string>select file image to write to Waffle</string>
     </property>
    </widget>
    <widget class="QToolButton" name="fileReadADF">
