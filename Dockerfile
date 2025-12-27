@@ -10,13 +10,19 @@ RUN apt update && apt upgrade -y && \
     apt install -y build-essential git cmake libgl1-mesa-dev qt5-default qttools5-dev-tools libfuse2 curl xz-utils && \
     rm -rf /var/lib/apt/lists/*
 
-# Download and install linuxdeployqt
-RUN curl -L https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage -o /usr/local/bin/linuxdeployqt && \
-    chmod a+x /usr/local/bin/linuxdeployqt
+# Download and extract linuxdeployqt
+RUN curl -L https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage -o /tmp/linuxdeployqt.AppImage && \
+    chmod a+x /tmp/linuxdeployqt.AppImage && \
+    /tmp/linuxdeployqt.AppImage --appimage-extract && \
+    mv squashfs-root /usr/local/linuxdeployqt_extracted && \
+    rm /tmp/linuxdeployqt.AppImage
 
-# Download and install appimagetool
-RUN curl -L https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -o /usr/local/bin/appimagetool && \
-    chmod a+x /usr/local/bin/appimagetool
+# Download and extract appimagetool
+RUN curl -L https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -o /tmp/appimagetool.AppImage && \
+    chmod a+x /tmp/appimagetool.AppImage && \
+    /tmp/appimagetool.AppImage --appimage-extract && \
+    mv squashfs-root /usr/local/appimagetool_extracted && \
+    rm /tmp/appimagetool.AppImage
 
 # Copy the project source
 COPY . /app
@@ -31,7 +37,7 @@ RUN make -j$(nproc)
 # Assuming it's in the current directory after make
 
 # Create AppDir using linuxdeployqt
-RUN /usr/local/bin/linuxdeployqt waffleCopyPRO-Universal
+RUN /usr/local/linuxdeployqt_extracted/AppRun waffleCopyPRO-Universal
 
 # Find the created AppDir (e.g., waffleCopyPRO-Universal.AppDir)
 # and copy fonts and WaffleUI into it
@@ -43,7 +49,7 @@ RUN APPLDIR=$(find . -maxdepth 1 -type d -name "*.AppDir" | head -n 1) && \
 # Convert AppDir to AppImage using appimagetool
 RUN APPLDIR=$(find . -maxdepth 1 -type d -name "*.AppDir" | head -n 1) && \
     if [ -z "$APPLDIR" ]; then echo "AppDir not found!"; exit 1; fi && \
-    /usr/local/bin/appimagetool "$APPLDIR"
+    /usr/local/appimagetool_extracted/AppRun "$APPLDIR"
 
 RUN mkdir -p /app/release
 RUN mv *.AppImage /app/release/
