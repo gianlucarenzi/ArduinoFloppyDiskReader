@@ -65,6 +65,8 @@ RUN cp ./WaffleUI/waffleCopyPRO-icon.png AppDir/.DirIcon
 
 # Convert AppDir to AppImage using appimagetool
 RUN /usr/local/appimagetool_extracted/AppRun AppDir
+RUN ls -l # Debug: List files after AppImage creation
 
 RUN mkdir -p /app/release
 RUN mv *.AppImage /app/release/
+RUN ls -l /app/release/ # Debug: List files in the release directory
