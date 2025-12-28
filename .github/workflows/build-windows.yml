@@ -50,12 +50,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: waffleCopyPRO-Universal-Windows
-          path: waffleCopyPRO-Universal-Windows.zip
+          path: waffleCopyPRO-Universal/waffleCopyPRO-Universal-Windows.zip
 
       - name: Upload Release Asset
         if: github.event_name == 'release' && github.event.action == 'published'
         uses: softprops/action-gh-release@v1
         with:
-          files: waffleCopyPRO-Universal-Windows.zip
+          files: waffleCopyPRO-Universal/waffleCopyPRO-Universal-Windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
