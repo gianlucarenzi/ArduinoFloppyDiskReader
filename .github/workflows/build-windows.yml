@@ -41,7 +41,9 @@ jobs:
           & "${{ env.Qt5_Dir }}\bin\windeployqt.exe" --force --no-translations --no-compiler-runtime --dir $RELEASE_DIR "$RELEASE_DIR\waffleCopyPRO-Universal.exe"
           Copy-Item -Path "waffleCopyPRO-Universal/fonts" -Destination $RELEASE_DIR -Recurse
           Copy-Item -Path "waffleCopyPRO-Universal/WaffleUI" -Destination $RELEASE_DIR -Recurse
-          Compress-Archive -Path "$RELEASE_DIR/*" -DestinationPath "waffleCopyPRO-Universal-Windows.zip"
+          Push-Location $RELEASE_DIR
+          Compress-Archive -Path * -DestinationPath "../waffleCopyPRO-Universal-Windows.zip"
+          Pop-Location
         shell: pwsh
 
       - name: Upload Artifact
