@@ -32,9 +32,9 @@ jobs:
       run: |
         cd waffleCopyPRO-Universal
         macdeployqt waffleCopyPRO-Universal.app
-        echo "Copying resource folders..."
-        cp -R fonts waffleCopyPRO-Universal.app/Contents/MacOS/
-        cp -R WaffleUI waffleCopyPRO-Universal.app/Contents/MacOS/
+        echo "Copying resource folders to Contents/Resources..."
+        cp -R fonts waffleCopyPRO-Universal.app/Contents/Resources/
+        cp -R WaffleUI waffleCopyPRO-Universal.app/Contents/Resources/
 
     - name: Create DMG Installer
       run: |

@@ -82,3 +82,7 @@ unix {
 win32-msvc* {
     LIBS += -lAdvapi32
 }
+
+macx {
+    ICON = WaffleUI/WaffleCopyPRO-icon.png
+}
