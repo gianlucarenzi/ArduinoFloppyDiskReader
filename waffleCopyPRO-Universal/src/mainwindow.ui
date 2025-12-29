@@ -83,12 +83,12 @@
      <pixmap>WaffleUI/rightLogo.png</pixmap>
     </property>
    </widget>
-   <widget class="QSpinBox" name="serial">
+   <widget class="QComboBox" name="serialPortComboBox">
     <property name="geometry">
      <rect>
       <x>280</x>
       <y>510</y>
-      <width>45</width>
+      <width>200</width>
       <height>21</height>
      </rect>
     </property>

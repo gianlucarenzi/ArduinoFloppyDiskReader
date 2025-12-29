@@ -1,9 +1,15 @@
 #include <QDebug>
+
+#ifndef TESTCASE_USB_DEVICE
+#define TESTCASE_USB_DEVICE 0
+#endif
+
 #include <clicklabel.h>
 #include <QFileDialog>
 #include <QWidget>
 #include <QPainter>
 #include <QPaintEvent>
+#include <QSerialPortInfo>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <stdio.h>
@@ -45,13 +51,27 @@ MainWindow::MainWindow(QWidget *parent)
     // Prepare all squares for tracks
     prepareTracks();
     prepareTracksPosition();
+
 #ifdef _WIN32
-    // In Windows the first available COM port is 1.
-    ui->serial->setMinimum(1);
     ui->portSelection->setText("WAFFLE DRIVE COM PORT");
 #else
-    ui->portSelection->setText("WAFFLE DRIVE /dev/ttyUSB PORT");
+    ui->portSelection->setText("WAFFLE DRIVE PORT");
 #endif
+#if TESTCASE_USB_DEVICE
+    #ifdef _WIN32
+        ui->serialPortComboBox->addItems({"COM1", "COM11", "COM22", "COM3"});
+    #elif defined(__APPLE__)
+        ui->serialPortComboBox->addItems({"/dev/tty.usbserial-012345", "/dev/tty.usbserial-987654", "/dev/tty.usbserial-deadbeef", "/dev/tty.usbserial-feedf00d"});
+    #else // Linux
+        ui->serialPortComboBox->addItems({"/dev/ttyUSB0", "/dev/ttyUSB12", "/dev/ttyUSB21", "/dev/ttyUSB99"});
+    #endif
+#else
+    const auto infos = QSerialPortInfo::availablePorts();
+    for (const QSerialPortInfo &info : infos) {
+        ui->serialPortComboBox->addItem(info.portName());
+    }
+#endif
+
     // This add a QFileSystemWatcher on files
     //prepareFileSet();
     amigaBridge = new QtDrawBridge();
@@ -87,7 +107,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->eraseBeforeWrite, SIGNAL(clicked()), this, SLOT(toggleEraseBeforeWrite()));
     connect(ui->numTracks, SIGNAL(clicked()), this, SLOT(toggleNumTracks()));
     connect(ui->showError, SIGNAL(clicked()), this, SLOT(manageError()));
-    connect(ui->serial, SIGNAL(valueChanged(int)), this, SLOT(manageSerialPort(int)));
+    connect(ui->serialPortComboBox, SIGNAL(currentTextChanged(const QString &)), this, SLOT(manageSerialPort(const QString &)));
     connect(ui->hdModeSelection, SIGNAL(clicked()), this, SLOT(toggleDiskDensityMode()));
     connect(ui->skipReadError, SIGNAL(clicked()), this, SLOT(toggleSkipReadError()));
     connect(ui->skipWriteError, SIGNAL(clicked()), this, SLOT(toggleSkipWriteError()));
@@ -125,7 +145,13 @@ MainWindow::MainWindow(QWidget *parent)
     ui->numTracks->setChecked(tracks82);
     ui->skipReadError->setChecked(skipReadError);
     ui->skipWriteError->setChecked(skipWriteError);
-    ui->serial->setValue(serialPort);
+    QString savedPortName = settings.value("SERIALPORTNAME", "").toString();
+    if (!savedPortName.isEmpty()) {
+        int index = ui->serialPortComboBox->findText(savedPortName);
+        if (index != -1) {
+            ui->serialPortComboBox->setCurrentIndex(index);
+        }
+    }
 
     qDebug() << "AFTER PRECOMP" << preComp;
     qDebug() << "AFTER ERASEBEFOREWRITE" << eraseBeforeWrite;
@@ -162,10 +188,10 @@ MainWindow::~MainWindow()
 }
 
 
-void MainWindow::manageSerialPort(int p)
+void MainWindow::manageSerialPort(const QString &p)
 {
-    qDebug() << "WRITE SETTINGS SERIAL" << p;
-    settings.setValue("SERIALPORT", p);
+    qDebug() << "WRITE SETTINGS SERIALPORTNAME" << p;
+    settings.setValue("SERIALPORTNAME", p);
     settings.sync();
 }
 
@@ -386,19 +412,7 @@ void MainWindow::checkStartWrite(void)
 
     // To have the correct text on the copyCompleted.
     ui->copyCompleted->setText(tr("AMIGA DISK COPY COMPLETED"));
-    QString port =
-#ifdef _WIN32
-    "COM";
-#else
-	#ifdef __APPLE__
-		"/dev/tty.usb";
-	#else
-		"/dev/ttyUSB";
-    #endif
-#endif
-
-    int value = ui->serial->value();
-    port += QString::number(value);
+    QString port = ui->serialPortComboBox->currentText();
 
     QString filename = ui->getADFFileName->text();
     QStringList command;
@@ -465,16 +479,7 @@ void MainWindow::checkStartRead(void)
 
     // To have the correct text on the copyCompleted.
     ui->copyCompleted->setText(tr("AMIGA DISK COPY COMPLETED"));
-    QString port =
-#ifdef _WIN32
-    "COM";
-#else
-    "/dev/ttyUSB";
-#endif
-    int value = ui->serial->value();
-    port += QString::number(value);
-    qDebug() << "WRITE SETTINGS SERIALPORT " << value;
-    settings.setValue("SERIALPORT", value);
+    QString port = ui->serialPortComboBox->currentText();
 
     QString filename = ui->setADFFileName->text();
     QStringList command;

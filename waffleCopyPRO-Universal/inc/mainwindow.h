@@ -85,7 +85,7 @@ private slots:
     void toggleSkipWriteError(void);
     void manageError(void);
     void wSysWatcher(void);
-    void manageSerialPort(int p);
+    void manageSerialPort(const QString &p);
     // Disk error management
     void errorDialog_RetryClicked(void);
     void errorDialog_SkipClicked(void);
