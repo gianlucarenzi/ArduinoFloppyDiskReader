@@ -37,7 +37,7 @@ jobs:
         cp -R WaffleUI waffleCopyPRO-Universal.app/Contents/MacOS/
 
     - name: Create DMG Installer
-      uses: sindresorhus/create-dmg@v2
+      uses: sindresorhus/create-dmg@297f367134580453c33f314b432321f483433a81
       with:
         app-path: waffleCopyPRO-Universal/waffleCopyPRO-Universal.app
         dmg-name: waffleCopyPRO-Universal.dmg
