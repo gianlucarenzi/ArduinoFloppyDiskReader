@@ -390,7 +390,11 @@ void MainWindow::checkStartWrite(void)
 #ifdef _WIN32
     "COM";
 #else
-    "/dev/ttyUSB";
+	#ifdef __APPLE__
+		"/dev/tty.usb";
+	#else
+		"/dev/ttyUSB";
+    #endif
 #endif
 
     int value = ui->serial->value();
