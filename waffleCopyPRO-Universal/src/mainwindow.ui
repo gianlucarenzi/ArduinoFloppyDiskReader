@@ -635,7 +635,7 @@ background-color: rgb(61, 56, 70);</string>
    <zorder>startWrite</zorder>
    <zorder>startRead</zorder>
    <zorder>setADFFileName</zorder>
-   <zorder>serial</zorder>
+   <zorder>serialPortComboBox</zorder>
    <zorder>scrollText</zorder>
    <zorder>rightLogo</zorder>
    <zorder>portSelection</zorder>
