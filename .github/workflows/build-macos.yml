@@ -28,13 +28,23 @@ jobs:
         qmake
         make
 
-    - name: Package Application
+    - name: Package Application and Resources
       run: |
         cd waffleCopyPRO-Universal
         macdeployqt waffleCopyPRO-Universal.app
+        echo "Copying resource folders..."
+        cp -R fonts waffleCopyPRO-Universal.app/Contents/MacOS/
+        cp -R WaffleUI waffleCopyPRO-Universal.app/Contents/MacOS/
 
-    - name: Upload Artifact
+    - name: Create DMG Installer
+      uses: sindresorhus/create-dmg-action@v1
+      with:
+        app-path: waffleCopyPRO-Universal/waffleCopyPRO-Universal.app
+        dmg-name: waffleCopyPRO-Universal.dmg
+        icon-path: waffleCopyPRO-Universal/WaffleUI/WaffleCopyPRO-icon.png
+
+    - name: Upload DMG Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: waffleCopyPRO-Universal-macOS
-        path: waffleCopyPRO-Universal/waffleCopyPRO-Universal.app
+        name: waffleCopyPRO-Universal-macOS.dmg
+        path: waffleCopyPRO-Universal.dmg
