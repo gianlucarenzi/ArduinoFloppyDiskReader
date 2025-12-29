@@ -28,6 +28,9 @@ int main(int argc, char *argv[])
         }
     }
 
+    QCoreApplication::setOrganizationName("RetroGiovedi");
+    QCoreApplication::setApplicationName("waffleCopyPRO-Universal");
+    QSettings::setDefaultFormat(QSettings::IniFormat);
     QApplication a(argc, argv);
     MainWindow w;
     int id = QFontDatabase::addApplicationFont("fonts/TopazPlus_a500_v1.0.ttf");
