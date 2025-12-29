@@ -34,7 +34,7 @@ jobs:
         macdeployqt waffleCopyPRO-Universal.app
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: waffleCopyPRO-Universal-macOS
         path: waffleCopyPRO-Universal/waffleCopyPRO-Universal.app
