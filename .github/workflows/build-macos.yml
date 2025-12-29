@@ -37,11 +37,13 @@ jobs:
         cp -R WaffleUI waffleCopyPRO-Universal.app/Contents/MacOS/
 
     - name: Create DMG Installer
-      uses: sindresorhus/create-dmg@297f367134580453c33f314b432321f483433a81
-      with:
-        app-path: waffleCopyPRO-Universal/waffleCopyPRO-Universal.app
-        dmg-name: waffleCopyPRO-Universal.dmg
-        icon-path: waffleCopyPRO-Universal/WaffleUI/WaffleCopyPRO-icon.png
+      run: |
+        hdiutil create -fs HFS+ \
+          -volname "waffleCopyPRO Universal" \
+          -srcfolder "waffleCopyPRO-Universal/waffleCopyPRO-Universal.app" \
+          -ov \
+          -format UDZO \
+          "waffleCopyPRO-Universal.dmg"
 
     - name: Upload DMG Artifact
       uses: actions/upload-artifact@v4
