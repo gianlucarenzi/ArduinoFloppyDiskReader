@@ -1,0 +1,37 @@
+name: Build macOS
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '5.15.2'
+        arch: 'clang_64'
+
+    - name: Build waffleCopyPRO-Universal
+      run: |
+        cd waffleCopyPRO-Universal
+        qmake
+        make
+
+    - name: Package Application
+      run: |
+        cd waffleCopyPRO-Universal
+        macdeployqt waffleCopyPRO-Universal.app
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: waffleCopyPRO-Universal-macOS
+        path: waffleCopyPRO-Universal/waffleCopyPRO-Universal.app
