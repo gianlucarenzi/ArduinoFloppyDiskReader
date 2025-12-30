@@ -139,6 +139,15 @@ MainWindow::MainWindow(QWidget *parent)
         if (index != -1) {
             ui->serialPortComboBox->setCurrentIndex(index);
         }
+    } else {
+        if (ui->serialPortComboBox->count() > 0) {
+            QString currentPort = ui->serialPortComboBox->currentText();
+            if (!currentPort.isEmpty()) {
+                qDebug() << "WRITE INITIAL SETTINGS SERIALPORTNAME" << currentPort;
+                settings.setValue("SERIALPORTNAME", currentPort);
+                settings.sync();
+            }
+        }
     }
 
     qDebug() << "AFTER PRECOMP" << preComp;
@@ -178,6 +187,8 @@ MainWindow::~MainWindow()
 
 void MainWindow::manageSerialPort(const QString &p)
 {
+    if (p.isEmpty())
+        return;
     qDebug() << "WRITE SETTINGS SERIALPORTNAME" << p;
     settings.setValue("SERIALPORTNAME", p);
     settings.sync();
@@ -720,6 +731,7 @@ void MainWindow::manageQtDrawBridgeSignal(int sig)
 
 void MainWindow::refreshSerialPorts()
 {
+    ui->serialPortComboBox->blockSignals(true);
     QString currentPortName = ui->serialPortComboBox->currentText();
     ui->serialPortComboBox->clear();
 
@@ -751,4 +763,5 @@ void MainWindow::refreshSerialPorts()
             ui->serialPortComboBox->setCurrentIndex(index);
         }
     }
+    ui->serialPortComboBox->blockSignals(false);
 }
