@@ -16,7 +16,7 @@
 #include <QSettings>
 #include "socketserver.h"
 #include <QSerialPortInfo>
-#include "lib/SerialIO.h"
+
 
 #define TESTCASE_USB_DEVICE 0
 
@@ -67,10 +67,15 @@ MainWindow::MainWindow(QWidget *parent)
         ui->serialPortComboBox->addItems({"/dev/ttyUSB0", "/dev/ttyUSB12", "/dev/ttyUSB21", "/dev/ttyUSB99"});
     #endif
 #else
-    std::vector<SerialIO::SerialPortInformation> serialPorts;
-    m_serialIO.enumSerialPorts(serialPorts);
-    for (const SerialIO::SerialPortInformation &info : serialPorts) {
-        ui->serialPortComboBox->addItem(QString::fromStdWString(info.portName));
+    for (const QSerialPortInfo &info : QSerialPortInfo::availablePorts()) {
+        // Check for FTDI Vendor ID and common Product IDs
+        if (info.vendorIdentifier() == 0x0403 &&
+            (info.productIdentifier() == 0x6001 ||
+             info.productIdentifier() == 0x6010 ||
+             info.productIdentifier() == 0x6014))
+        {
+            ui->serialPortComboBox->addItem(info.portName());
+        }
     }
 #endif
 

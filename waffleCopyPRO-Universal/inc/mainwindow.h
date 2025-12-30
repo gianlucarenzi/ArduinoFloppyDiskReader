@@ -13,7 +13,8 @@
 #include "waffleconfig.h"
 #include <QCursor>
 #include <QSettings>
-#include "SerialIO.h"
+#include <QSerialPortInfo>
+#include <QSerialPort>
 #include "socketserver.h"
 
 QT_BEGIN_NAMESPACE
@@ -68,7 +69,7 @@ private:
     bool readyReadSHM;
     QThread *m_thread;
     void progressChange(QString s, int value);
-    SerialIO m_serialIO;
+
 
 private slots:
     void checkStartWrite(void);
