@@ -53,31 +53,7 @@ MainWindow::MainWindow(QWidget *parent)
     // Prepare all squares for tracks
     prepareTracks();
     prepareTracksPosition();
-#ifdef _WIN32
-    ui->portSelection->setText("WAFFLE DRIVE COM PORT");
-#else
-    ui->portSelection->setText("WAFFLE DRIVE PORT");
-#endif
-#if TESTCASE_USB_DEVICE
-    #ifdef _WIN32
-        ui->serialPortComboBox->addItems({"COM1", "COM11", "COM22", "COM3"});
-    #elif defined(__APPLE__)
-        ui->serialPortComboBox->addItems({"/dev/tty.usbserial-012345", "/dev/tty.usbserial-987654", "/dev/tty.usbserial-deadbeef", "/dev/tty.usbserial-feedf00d"});
-    #else // Linux
-        ui->serialPortComboBox->addItems({"/dev/ttyUSB0", "/dev/ttyUSB12", "/dev/ttyUSB21", "/dev/ttyUSB99"});
-    #endif
-#else
-    for (const QSerialPortInfo &info : QSerialPortInfo::availablePorts()) {
-        // Check for FTDI Vendor ID and common Product IDs
-        if (info.vendorIdentifier() == 0x0403 &&
-            (info.productIdentifier() == 0x6001 ||
-             info.productIdentifier() == 0x6010 ||
-             info.productIdentifier() == 0x6014))
-        {
-            ui->serialPortComboBox->addItem(info.portName());
-        }
-    }
-#endif
+    refreshSerialPorts();
 
     // This add a QFileSystemWatcher on files
     //prepareFileSet();
@@ -106,6 +82,11 @@ MainWindow::MainWindow(QWidget *parent)
     scrollTimer->setSingleShot(false);
     scrollTimer->start();
     connect(scrollTimer, SIGNAL(timeout()), this, SLOT(doScroll()));
+
+    serialPortRefreshTimer = new QTimer(this);
+    serialPortRefreshTimer->setInterval(3000); // Refresh every 3 seconds
+    connect(serialPortRefreshTimer, &QTimer::timeout, this, &MainWindow::refreshSerialPorts);
+    serialPortRefreshTimer->start();
     ui->stopButton->hide(); // The stop button will be visible only when running disk copy
     connect(ui->stopButton, SIGNAL(clicked()), this, SLOT(stopClicked()));
     connect(ui->copyCompleted, SIGNAL(clicked()), this, SLOT(done()));
@@ -280,6 +261,7 @@ void MainWindow::doneWork(void)
         ui->copyCompleted->raise();
     }
     readyReadSHM = false;
+    serialPortRefreshTimer->start();
 }
 
 void MainWindow::done(void)
@@ -474,6 +456,7 @@ void MainWindow::manageError(void)
 
 void MainWindow::checkStartRead(void)
 {
+    serialPortRefreshTimer->stop();
     qDebug() << "CHECK FOR READ";
     qDebug() << "START READ DISK";
     // This should start the reading from WAFFLE and write to ADF File
@@ -657,6 +640,7 @@ void MainWindow::errorDialog_SkipClicked(void)
     //qDebug() << __FUNCTION__ << "SKIP Clicked";
     set_user_input('S'); // Skip
     ui->errorDialog->hide();
+    serialPortRefreshTimer->start();
 }
 
 void MainWindow::errorDialog_CancelClicked(void)
@@ -665,6 +649,7 @@ void MainWindow::errorDialog_CancelClicked(void)
     set_user_input('A'); // Abort
     ui->errorDialog->hide();
     stopClicked();
+    serialPortRefreshTimer->start();
 }
 
 void MainWindow::errorDialog_RetryClicked(void)
@@ -731,4 +716,39 @@ void MainWindow::manageQtDrawBridgeSignal(int sig)
     }
 
     readyReadSHM = false;
+}
+
+void MainWindow::refreshSerialPorts()
+{
+    QString currentPortName = ui->serialPortComboBox->currentText();
+    ui->serialPortComboBox->clear();
+
+#if TESTCASE_USB_DEVICE
+    #ifdef _WIN32
+        ui->serialPortComboBox->addItems({"COM1", "COM11", "COM22", "COM3"});
+    #elif defined(__APPLE__)
+        ui->serialPortComboBox->addItems({"/dev/tty.usbserial-012345", "/dev/tty.usbserial-987654", "/dev/tty.usbserial-deadbeef", "/dev/tty.usbserial-feedf00d"});
+    #else // Linux
+        ui->serialPortComboBox->addItems({"/dev/ttyUSB0", "/dev/ttyUSB12", "/dev/ttyUSB21", "/dev/ttyUSB99"});
+    #endif
+#else
+    for (const QSerialPortInfo &info : QSerialPortInfo::availablePorts()) {
+        // Check for FTDI Vendor ID and common Product IDs
+        if (info.vendorIdentifier() == 0x0403 &&
+            (info.productIdentifier() == 0x6001 ||
+             info.productIdentifier() == 0x6010 ||
+             info.productIdentifier() == 0x6014))
+        {
+            ui->serialPortComboBox->addItem(info.portName());
+        }
+    }
+#endif
+
+    // Restore previous selection if still available
+    if (!currentPortName.isEmpty()) {
+        int index = ui->serialPortComboBox->findText(currentPortName);
+        if (index != -1) {
+            ui->serialPortComboBox->setCurrentIndex(index);
+        }
+    }
 }

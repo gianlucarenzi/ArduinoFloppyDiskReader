@@ -41,6 +41,7 @@ private:
     void prepareTracks(void);
     void prepareTracksPosition(void);
     QTimer *scrollTimer;
+    QTimer *serialPortRefreshTimer;
     QtDrawBridge *amigaBridge;
     SocketServer *socketServer;
     QFileSystemWatcher *watcher;
@@ -98,5 +99,6 @@ private slots:
     void drSideChange(int rval);
     void drStatusChange(int rval);
     void drErrorChange(int rval);
+    void refreshSerialPorts();
 };
 #endif // MAINWINDOW_H
