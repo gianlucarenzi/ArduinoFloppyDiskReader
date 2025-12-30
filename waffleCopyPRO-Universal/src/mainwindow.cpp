@@ -69,9 +69,9 @@ MainWindow::MainWindow(QWidget *parent)
         ui->serialPortComboBox->addItems({"/dev/ttyUSB0", "/dev/ttyUSB12", "/dev/ttyUSB21", "/dev/ttyUSB99"});
     #endif
 #else
-    std::vector<SerialPortInformation> serialPorts;
+    std::vector<SerialIO::SerialPortInformation> serialPorts;
     m_serialIO.enumSerialPorts(serialPorts);
-    for (const SerialPortInformation &info : serialPorts) {
+    for (const SerialIO::SerialPortInformation &info : serialPorts) {
         ui->serialPortComboBox->addItem(QString::fromStdWString(info.portName));
     }
 #endif
