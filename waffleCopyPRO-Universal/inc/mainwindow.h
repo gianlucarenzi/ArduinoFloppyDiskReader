@@ -67,6 +67,7 @@ private:
     bool readyReadSHM;
     QThread *m_thread;
     void progressChange(QString s, int value);
+    SerialIO m_serialIO;
 
 private slots:
     void checkStartWrite(void);

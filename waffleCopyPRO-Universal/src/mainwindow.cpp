@@ -12,6 +12,7 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QSerialPortInfo>
+#include "lib/SerialIO.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <stdio.h>
@@ -68,9 +69,10 @@ MainWindow::MainWindow(QWidget *parent)
         ui->serialPortComboBox->addItems({"/dev/ttyUSB0", "/dev/ttyUSB12", "/dev/ttyUSB21", "/dev/ttyUSB99"});
     #endif
 #else
-    const auto infos = QSerialPortInfo::availablePorts();
-    for (const QSerialPortInfo &info : infos) {
-        ui->serialPortComboBox->addItem(info.portName());
+    std::vector<SerialPortInformation> serialPorts;
+    m_serialIO.enumSerialPorts(serialPorts);
+    for (const SerialPortInformation &info : serialPorts) {
+        ui->serialPortComboBox->addItem(QString::fromStdWString(info.portName));
     }
 #endif
 
