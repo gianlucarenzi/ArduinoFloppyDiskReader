@@ -27,6 +27,7 @@
     #ifndef _WIN32_WINNT
         #define _WIN32_WINNT 0x0600
     #endif
+    #define _WINSOCKAPI_
     #include <winsock2.h>
     #include <windows.h>
     #include <ws2tcpip.h>
