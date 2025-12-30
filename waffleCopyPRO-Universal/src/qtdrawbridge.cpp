@@ -15,7 +15,12 @@ void QtDrawBridge::setup(QString port, QString filename, QStringList command)
     qDebug() << __PRETTY_FUNCTION__ << "Called" << "Port" << port << "Filename" << filename << "command" << command;
     m_filename = filename;
     m_command = command;
-    m_port = port;
+#ifndef _WIN32
+    m_port = "/dev/";
+#else
+    m_port = "";
+#endif
+    m_port += port;
 }
 
 void QtDrawBridge::run()
