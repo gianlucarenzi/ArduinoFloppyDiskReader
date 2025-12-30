@@ -93,18 +93,9 @@
      </rect>
     </property>
    </widget>
-   <widget class="ClickLabel" name="startWrite">
-    <property name="geometry">
-     <rect>
-      <x>130</x>
-      <y>310</y>
-      <width>91</width>
-      <height>31</height>
-     </rect>
-    </property>
     <property name="font">
      <font>
-      <family>Topaz a500a1000a2000</family>
+      <family>TopazPlus a500a1000a2000</family>
      </font>
     </property>
     <property name="styleSheet">
@@ -151,7 +142,7 @@ background-color: rgb(61, 56, 70);</string>
     </property>
     <property name="font">
      <font>
-      <family>Topaz a500a1000a2000</family>
+      <family>TopazPlus a500a1000a2000</family>
      </font>
     </property>
     <property name="styleSheet">
@@ -275,7 +266,7 @@ background-color: rgb(61, 56, 70);</string>
     </property>
     <property name="font">
      <font>
-      <family>Topaz a500a1000a2000</family>
+      <family>TopazPlus a500a1000a2000</family>
       <stylestrategy>PreferAntialias</stylestrategy>
       <kerning>true</kerning>
      </font>
@@ -311,7 +302,7 @@ background-color: rgb(0, 0, 0);</string>
     </property>
     <property name="font">
      <font>
-      <family>Topaz a500a1000a2000</family>
+      <family>TopazPlus a500a1000a2000</family>
      </font>
     </property>
     <property name="styleSheet">
@@ -361,7 +352,7 @@ color: rgb(248, 228, 92);</string>
     </property>
     <property name="font">
      <font>
-      <family>Topaz a500a1000a2000</family>
+      <family>TopazPlus a500a1000a2000</family>
      </font>
     </property>
     <property name="styleSheet">
@@ -386,7 +377,7 @@ background-color: rgb(61, 56, 70);</string>
     </property>
     <property name="font">
      <font>
-      <family>Topaz a500a1000a2000</family>
+      <family>TopazPlus a500a1000a2000</family>
      </font>
     </property>
     <property name="styleSheet">
@@ -411,7 +402,7 @@ background-color: rgb(61, 56, 70);</string>
     </property>
     <property name="font">
      <font>
-      <family>Topaz a500a1000a2000</family>
+      <family>TopazPlus a500a1000a2000</family>
      </font>
     </property>
     <property name="styleSheet">
