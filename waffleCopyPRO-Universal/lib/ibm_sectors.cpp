@@ -74,7 +74,7 @@ namespace IBM {
 		unsigned char cylinder;
 		unsigned char head;
 		unsigned char sector;
-		unsigned char length = 2;  // 2^(length+7) sector size = should be 2 for 512
+		unsigned char length;  // 2^(length+7) sector size = should be 2 for 512
 		unsigned char crc[2];
 	} IBMSectorHeader;
 
