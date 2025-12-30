@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "SerialIO.h"
 #include <clicklabel.h>
 #include <QTimer>
 #include <QString>
