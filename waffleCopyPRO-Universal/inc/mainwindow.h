@@ -9,10 +9,10 @@
 #include <QFileSystemWatcher>
 #include <QFont>
 #include <QFontDatabase>
-#include <QCursor>
-#include <QSettings>
 #include "qtdrawbridge.h"
 #include "waffleconfig.h"
+#include <QCursor>
+#include <QSettings>
 #include "SerialIO.h"
 #include "socketserver.h"
 

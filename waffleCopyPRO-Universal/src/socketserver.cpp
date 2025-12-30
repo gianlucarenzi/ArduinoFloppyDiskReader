@@ -1,9 +1,9 @@
-#include <QDebug>
-#include <QElapsedTimer>
-#include <QApplication>
 #include "socketserver.h"
 #include "compilerdefs.h"
+#include <QDebug>
 #include "mainwindow.h"
+#include <QElapsedTimer>
+#include <QApplication>
 
 SocketServer::SocketServer(void)
 {

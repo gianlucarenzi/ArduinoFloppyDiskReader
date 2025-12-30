@@ -1,6 +1,5 @@
 #ifdef _WIN32
 #include <winsock2.h>
-#define _WINSOCKAPI_ // Prevents Windows.h from including winsock.h
 #include <windows.h>
 #endif
 /* ArduinoFloppyReader (and writer)

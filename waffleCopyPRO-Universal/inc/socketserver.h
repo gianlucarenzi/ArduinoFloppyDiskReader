@@ -22,8 +22,6 @@
     #define MAXBUFF         256
     #define SOCKET_PORT     10240
 #else
-    #define _WINSOCKAPI_
-    #define _WINSOCK2API_
     #undef UNICODE
     #define WIN32_LEAN_AND_MEAN
     #ifndef _WIN32_WINNT
