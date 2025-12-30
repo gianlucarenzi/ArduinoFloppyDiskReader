@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Update apt and install build tools and Qt 5.12
 RUN apt update && apt upgrade -y && \
-    apt install -y build-essential git cmake libgl1-mesa-dev qt5-default qttools5-dev-tools libfuse2 curl xz-utils && \
+    apt install -y build-essential git cmake libgl1-mesa-dev qt5-default qttools5-dev-tools libqt5serialport5-dev libfuse2 curl xz-utils && \
     rm -rf /var/lib/apt/lists/*
 
 # Download and extract appimagetool

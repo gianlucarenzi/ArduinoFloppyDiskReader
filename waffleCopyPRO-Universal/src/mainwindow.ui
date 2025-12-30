@@ -86,7 +86,7 @@
    <widget class="QComboBox" name="serialPortComboBox">
     <property name="geometry">
      <rect>
-      <x>280</x>
+      <x>200</x>
       <y>510</y>
       <width>200</width>
       <height>21</height>
@@ -267,9 +267,9 @@ background-color: rgb(61, 56, 70);</string>
    <widget class="QLabel" name="portSelection">
     <property name="geometry">
      <rect>
-      <x>40</x>
+      <x>30</x>
       <y>510</y>
-      <width>231</width>
+      <width>161</width>
       <height>20</height>
      </rect>
     </property>

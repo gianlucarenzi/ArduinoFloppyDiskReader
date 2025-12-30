@@ -1,5 +1,7 @@
 #include <QDebug>
 
+#define TESTCASE_USB_DEVICE 0
+
 #ifndef TESTCASE_USB_DEVICE
 #define TESTCASE_USB_DEVICE 0
 #endif
