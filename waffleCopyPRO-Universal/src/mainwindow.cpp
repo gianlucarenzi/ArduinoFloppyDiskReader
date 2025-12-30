@@ -6,6 +6,10 @@
 #define TESTCASE_USB_DEVICE 0
 #endif
 
+#ifdef _WIN32
+#define _WINSOCKAPI_ // Prevents Windows.h from including winsock.h
+#endif
+
 #include <clicklabel.h>
 #include <QFileDialog>
 #include <QWidget>
