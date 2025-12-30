@@ -39,7 +39,17 @@ int main(int argc, char *argv[])
     QDir::setCurrent(QCoreApplication::applicationDirPath() + "/../Resources");
 #endif
     MainWindow w;
-    int id = QFontDatabase::addApplicationFont("fonts/TopazPlus_a500_v1.0.ttf");
+    int id = -1; // Initialize id outside the ifdef
+#ifdef __APPLE__
+    // On macOS, when running from a bundle, the working directory is the user's home dir.
+    // We need to change it to the Resources directory inside the bundle, where the assets are.
+    QDir::setCurrent(QCoreApplication::applicationDirPath() + "/../Resources");
+    QString fontPath = QCoreApplication::applicationDirPath() + "/../Resources/fonts/TopazPlus_a500_v1.0.ttf";
+    id = QFontDatabase::addApplicationFont(fontPath);
+#else
+    // For other platforms, use the original relative path
+    id = QFontDatabase::addApplicationFont("fonts/TopazPlus_a500_v1.0.ttf");
+#endif
     if (id < 0)
     {
         qDebug() << __FUNCTION__ << "Missing font!";
