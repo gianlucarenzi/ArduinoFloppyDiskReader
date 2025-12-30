@@ -2,7 +2,6 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include "SerialIO.h"
 #include <clicklabel.h>
 #include <QTimer>
 #include <QString>
@@ -10,10 +9,11 @@
 #include <QFileSystemWatcher>
 #include <QFont>
 #include <QFontDatabase>
-#include "qtdrawbridge.h"
-#include "waffleconfig.h"
 #include <QCursor>
 #include <QSettings>
+#include "qtdrawbridge.h"
+#include "waffleconfig.h"
+#include "SerialIO.h"
 #include "socketserver.h"
 
 QT_BEGIN_NAMESPACE
