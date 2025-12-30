@@ -93,28 +93,6 @@
      </rect>
     </property>
    </widget>
-    <property name="font">
-     <font>
-      <family>TopazPlus a500a1000a2000</family>
-     </font>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">color: rgb(249, 240, 107);
-background-color: rgb(61, 56, 70);</string>
-    </property>
-    <property name="frameShape">
-     <enum>QFrame::Panel</enum>
-    </property>
-    <property name="text">
-     <string>START WRITE</string>
-    </property>
-    <property name="textFormat">
-     <enum>Qt::PlainText</enum>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignCenter</set>
-    </property>
-   </widget>
    <widget class="QLabel" name="leftLogo">
     <property name="geometry">
      <rect>
