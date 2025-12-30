@@ -85,4 +85,5 @@ win32-msvc* {
 
 macx {
     ICON = WaffleUI/WaffleCopyPRO-icon.png
+    QMAKE_APPLE_ARCHS = x86_64 arm64
 }
