@@ -103,10 +103,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->skipWriteError, SIGNAL(clicked()), this, SLOT(toggleSkipWriteError()));
     connect(ui->diagnosticTest, SIGNAL(emitClick()), this, SLOT(hideDiagnosticView()));
 
-    diagnosticOverlay = new QWidget(this);
-    diagnosticOverlay->setGeometry(0, 0, this->width(), this->height());
-    diagnosticOverlay->setStyleSheet("background-color: rgba(0, 0, 0, 192);");
-    diagnosticOverlay->hide();
+    ui->busy->hide();
 
     ui->copyCompleted->hide();
     ui->copyError->hide();
@@ -742,7 +739,7 @@ void MainWindow::manageQtDrawBridgeSignal(int sig)
 void MainWindow::hideDiagnosticView(void)
 {
     if (isDiagnosticVisible) {
-        diagnosticOverlay->hide();
+        ui->busy->hide();
         ui->diagnosticTest->hide();
         isDiagnosticVisible = false;
     }
@@ -753,8 +750,8 @@ void MainWindow::onDiagnosticButtonClicked(void)
     qDebug() << "DIAGNOSTIC BUTTON CLICKED";
     if (!isDiagnosticVisible) {
         // First click: show and set text
-        diagnosticOverlay->show();
-        diagnosticOverlay->raise();
+        ui->busy->show();
+        ui->busy->raise();
         ui->diagnosticTest->setText(tr("Waffle Copy Pro - Diagnostic Test\n\n"
                                        "This is a placeholder for future diagnostic information. "
                                        "For now, it just shows this text."));
@@ -769,7 +766,7 @@ void MainWindow::onDiagnosticButtonClicked(void)
 
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
-    diagnosticOverlay->resize(event->size());
+    ui->busy->resize(event->size());
     QMainWindow::resizeEvent(event);
 }
 

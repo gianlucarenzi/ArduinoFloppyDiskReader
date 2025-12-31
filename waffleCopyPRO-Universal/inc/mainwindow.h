@@ -69,7 +69,6 @@ private:
     bool readyReadSHM;
     bool isDiagnosticVisible;
     QThread *m_thread;
-    QWidget *diagnosticOverlay;
     void progressChange(QString s, int value);
 
 

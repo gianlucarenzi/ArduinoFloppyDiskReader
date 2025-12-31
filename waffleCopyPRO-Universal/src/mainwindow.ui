@@ -338,7 +338,7 @@ color: rgb(248, 228, 92);</string>
      <bool>false</bool>
     </property>
     <property name="styleSheet">
-     <string notr="true">background-color: rgba(0, 0, 0, 75);</string>
+     <string notr="true">background-color: rgba(0, 0, 0, 208);</string>
     </property>
     <property name="frameShape">
      <enum>QFrame::StyledPanel</enum>
@@ -654,7 +654,7 @@ background-color: rgb(61, 56, 70);</string>
      <string/>
     </property>
    </widget>
-   <widget class="QLabel" name="diagnosticTest">
+   <widget class="ClickLabel" name="diagnosticTest">
     <property name="geometry">
      <rect>
       <x>350</x>
