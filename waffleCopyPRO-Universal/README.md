@@ -1,10 +1,10 @@
 # WaffleCopyPRO-Universal
 
-WaffleCopyPRO-Universal is a powerful, cross-platform floppy disk imaging and writing tool primarily designed for Amiga systems. It allows users to read and write Amiga floppy disk images (ADF, IPF, etc.) using standard PC floppy drives and custom hardware interfaces like the DrawBridge or Greaseweazle. This project aims to provide a comprehensive and user-friendly solution for Amiga enthusiasts to preserve and utilize their floppy disk collections across various operating systems.
+WaffleCopyPRO-Universal is a powerful, cross-platform floppy disk imaging and writing tool primarily designed for Amiga systems. It allows users to read and write Amiga floppy disk images (ADF, IPF, etc.) using standard PC floppy drives and custom hardware interfaces like the Waffle or DrawBridge. This project aims to provide a comprehensive and user-friendly solution for Amiga enthusiasts to preserve and utilize their floppy disk collections across various operating systems.
 
 ## Features
 
-*   **Universal Compatibility**: Works seamlessly with various floppy drive interfaces, including DrawBridge and Greaseweazle.
+*   **Universal Compatibility**: Works seamlessly with WAFFLE, or other various floppy drive interfaces, including DrawBridge.
 *   **Multi-platform Support**: Natively supported on Linux, macOS (x86_64 and Apple Silicon), and Windows.
 *   **Intuitive GUI**: A user-friendly graphical interface built with Qt, allowing for easy operation.
 *   **Open Source**: Fully open-source, enabling community contributions, customizations, and extensions.
@@ -17,12 +17,10 @@ Here are a couple of screenshots demonstrating WaffleCopyPRO-Universal in action
 ### Startup Screen
 
 ![WaffleCopyPRO-Universal Startup Screen](WaffleUI/waffle-startup.png)
-*A placeholder for the startup screen. Please replace `WaffleUI/waffle-startup.png` with an actual screenshot.*
 
 ### Working Screen
 
 ![WaffleCopyPRO-Universal Working Screen](WaffleUI/waffle-working.png)
-*A placeholder for the working screen. Please replace `WaffleUI/waffle-working.png` with an actual screenshot.*
 
 ## Multi-platform Support
 
