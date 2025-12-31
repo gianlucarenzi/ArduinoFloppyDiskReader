@@ -105,7 +105,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     diagnosticOverlay = new QWidget(this);
     diagnosticOverlay->setGeometry(0, 0, this->width(), this->height());
-    diagnosticOverlay->setStyleSheet("background-color: rgba(0, 0, 0, 128);");
+    diagnosticOverlay->setStyleSheet("background-color: rgba(0, 0, 0, 192);");
     diagnosticOverlay->hide();
 
     ui->copyCompleted->hide();
@@ -755,11 +755,11 @@ void MainWindow::onDiagnosticButtonClicked(void)
         // First click: show and set text
         diagnosticOverlay->show();
         diagnosticOverlay->raise();
-        ui->diagnosticTest->raise();
         ui->diagnosticTest->setText(tr("Waffle Copy Pro - Diagnostic Test\n\n"
                                        "This is a placeholder for future diagnostic information. "
                                        "For now, it just shows this text."));
         ui->diagnosticTest->show();
+        ui->diagnosticTest->raise();
         isDiagnosticVisible = true;
     } else {
         // Second click: hide
