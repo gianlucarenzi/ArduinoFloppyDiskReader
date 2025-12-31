@@ -5,6 +5,7 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QResizeEvent>
+#include <QFileInfo>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <stdio.h>
@@ -14,6 +15,7 @@
 #include <QCursor>
 #include <QElapsedTimer>
 #include <QStandardPaths>
+#include <QDir>
 #include <QSettings>
 #include "socketserver.h"
 #include <QSerialPortInfo>
@@ -46,6 +48,15 @@ MainWindow::MainWindow(QWidget *parent)
   isDiagnosticVisible(false)
 {
     ui->setupUi(this);
+
+    // Create WaffleFolder if not exists
+    QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    QDir homeDir(homePath);
+    if (!homeDir.exists("WaffleFolder")) {
+        homeDir.mkdir("WaffleFolder");
+    }
+    m_sDefaultPath = homeDir.filePath("WaffleFolder");
+
     cursor = QCursor(QPixmap("WaffleUI/cursor.png"), 0, 0);
     this->setCursor(cursor);
     // Connection when click actions
@@ -422,6 +433,10 @@ void MainWindow::checkStartWrite(void)
     QString port = ui->serialPortComboBox->currentText();
 
     QString filename = ui->getADFFileName->text();
+    QFileInfo fileInfo(filename);
+    if (!fileInfo.isAbsolute()) {
+        filename = QDir(m_sDefaultPath).filePath(filename);
+    }
     QStringList command;
     command.append("WRITE");
     command.append("VERIFY");
@@ -490,6 +505,10 @@ void MainWindow::checkStartRead(void)
     QString port = ui->serialPortComboBox->currentText();
 
     QString filename = ui->setADFFileName->text();
+    QFileInfo fileInfo(filename);
+    if (!fileInfo.isAbsolute()) {
+        filename = QDir(m_sDefaultPath).filePath(filename);
+    }
     QStringList command;
     command.append("READ");
     if (tracks82)
@@ -521,6 +540,7 @@ void MainWindow::startWrite(void)
     QApplication::processEvents();
     amigaBridge->start();
     ui->busy->show();
+    ui->stopButton->raise();
     ui->stopButton->show();
 }
 
@@ -529,6 +549,7 @@ void MainWindow::startRead(void)
     QApplication::processEvents();
     amigaBridge->start();
     ui->busy->show();
+    ui->stopButton->raise();
     ui->stopButton->show();
 }
 
@@ -636,7 +657,7 @@ void MainWindow::drErrorChange(int val)
 void MainWindow::on_fileReadADF_clicked()
 {
         QString fileName = QFileDialog::getOpenFileName(this, tr("Select Disk Image File"),
-            ui->getADFFileName->text(),
+            m_sDefaultPath,
             tr("Disk Images (*.adf *.scp *.ima *.img *.st *.ipf);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st);;IPF Files (*.ipf)"));    if (!fileName.isEmpty())
         ui->getADFFileName->setText(fileName);
 
@@ -645,7 +666,7 @@ void MainWindow::on_fileReadADF_clicked()
 void MainWindow::on_fileSaveADF_clicked()
 {
         QString fileName = QFileDialog::getSaveFileName(this, tr("Write Disk Image File to be written on hard disk"),
-            ui->setADFFileName->text(),
+            m_sDefaultPath,
             tr("Disk Images (*.adf *.scp *.ima *.img *.st);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st)"));    if (!fileName.isEmpty())
         ui->setADFFileName->setText(fileName);
 

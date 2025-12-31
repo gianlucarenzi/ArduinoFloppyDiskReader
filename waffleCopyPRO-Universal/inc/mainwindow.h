@@ -65,6 +65,7 @@ private:
     QString m_status;
     QString m_folder;
     QString m_error;
+    QString m_sDefaultPath;
     QSettings settings;
     bool readyReadSHM;
     bool isDiagnosticVisible;
