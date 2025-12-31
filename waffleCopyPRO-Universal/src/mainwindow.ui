@@ -438,7 +438,7 @@ background-color: rgb(61, 56, 70);</string>
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">color: rgb(255, 255, 255);</string>
+     <string notr="true">color: rgb(128, 128, 128);</string>
     </property>
     <property name="text">
      <string>PCW</string>
@@ -457,7 +457,7 @@ background-color: rgb(61, 56, 70);</string>
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">color: rgb(255, 255, 255);</string>
+     <string notr="true">color: rgb(128, 128, 128);</string>
     </property>
     <property name="text">
      <string notr="true">Skip Write Errors</string>
@@ -471,12 +471,12 @@ background-color: rgb(61, 56, 70);</string>
      <rect>
       <x>20</x>
       <y>280</y>
-      <width>161</width>
+      <width>151</width>
       <height>25</height>
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">color: rgb(255, 255, 255);</string>
+     <string notr="true">color: rgb(128, 128, 128);</string>
     </property>
     <property name="text">
      <string>Erase Before Writing</string>
@@ -495,7 +495,7 @@ background-color: rgb(61, 56, 70);</string>
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">color: rgb(255, 255, 255);</string>
+     <string notr="true">color: rgb(128, 128, 128);</string>
     </property>
     <property name="text">
      <string notr="true">Tracks: 82</string>
@@ -511,7 +511,7 @@ background-color: rgb(61, 56, 70);</string>
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">color: rgb(255, 255, 255);</string>
+     <string notr="true">color: rgb(128, 128, 128);</string>
     </property>
     <property name="text">
      <string notr="true">Skip Read Errors</string>
@@ -623,10 +623,66 @@ background-color: rgb(61, 56, 70);</string>
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">color: rgb(255, 255, 255);</string>
+     <string notr="true">color: rgb(128, 128, 128);</string>
     </property>
     <property name="text">
      <string notr="true">HIGH DENSITY DISK SELECTION</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="diagnosticButton">
+    <property name="geometry">
+     <rect>
+      <x>900</x>
+      <y>40</y>
+      <width>81</width>
+      <height>81</height>
+     </rect>
+    </property>
+    <property name="focusPolicy">
+     <enum>Qt::NoFocus</enum>
+    </property>
+    <property name="statusTip">
+     <string extracomment="press to start DIAGNOSTIC"/>
+    </property>
+    <property name="whatsThis">
+     <string extracomment="Diagnostic Button"/>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: transparent; border: none;</string>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QLabel" name="diagnosticTest">
+    <property name="geometry">
+     <rect>
+      <x>350</x>
+      <y>140</y>
+      <width>361</width>
+      <height>101</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>TopazPlus a500a1000a2000</family>
+      <pointsize>11</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(128, 128, 128); color: white;</string>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+    </property>
+    <property name="wordWrap">
+     <bool>true</bool>
+    </property>
+    <property name="margin">
+     <number>5</number>
     </property>
    </widget>
    <zorder>busy</zorder>
@@ -655,6 +711,8 @@ background-color: rgb(61, 56, 70);</string>
    <zorder>version</zorder>
    <zorder>errorDialog</zorder>
    <zorder>hdModeSelection</zorder>
+   <zorder>diagnosticButton</zorder>
+   <zorder>diagnosticTest</zorder>
   </widget>
  </widget>
  <customwidgets>

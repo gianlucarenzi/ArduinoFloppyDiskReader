@@ -66,9 +66,10 @@ private:
     QString m_folder;
     QString m_error;
     QSettings settings;
-    int serialPort;
     bool readyReadSHM;
+    bool isDiagnosticVisible;
     QThread *m_thread;
+    QWidget *diagnosticOverlay;
     void progressChange(QString s, int value);
 
 
@@ -95,10 +96,15 @@ private slots:
     void errorDialog_SkipClicked(void);
     void errorDialog_CancelClicked(void);
     void manageQtDrawBridgeSignal(int rval);
+    void onDiagnosticButtonClicked(void);
+    void hideDiagnosticView(void);
     void drTrackChange(int rval);
     void drSideChange(int rval);
     void drStatusChange(int rval);
     void drErrorChange(int rval);
     void refreshSerialPorts();
+
+protected:
+    void resizeEvent(QResizeEvent *event);
 };
 #endif // MAINWINDOW_H

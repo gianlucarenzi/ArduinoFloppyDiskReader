@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QPainter>
 #include <QPaintEvent>
+#include <QResizeEvent>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <stdio.h>
@@ -42,7 +43,7 @@ MainWindow::MainWindow(QWidget *parent)
   doRefresh(true),
   skipReadError(false),
   skipWriteError(false),
-  serialPort(1)
+  isDiagnosticVisible(false)
 {
     ui->setupUi(this);
     cursor = QCursor(QPixmap("WaffleUI/cursor.png"), 0, 0);
@@ -97,10 +98,19 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->showError, SIGNAL(clicked()), this, SLOT(manageError()));
     connect(ui->serialPortComboBox, SIGNAL(currentTextChanged(const QString &)), this, SLOT(manageSerialPort(const QString &)));
     connect(ui->hdModeSelection, SIGNAL(clicked()), this, SLOT(toggleDiskDensityMode()));
+    connect(ui->diagnosticButton, SIGNAL(clicked()), this, SLOT(onDiagnosticButtonClicked()));
     connect(ui->skipReadError, SIGNAL(clicked()), this, SLOT(toggleSkipReadError()));
     connect(ui->skipWriteError, SIGNAL(clicked()), this, SLOT(toggleSkipWriteError()));
+    connect(ui->diagnosticTest, SIGNAL(emitClick()), this, SLOT(hideDiagnosticView()));
+
+    diagnosticOverlay = new QWidget(this);
+    diagnosticOverlay->setGeometry(0, 0, this->width(), this->height());
+    diagnosticOverlay->setStyleSheet("background-color: rgba(0, 0, 0, 128);");
+    diagnosticOverlay->hide();
+
     ui->copyCompleted->hide();
     ui->copyError->hide();
+    ui->diagnosticTest->hide();
     // Busy background is invisible now
     ui->busy->raise();
     ui->busy->hide();
@@ -117,14 +127,12 @@ MainWindow::MainWindow(QWidget *parent)
     qDebug() << "BEFORE TRACKS82" << tracks82;
     qDebug() << "BEFORE SKIPREADERROR" << skipReadError;
     qDebug() << "BEFORE SKIPWRITEERROR" << skipWriteError;
-    qDebug() << "BEFORE COM PORT" << serialPort;
 
     preComp = settings.value("PRECOMP", true).toBool();
     eraseBeforeWrite = settings.value("ERASEBEFOREWRITE", false).toBool();
     tracks82 = settings.value("TRACKS82", false).toBool();
     skipReadError = settings.value("SKIPREADERROR", false).toBool();
     skipWriteError = settings.value("SKIPWRITEERROR", false).toBool();
-    serialPort = settings.value("SERIALPORT", 1).toInt();
     diskDriveHDensityMode = settings.value("HD", false).toBool();
 
     // Adapt the correct value to the ui
@@ -155,7 +163,6 @@ MainWindow::MainWindow(QWidget *parent)
     qDebug() << "AFTER TRACKS82" << tracks82;
     qDebug() << "AFTER SKIPREADERROR" << skipReadError;
     qDebug() << "AFTER SKIPWRITEERROR" << skipWriteError;
-    qDebug() << "AFTER COM PORT" << serialPort;
 
     ui->errorDialog->hide();
     ui->errorDialog->raise();
@@ -339,6 +346,9 @@ void MainWindow::doScroll(void)
         ui->hdModeSelection->setFont(this->font());
         ui->skipReadError->setFont(this->font());
         ui->skipWriteError->setFont(this->font());
+		QFont diagnosticFont = ui->diagnosticTest->font();
+		diagnosticFont.setPointSize(diagnosticFont.pointSize() + 1);
+		ui->diagnosticTest->setFont(diagnosticFont);
         doRefresh = ! doRefresh;
     }
 }
@@ -405,8 +415,8 @@ void MainWindow::checkStartWrite(void)
     qDebug() << "CHECK FOR WRITE";
     if (ui->getADFFileName->text().isEmpty())
     {
-        qDebug() << "NEED ADF FILENAME First to write to floppy";
-        showSetupError(tr("NEED ADF FILENAME FIRST TO WRITE TO FLOPPY"));
+        qDebug() << "NEED VALID IMAGE FILENAME First to write to floppy";
+        showSetupError(tr("NEED VALID IMAGE FILENAME FIRST TO WRITE TO FLOPPY"));
         return;
     }
 
@@ -473,8 +483,8 @@ void MainWindow::checkStartRead(void)
     // This should start the reading from WAFFLE and write to ADF File
     if (ui->setADFFileName->text().isEmpty())
     {
-        qDebug() << "NEED ADF FILENAME First to write to disk from floppy";
-        showSetupError("NEED ADF FILENAME FIRST TO WRITE TO DISK FROM FLOPPY");
+        qDebug() << "NEED VALID IMAGE FILENAME First to write to disk from floppy";
+        showSetupError("NEED VALID IMAGE FILENAME FIRST TO WRITE TO DISK FROM FLOPPY");
         return;
     }
 
@@ -727,6 +737,40 @@ void MainWindow::manageQtDrawBridgeSignal(int sig)
     }
 
     readyReadSHM = false;
+}
+
+void MainWindow::hideDiagnosticView(void)
+{
+    if (isDiagnosticVisible) {
+        diagnosticOverlay->hide();
+        ui->diagnosticTest->hide();
+        isDiagnosticVisible = false;
+    }
+}
+
+void MainWindow::onDiagnosticButtonClicked(void)
+{
+    qDebug() << "DIAGNOSTIC BUTTON CLICKED";
+    if (!isDiagnosticVisible) {
+        // First click: show and set text
+        diagnosticOverlay->show();
+        diagnosticOverlay->raise();
+        ui->diagnosticTest->raise();
+        ui->diagnosticTest->setText(tr("Waffle Copy Pro - Diagnostic Test\n\n"
+                                       "This is a placeholder for future diagnostic information. "
+                                       "For now, it just shows this text."));
+        ui->diagnosticTest->show();
+        isDiagnosticVisible = true;
+    } else {
+        // Second click: hide
+        hideDiagnosticView();
+    }
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    diagnosticOverlay->resize(event->size());
+    QMainWindow::resizeEvent(event);
 }
 
 void MainWindow::refreshSerialPorts()
