@@ -33,17 +33,21 @@ jobs:
           vcpkgJsonGlob: 'waffleCopyPRO-Universal/vcpkg.json'
           runVcpkgInstall: true
 
-      - name: List libopenmpt installed files
-        run: |
-          call "D:\a\ArduinoFloppyDiskReader\ArduinoFloppyDiskReader\vcpkg\vcpkg.exe" list libopenmpt
-        shell: cmd
+
 
 
       - name: Build Project
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           cd waffleCopyPRO-Universal
-          qmake -tp vc waffleCopyPRO-Universal.pro "QMAKE_CXXFLAGS+=-I$(VCPKG_ROOT)\installed\x64-windows\include" "LIBS+=-L$(VCPKG_ROOT)\installed\x64-windows\lib"
+          
+          # Manual download and extraction of libopenmpt
+          mkdir libopenmpt_manual
+          powershell -command "Invoke-WebRequest -Uri 'https://lib.openmpt.org/files/libopenmpt/src/libopenmpt-0.8.4+release.msvc.zip' -OutFile 'libopenmpt.zip'"
+          powershell -command "Expand-Archive -Path 'libopenmpt.zip' -DestinationPath 'libopenmpt_manual' -Force"
+          del libopenmpt.zip
+          
+          qmake -tp vc waffleCopyPRO-Universal.pro "QMAKE_CXXFLAGS+=-I$(VCPKG_ROOT)\installed\x64-windows\include -Ilibopenmpt_manual/libopenmpt-0.8.4+release.msvc/include" "LIBS+=-L$(VCPKG_ROOT)\installed\x64-windows\lib -Llibopenmpt_manual/libopenmpt-0.8.4+release.msvc/lib"
           msbuild waffleCopyPRO-Universal.vcxproj /p:Configuration=Release
         shell: cmd
 
