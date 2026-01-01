@@ -10,6 +10,7 @@
 #include <QFont>
 #include <QFontDatabase>
 #include "qtdrawbridge.h"
+#include "qtmodplayer.h"
 #include "waffleconfig.h"
 #include <QCursor>
 #include <QSettings>
@@ -43,6 +44,7 @@ private:
     QTimer *scrollTimer;
     QTimer *serialPortRefreshTimer;
     QtDrawBridge *amigaBridge;
+    QtModPlayer *modPlayer;
     SocketServer *socketServer;
     QFileSystemWatcher *watcher;
     QStringList fileList; // This file list is shared with the QThread for READING/WRITING from Waffle

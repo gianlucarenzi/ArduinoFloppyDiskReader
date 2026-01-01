@@ -71,6 +71,7 @@ MainWindow::MainWindow(QWidget *parent)
     // This add a QFileSystemWatcher on files
     //prepareFileSet();
     amigaBridge = new QtDrawBridge();
+    modPlayer = new QtModPlayer();
     connect(amigaBridge, SIGNAL(finished()), SLOT(doneWork()));
     connect(amigaBridge, SIGNAL(QtDrawBridgeSignal(int)), this, SLOT(manageQtDrawBridgeSignal(int)));
     ui->scrollText->setStyleSheet("color: rgb(255,255,255)");
