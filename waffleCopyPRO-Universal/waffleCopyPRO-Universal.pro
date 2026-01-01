@@ -75,11 +75,15 @@ SOURCES += \
 
 DEFINES += __USE_GUI__
 
-QMAKE_CXXFLAGS += -std=c++17 -Wall -Wextra
+QMAKE_CXXFLAGS += -std=c++17 -Wall
 
 win32 {
     CONFIG += moc_predefs
     LIBS += -lopenmpt -lportaudiocpp -lportaudio -lwinmm -lole32
+}
+
+!win32 {
+    QMAKE_CXXFLAGS += -Wextra
 }
 
 unix:!macx {

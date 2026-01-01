@@ -107,8 +107,9 @@ void VUMeterWidget::paintEvent(QPaintEvent *event)
 
         QLinearGradient gradient(bar_rect.topLeft(), bar_rect.bottomLeft());
         gradient.setColorAt(0.0, Qt::red);
-        gradient.setColorAt(0.2, Qt::yellow);
-        gradient.setColorAt(0.4, Qt::green);
+        gradient.setColorAt(0.25, QColor(255,165,0));
+        gradient.setColorAt(0.5, Qt::yellow);
+        gradient.setColorAt(0.75, Qt::green);
 
         painter.fillRect(bar_rect, gradient);
     }

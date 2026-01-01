@@ -22,6 +22,10 @@ jobs:
         version: '5.15.2'
         arch: 'clang_64'
 
+    - name: Install dependencies
+      run: |
+        brew install gcc libopenmpt portaudio portaudiocpp sdl2
+
     - name: Build waffleCopyPRO-Universal
       run: |
         cd waffleCopyPRO-Universal

@@ -27,6 +27,13 @@ jobs:
           dir:          ${{ runner.temp }}
           setup-python: false
           
+      - name: Install Vcpkg dependencies
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgJsonPath: '${{ github.workspace }}/waffleCopyPRO-Universal/vcpkg.json'
+          vcpkgTriplet: x64-windows
+          vcpkgHostTriplet: x64-windows
+
       - name: Build Project
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
