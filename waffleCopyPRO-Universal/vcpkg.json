@@ -1,4 +1,5 @@
 {
+  "builtin-baseline": "a70d227540242692212798222222222222222222",
   "dependencies": [
     "libopenmpt",
     "portaudio",
