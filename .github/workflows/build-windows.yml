@@ -33,6 +33,11 @@ jobs:
           vcpkgJsonGlob: 'waffleCopyPRO-Universal/vcpkg.json'
           runVcpkgInstall: true
 
+      - name: List libopenmpt installed files
+        run: |
+          call "D:\a\ArduinoFloppyDiskReader\ArduinoFloppyDiskReader\vcpkg\vcpkg.exe" list libopenmpt
+        shell: cmd
+
 
       - name: Build Project
         run: |
