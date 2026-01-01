@@ -41,11 +41,29 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           cd waffleCopyPRO-Universal
           
-          REM Manual download and extraction of libopenmpt
-          mkdir libopenmpt_manual
-          powershell -command "Invoke-WebRequest -Uri 'https://lib.openmpt.org/files/libopenmpt/src/libopenmpt-0.8.4+release.msvc.zip' -OutFile 'libopenmpt.zip'"
-          powershell -command "Expand-Archive -Path 'libopenmpt.zip' -DestinationPath 'libopenmpt_manual' -Force"
-          del libopenmpt.zip
+          REM Build libopenmpt from source
+          mkdir libopenmpt_source
+          powershell -command "Invoke-WebRequest -Uri 'https://github.com/OpenMPT/openmpt/archive/refs/tags/v0.8.4.zip' -OutFile 'libopenmpt_source.zip'"
+          powershell -command "Expand-Archive -Path 'libopenmpt_source.zip' -DestinationPath 'libopenmpt_source' -Force"
+          del libopenmpt_source.zip
+          
+          REM Navigate to libopenmpt build directory and build
+          cd libopenmpt_source/openmpt-0.8.4/build/vs2019win7
+          msbuild OpenMPT.sln /p:Configuration=Release /p:Platform=x64
+          cd ..\..\..\..
+          
+          REM Copy built libopenmpt files to libopenmpt_manual
+          mkdir libopenmpt_manual/libopenmpt-0.8.4+release.msvc/include
+          mkdir libopenmpt_manual/libopenmpt-0.8.4+release.msvc/lib
+          
+          copy libopenmpt_source/openmpt-0.8.4/libopenmpt/libopenmpt.h libopenmpt_manual/libopenmpt-0.8.4+release.msvc/include/
+          copy libopenmpt_source/openmpt-0.8.4/libopenmpt/libopenmpt_ext.h libopenmpt_manual/libopenmpt-0.8.4+release.msvc/include/
+          copy libopenmpt_source/openmpt-0.8.4/libopenmpt/libopenmpt_stream_callbacks_buffer.h libopenmpt_manual/libopenmpt-0.84+release.msvc/include/
+          copy libopenmpt_source/openmpt-0.8.4/libopenmpt/libopenmpt_stream_callbacks_fd.h libopenmpt_manual/libopenmpt-0.8.4+release.msvc/include/
+          copy libopenmpt_source/openmpt-0.8.4/libopenmpt/libopenmpt_version.h libopenmpt_manual/libopenmpt-0.8.4+release.msvc/include/
+          
+          copy libopenmpt_source/openmpt-0.8.4/bin/Release/x64/libopenmpt.lib libopenmpt_manual/libopenmpt-0.8.4+release.msvc/lib/
+          copy libopenmpt_source/openmpt-0.8.4/bin/Release/x64/libopenmpt.dll libopenmpt_manual/libopenmpt-0.8.4+release.msvc/lib/
           
           qmake -tp vc waffleCopyPRO-Universal.pro "QMAKE_CXXFLAGS+=-I$(VCPKG_ROOT)\installed\x64-windows\include -Ilibopenmpt_manual/libopenmpt-0.8.4+release.msvc/include" "LIBS+=-L$(VCPKG_ROOT)\installed\x64-windows\lib -Llibopenmpt_manual/libopenmpt-0.8.4+release.msvc/lib"
           msbuild waffleCopyPRO-Universal.vcxproj /p:Configuration=Release
