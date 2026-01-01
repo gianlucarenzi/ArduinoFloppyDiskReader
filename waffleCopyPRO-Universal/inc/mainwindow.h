@@ -9,6 +9,7 @@
 #include <QFileSystemWatcher>
 #include <QFont>
 #include <QFontDatabase>
+#include <QDebug> // Added for QDebug
 #include "qtdrawbridge.h"
 #include "qtmodplayer.h"
 #include "vumeterwidget.h"
@@ -28,7 +29,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
 #define MAX_TRACKS 84
@@ -62,6 +63,7 @@ private:
     bool skipReadError;
     bool skipWriteError;
     bool m_isModPlaying;
+
     void startWrite(void);
     void startRead(void);
     void showSetupError(QString err);
@@ -110,6 +112,8 @@ private slots:
     void refreshSerialPorts();
     void on_modPlayerButton_clicked();
     void updateVUMeter(const QVector<float> &levels);
+    void hideVUMeter();
+
 
 protected:
     void resizeEvent(QResizeEvent *event);

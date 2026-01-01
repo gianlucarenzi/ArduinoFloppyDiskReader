@@ -47,13 +47,27 @@ protected:
 
 signals:
 
+
+
     void modPlayerSignal(int rval);
+
+
 
     void vuData(const QVector<float> &levels);
 
 
 
+    void playbackStopped();
+
+
+
+
+
+
+
 private:
+
+
 
     QString m_filename;
 
