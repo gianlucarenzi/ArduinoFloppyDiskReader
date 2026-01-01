@@ -3,7 +3,6 @@
   "dependencies": [
     "libopenmpt",
     "portaudio",
-    "portaudiocpp",
     "sdl2"
   ]
 }
