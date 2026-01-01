@@ -45,7 +45,6 @@ MainWindow::MainWindow(QWidget *parent)
   doRefresh(true),
   skipReadError(false),
   skipWriteError(false),
-  m_isModPlaying(false),
   isDiagnosticVisible(false)
 {
     ui->setupUi(this);
@@ -71,15 +70,9 @@ MainWindow::MainWindow(QWidget *parent)
     // This add a QFileSystemWatcher on files
     //prepareFileSet();
     amigaBridge = new QtDrawBridge();
-    modPlayer = new QtModPlayer();
-    m_vuMeter = new VUMeterWidget(this);
-    m_vuMeter->setGeometry(412, 526, 100, 48);
-    //m_vuMeter->show();
 
     connect(amigaBridge, SIGNAL(finished()), SLOT(doneWork()));
     connect(amigaBridge, SIGNAL(QtDrawBridgeSignal(int)), this, SLOT(manageQtDrawBridgeSignal(int)));
-    connect(modPlayer, &QtModPlayer::vuData, this, &MainWindow::updateVUMeter);
-    connect(m_vuMeter, &VUMeterWidget::allLevelsZero, this, &MainWindow::hideVUMeter);
 
     ui->scrollText->setStyleSheet("color: rgb(255,255,255)");
     QString empty = "                                                ";
@@ -94,8 +87,7 @@ MainWindow::MainWindow(QWidget *parent)
     "like a real Amiga disk drive allowing you to directly read and write your floppies through an emulator! "
     "Sometime you may need a special USB cable (Y-Type) with the possibility of double powering if the USB port of the "
     "PC is not powerful enough. Original Concept by Rob Smith, modified version by Gianluca Renzi, "
-    "Waffle is a product by RetroBit Lab and RetroGiovedi. ModPlayer thanks to libopenmpt and Star Dust from Jester. "
-    "(Music) Licensed under the Attribution Non-commercial Share Alike license");
+    "Waffle is a product by RetroBit Lab and RetroGiovedi.");
     stext += sctext;
     stext += empty;
     ui->scrollText->setText(stext);
@@ -202,10 +194,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(socketServer, SIGNAL(drSide(int)), this, SLOT(drSideChange(int)));
     connect(socketServer, SIGNAL(drStatus(int)), this, SLOT(drStatusChange(int)));
     connect(socketServer, SIGNAL(drError(int)), this, SLOT(drErrorChange(int)));
-
-    QString modFile = "WaffleUI/stardstm.mod";
-    qDebug() << "Loading mod player with file:" << modFile;
-    modPlayer->setup(modFile);
 }
 
 MainWindow::~MainWindow()
@@ -840,28 +828,5 @@ void MainWindow::refreshSerialPorts()
         }
     }
     ui->serialPortComboBox->blockSignals(false);
-}
-
-void MainWindow::on_modPlayerButton_clicked()
-{
-    if (!m_isModPlaying) {
-        qDebug() << "Starting mod player.";
-        modPlayer->start();
-        m_vuMeter->show();
-    } else {
-        qDebug() << "Stopping mod player.";
-        modPlayer->stop();
-    }
-    m_isModPlaying = !m_isModPlaying;
-}
-
-void MainWindow::updateVUMeter(const QVector<float> &levels)
-{
-    m_vuMeter->setLevels(levels);
-}
-
-void MainWindow::hideVUMeter()
-{
-    m_vuMeter->hide();
 }
 

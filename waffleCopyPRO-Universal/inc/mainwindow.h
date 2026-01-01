@@ -11,8 +11,6 @@
 #include <QFontDatabase>
 #include <QDebug> // Added for QDebug
 #include "qtdrawbridge.h"
-#include "qtmodplayer.h"
-#include "vumeterwidget.h"
 #include "waffleconfig.h"
 #include <QCursor>
 #include <QSettings>
@@ -46,8 +44,6 @@ private:
     QTimer *scrollTimer;
     QTimer *serialPortRefreshTimer;
     QtDrawBridge *amigaBridge;
-    QtModPlayer *modPlayer;
-    VUMeterWidget *m_vuMeter;
     SocketServer *socketServer;
     QFileSystemWatcher *watcher;
     QStringList fileList; // This file list is shared with the QThread for READING/WRITING from Waffle
@@ -62,7 +58,6 @@ private:
     bool doRefresh;
     bool skipReadError;
     bool skipWriteError;
-    bool m_isModPlaying;
 
     void startWrite(void);
     void startRead(void);
@@ -110,10 +105,6 @@ private slots:
     void drStatusChange(int rval);
     void drErrorChange(int rval);
     void refreshSerialPorts();
-    void on_modPlayerButton_clicked();
-    void updateVUMeter(const QVector<float> &levels);
-    void hideVUMeter();
-
 
 protected:
     void resizeEvent(QResizeEvent *event);

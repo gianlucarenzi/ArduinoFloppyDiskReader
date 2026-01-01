@@ -29,8 +29,6 @@ HEADERS += \
     inc/qtdrawbridge.h \
     inc/socketserver.h \
     inc/waffleconfig.h \
-    inc/qtmodplayer.h \
-    inc/vumeterwidget.h \
     lib/ADFWriter.h \
     lib/ArduinoInterface.h \
     lib/RotationExtractor.h \
@@ -68,8 +66,6 @@ SOURCES += \
     src/mainwindow.cpp \
     src/qtdrawbridge.cpp \
     src/socketserver.cpp \
-    src/qtmodplayer.cpp \
-    src/vumeterwidget.cpp \
     \
 
 
@@ -79,15 +75,10 @@ QMAKE_CXXFLAGS += -std=c++17 -Wall
 
 win32 {
     CONFIG += moc_predefs
-    LIBS += -lopenmpt -lportaudio -lwinmm -lole32
 }
 
 !win32 {
     QMAKE_CXXFLAGS += -Wextra
-}
-
-unix:!macx {
-    LIBS += -ldl -pthread -lopenmpt -lportaudiocpp -lportaudio -lasound -lm
 }
 
 win32-msvc* {
@@ -100,7 +91,4 @@ macx {
     QMAKE_BUNDLE_DATA.fonts.files = fonts/TopazPlus_a500_v1.0.ttf
     QMAKE_BUNDLE_DATA.fonts.path = Contents/Resources/fonts
     BUNDLE_DATA += QMAKE_BUNDLE_DATA.fonts
-    LIBS += -L/opt/homebrew/lib -L/usr/local/lib
-    LIBS += -lopenmpt -lportaudiocpp -lportaudio
-    INCLUDEPATH += /opt/homebrew/include /usr/local/include
 }
