@@ -41,7 +41,7 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           cd waffleCopyPRO-Universal
           
-          # Manual download and extraction of libopenmpt
+          REM Manual download and extraction of libopenmpt
           mkdir libopenmpt_manual
           powershell -command "Invoke-WebRequest -Uri 'https://lib.openmpt.org/files/libopenmpt/src/libopenmpt-0.8.4+release.msvc.zip' -OutFile 'libopenmpt.zip'"
           powershell -command "Expand-Archive -Path 'libopenmpt.zip' -DestinationPath 'libopenmpt_manual' -Force"
