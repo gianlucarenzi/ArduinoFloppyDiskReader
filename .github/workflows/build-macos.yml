@@ -24,7 +24,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        brew install gcc libopenmpt portaudio portaudiocpp sdl2
+        brew install libopenmpt portaudio sdl2
 
     - name: Build waffleCopyPRO-Universal
       run: |
