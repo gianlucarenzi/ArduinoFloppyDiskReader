@@ -34,6 +34,7 @@ void QtModPlayer::setup(const QString &filename)
 void QtModPlayer::stop()
 {
     m_playing = false;
+    emit playbackStopped();
 }
 
 void QtModPlayer::run()
@@ -79,8 +80,9 @@ void QtModPlayer::run()
         while (m_playing) {
             std::size_t count = is_interleaved ? m_mod->read_interleaved_stereo(samplerate, buffersize, interleaved_buffer.data()) : m_mod->read(samplerate, buffersize, left.data(), right.data());
             if (count == 0) {
-                m_playing = false;
-                break;
+                // End of module, loop back to beginning
+                m_mod->set_position_seconds(0.0);
+                continue; // Continue the loop to read from the beginning
             }
             try {
                 if (is_interleaved) {
@@ -106,6 +108,17 @@ void QtModPlayer::run()
         }
 
         stream.stop();
+
+        // Emit zero VU levels after stopping playback
+        QVector<float> zero_vu_levels;
+        if (m_mod) { // Ensure m_mod is still valid
+            zero_vu_levels.resize(m_mod->get_num_channels());
+            std::fill(zero_vu_levels.begin(), zero_vu_levels.end(), 0.0f);
+        } else {
+            zero_vu_levels.resize(2); // Default to 2 channels if mod is invalid
+            std::fill(zero_vu_levels.begin(), zero_vu_levels.end(), 0.0f);
+        }
+        emit vuData(zero_vu_levels);
 
     } catch (const std::exception &e) {
         qWarning() << "Error during mod playback:" << e.what();

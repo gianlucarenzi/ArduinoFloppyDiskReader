@@ -74,11 +74,12 @@ MainWindow::MainWindow(QWidget *parent)
     modPlayer = new QtModPlayer();
     m_vuMeter = new VUMeterWidget(this);
     m_vuMeter->setGeometry(412, 526, 100, 48);
-    m_vuMeter->show();
+    //m_vuMeter->show();
 
     connect(amigaBridge, SIGNAL(finished()), SLOT(doneWork()));
     connect(amigaBridge, SIGNAL(QtDrawBridgeSignal(int)), this, SLOT(manageQtDrawBridgeSignal(int)));
     connect(modPlayer, &QtModPlayer::vuData, this, &MainWindow::updateVUMeter);
+    connect(m_vuMeter, &VUMeterWidget::allLevelsZero, this, &MainWindow::hideVUMeter);
 
     ui->scrollText->setStyleSheet("color: rgb(255,255,255)");
     QString empty = "                                                ";
@@ -93,7 +94,8 @@ MainWindow::MainWindow(QWidget *parent)
     "like a real Amiga disk drive allowing you to directly read and write your floppies through an emulator! "
     "Sometime you may need a special USB cable (Y-Type) with the possibility of double powering if the USB port of the "
     "PC is not powerful enough. Original Concept by Rob Smith, modified version by Gianluca Renzi, "
-    "Waffle is a product by RetroBit Lab and RetroGiovedi.");
+    "Waffle is a product by RetroBit Lab and RetroGiovedi. ModPlayer thanks to libopenmpt and Star Dust from Jester. "
+    "(Music) Licensed under the Attribution Non-commercial Share Alike license");
     stext += sctext;
     stext += empty;
     ui->scrollText->setText(stext);
@@ -849,7 +851,6 @@ void MainWindow::on_modPlayerButton_clicked()
     } else {
         qDebug() << "Stopping mod player.";
         modPlayer->stop();
-        m_vuMeter->hide();
     }
     m_isModPlaying = !m_isModPlaying;
 }
@@ -858,3 +859,9 @@ void MainWindow::updateVUMeter(const QVector<float> &levels)
 {
     m_vuMeter->setLevels(levels);
 }
+
+void MainWindow::hideVUMeter()
+{
+    m_vuMeter->hide();
+}
+
