@@ -43,7 +43,7 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           cd waffleCopyPRO-Universal
-          qmake -tp vc waffleCopyPRO-Universal.pro "QMAKE_CXXFLAGS+=-I$(VCPKG_INSTALLED_DIR)\x64-windows\include" "LIBS+=-L$(VCPKG_INSTALLED_DIR)\x64-windows\lib"
+          qmake -tp vc waffleCopyPRO-Universal.pro "QMAKE_CXXFLAGS+=-I$(VCPKG_ROOT)\installed\x64-windows\include" "LIBS+=-L$(VCPKG_ROOT)\installed\x64-windows\lib"
           msbuild waffleCopyPRO-Universal.vcxproj /p:Configuration=Release
         shell: cmd
 
