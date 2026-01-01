@@ -101,4 +101,5 @@ macx {
     QMAKE_BUNDLE_DATA.fonts.path = Contents/Resources/fonts
     BUNDLE_DATA += QMAKE_BUNDLE_DATA.fonts
     LIBS += -lopenmpt -lportaudiocpp -lportaudio
+    INCLUDEPATH += /opt/homebrew/include /usr/local/include
 }
