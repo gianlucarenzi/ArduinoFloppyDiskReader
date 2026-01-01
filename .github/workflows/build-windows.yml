@@ -30,9 +30,8 @@ jobs:
       - name: Install Vcpkg dependencies
         uses: lukka/run-vcpkg@v11
         with:
-          vcpkgJsonPath: '${{ github.workspace }}/waffleCopyPRO-Universal/vcpkg.json'
-          vcpkgTriplet: x64-windows
-          vcpkgHostTriplet: x64-windows
+          vcpkgJsonGlob: 'waffleCopyPRO-Universal/vcpkg.json'
+          runVcpkgInstall: true
 
       - name: Build Project
         run: |
