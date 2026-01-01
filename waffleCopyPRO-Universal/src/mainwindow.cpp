@@ -72,8 +72,14 @@ MainWindow::MainWindow(QWidget *parent)
     //prepareFileSet();
     amigaBridge = new QtDrawBridge();
     modPlayer = new QtModPlayer();
+    m_vuMeter = new VUMeterWidget(this);
+    m_vuMeter->setGeometry(412, 526, 100, 48);
+    m_vuMeter->show();
+
     connect(amigaBridge, SIGNAL(finished()), SLOT(doneWork()));
     connect(amigaBridge, SIGNAL(QtDrawBridgeSignal(int)), this, SLOT(manageQtDrawBridgeSignal(int)));
+    connect(modPlayer, &QtModPlayer::vuData, this, &MainWindow::updateVUMeter);
+
     ui->scrollText->setStyleSheet("color: rgb(255,255,255)");
     QString empty = "                                                ";
     stext += empty;
@@ -194,6 +200,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(socketServer, SIGNAL(drSide(int)), this, SLOT(drSideChange(int)));
     connect(socketServer, SIGNAL(drStatus(int)), this, SLOT(drStatusChange(int)));
     connect(socketServer, SIGNAL(drError(int)), this, SLOT(drErrorChange(int)));
+
+    QString modFile = "WaffleUI/stardstm.mod";
+    qDebug() << "Loading mod player with file:" << modFile;
+    modPlayer->setup(modFile);
 }
 
 MainWindow::~MainWindow()
@@ -833,13 +843,18 @@ void MainWindow::refreshSerialPorts()
 void MainWindow::on_modPlayerButton_clicked()
 {
     if (!m_isModPlaying) {
-        QString modFile = "WaffleUI/stardstm.mod";
-        qDebug() << "Starting mod player with file:" << modFile;
-        modPlayer->setup(modFile);
+        qDebug() << "Starting mod player.";
         modPlayer->start();
+        m_vuMeter->show();
     } else {
         qDebug() << "Stopping mod player.";
         modPlayer->stop();
+        m_vuMeter->hide();
     }
     m_isModPlaying = !m_isModPlaying;
+}
+
+void MainWindow::updateVUMeter(const QVector<float> &levels)
+{
+    m_vuMeter->setLevels(levels);
 }

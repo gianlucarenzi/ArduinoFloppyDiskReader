@@ -89,6 +89,15 @@ void QtModPlayer::run()
                     const float * const buffers[2] = { left.data(), right.data() };
                     stream.write(buffers, static_cast<unsigned long>(count));
                 }
+
+                QVector<float> vu_levels;
+                int num_channels = m_mod->get_num_channels();
+                vu_levels.reserve(num_channels);
+                for (int i = 0; i < num_channels; ++i) {
+                    vu_levels.append(m_mod->get_current_channel_vu_mono(i));
+                }
+                emit vuData(vu_levels);
+
             } catch (const portaudio::PaException &pa_exception) {
                 if (pa_exception.paError() != paOutputUnderflowed) {
                     throw;

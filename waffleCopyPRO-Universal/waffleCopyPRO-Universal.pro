@@ -30,6 +30,7 @@ HEADERS += \
     inc/socketserver.h \
     inc/waffleconfig.h \
     inc/qtmodplayer.h \
+    inc/vumeterwidget.h \
     lib/ADFWriter.h \
     lib/ArduinoInterface.h \
     lib/RotationExtractor.h \
@@ -68,6 +69,7 @@ SOURCES += \
     src/qtdrawbridge.cpp \
     src/socketserver.cpp \
     src/qtmodplayer.cpp \
+    src/vumeterwidget.cpp \
     \
 
 
