@@ -45,7 +45,7 @@ MainWindow::MainWindow(QWidget *parent)
   doRefresh(true),
   skipReadError(false),
   skipWriteError(false),
-  isFirstModPlayerClick(true),
+  m_isModPlaying(false),
   isDiagnosticVisible(false)
 {
     ui->setupUi(this);
@@ -832,10 +832,14 @@ void MainWindow::refreshSerialPorts()
 
 void MainWindow::on_modPlayerButton_clicked()
 {
-    if (isFirstModPlayerClick) {
-        qDebug() << "PRIMA VOLTA";
+    if (!m_isModPlaying) {
+        QString modFile = "WaffleUI/stardstm.mod";
+        qDebug() << "Starting mod player with file:" << modFile;
+        modPlayer->setup(modFile);
+        modPlayer->start();
     } else {
-        qDebug() << "SECONDA VOLTA";
+        qDebug() << "Stopping mod player.";
+        modPlayer->stop();
     }
-    isFirstModPlayerClick = !isFirstModPlayerClick;
+    m_isModPlaying = !m_isModPlaying;
 }

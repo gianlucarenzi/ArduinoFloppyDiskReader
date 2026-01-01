@@ -59,7 +59,7 @@ private:
     bool doRefresh;
     bool skipReadError;
     bool skipWriteError;
-    bool isFirstModPlayerClick;
+    bool m_isModPlaying;
     void startWrite(void);
     void startRead(void);
     void showSetupError(QString err);

@@ -67,17 +67,21 @@ SOURCES += \
     src/mainwindow.cpp \
     src/qtdrawbridge.cpp \
     src/socketserver.cpp \
+    src/qtmodplayer.cpp \
     \
 
 
 DEFINES += __USE_GUI__
 
+QMAKE_CXXFLAGS += -std=c++17 -Wall -Wextra
+
 win32 {
     CONFIG += moc_predefs
+    LIBS += -lopenmpt -lportaudiocpp -lportaudio -lwinmm -lole32
 }
 
-unix {
-    LIBS += -ldl
+unix:!macx {
+    LIBS += -ldl -pthread -lopenmpt -lportaudiocpp -lportaudio -lasound -lm
 }
 
 win32-msvc* {
@@ -90,4 +94,5 @@ macx {
     QMAKE_BUNDLE_DATA.fonts.files = fonts/TopazPlus_a500_v1.0.ttf
     QMAKE_BUNDLE_DATA.fonts.path = Contents/Resources/fonts
     BUNDLE_DATA += QMAKE_BUNDLE_DATA.fonts
+    LIBS += -lopenmpt -lportaudiocpp -lportaudio
 }

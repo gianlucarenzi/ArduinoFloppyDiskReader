@@ -3,30 +3,32 @@
 
 #include <QThread>
 #include <QString>
-#include <QDebug>
+#include <atomic>
+#include <memory>
+
+#include <libopenmpt/libopenmpt.hpp>
+#include <portaudiocpp/PortAudioCpp.hxx>
 
 class QtModPlayer : public QThread
 {
     Q_OBJECT
 public:
-    QtModPlayer() {
-        qDebug() << __PRETTY_FUNCTION__ << "Called";
-    }
-    virtual void run() override {
-        qDebug() << __PRETTY_FUNCTION__ << "Called";
-        // Placeholder for now
-        emit modPlayerSignal(0);
-    }
-    void setup(const QString &filename) {
-        qDebug() << __PRETTY_FUNCTION__ << "Called with" << filename;
-        m_filename = filename;
-    }
+    QtModPlayer();
+    ~QtModPlayer();
+
+    void setup(const QString &filename);
+    void stop();
+
+protected:
+    void run() override;
 
 signals:
     void modPlayerSignal(int rval);
 
 private:
     QString m_filename;
+    std::unique_ptr<openmpt::module> m_mod;
+    std::atomic<bool> m_playing;
 };
 
 #endif // QTMODPLAYER_H
