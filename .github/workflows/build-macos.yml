@@ -22,9 +22,13 @@ jobs:
         version: '5.15.2'
         arch: 'clang_64'
 
+    - name: Install x86_64 Homebrew
+      run: |
+        arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
     - name: Install dependencies
       run: |
-        arch -x86_64 brew install libopenmpt portaudio sdl2
+        arch -x86_64 /usr/local/bin/brew install libopenmpt portaudio sdl2
 
     - name: Build waffleCopyPRO-Universal
       run: |
