@@ -29,6 +29,7 @@ HEADERS += \
     inc/qtdrawbridge.h \
     inc/socketserver.h \
     inc/waffleconfig.h \
+    inc/qtmodplayer.h \
     lib/ADFWriter.h \
     lib/ArduinoInterface.h \
     lib/RotationExtractor.h \
