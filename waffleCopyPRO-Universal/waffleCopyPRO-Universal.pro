@@ -100,6 +100,7 @@ macx {
     QMAKE_BUNDLE_DATA.fonts.files = fonts/TopazPlus_a500_v1.0.ttf
     QMAKE_BUNDLE_DATA.fonts.path = Contents/Resources/fonts
     BUNDLE_DATA += QMAKE_BUNDLE_DATA.fonts
+    LIBS += -L/opt/homebrew/lib -L/usr/local/lib
     LIBS += -lopenmpt -lportaudiocpp -lportaudio
     INCLUDEPATH += /opt/homebrew/include /usr/local/include
 }
