@@ -57,6 +57,7 @@ private:
     bool doRefresh;
     bool skipReadError;
     bool skipWriteError;
+    bool isFirstModPlayerClick;
     void startWrite(void);
     void startRead(void);
     void showSetupError(QString err);
@@ -103,6 +104,7 @@ private slots:
     void drStatusChange(int rval);
     void drErrorChange(int rval);
     void refreshSerialPorts();
+    void on_modPlayerButton_clicked();
 
 protected:
     void resizeEvent(QResizeEvent *event);

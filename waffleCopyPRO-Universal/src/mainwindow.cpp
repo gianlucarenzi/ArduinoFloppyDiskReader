@@ -45,6 +45,7 @@ MainWindow::MainWindow(QWidget *parent)
   doRefresh(true),
   skipReadError(false),
   skipWriteError(false),
+  isFirstModPlayerClick(true),
   isDiagnosticVisible(false)
 {
     ui->setupUi(this);
@@ -826,4 +827,14 @@ void MainWindow::refreshSerialPorts()
         }
     }
     ui->serialPortComboBox->blockSignals(false);
+}
+
+void MainWindow::on_modPlayerButton_clicked()
+{
+    if (isFirstModPlayerClick) {
+        qDebug() << "PRIMA VOLTA";
+    } else {
+        qDebug() << "SECONDA VOLTA";
+    }
+    isFirstModPlayerClick = !isFirstModPlayerClick;
 }
