@@ -79,7 +79,7 @@ QMAKE_CXXFLAGS += -std=c++17 -Wall
 
 win32 {
     CONFIG += moc_predefs
-    LIBS += -lopenmpt -lportaudiocpp -lportaudio -lwinmm -lole32
+    LIBS += -lopenmpt -lportaudio -lwinmm -lole32
 }
 
 !win32 {
