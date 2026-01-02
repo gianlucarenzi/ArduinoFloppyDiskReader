@@ -72,7 +72,6 @@ SOURCES += \
 DEFINES += __USE_GUI__
 
 QMAKE_CXXFLAGS += -std=c++17 -Wall
-LIBS += -ldl
 
 win32 {
     CONFIG += moc_predefs
@@ -80,6 +79,7 @@ win32 {
 
 !win32 {
     QMAKE_CXXFLAGS += -Wextra
+    LIBS += -ldl
 }
 
 win32-msvc* {
