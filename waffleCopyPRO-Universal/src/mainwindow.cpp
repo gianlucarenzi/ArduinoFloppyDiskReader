@@ -775,7 +775,7 @@ void MainWindow::onDiagnosticButtonClicked(void)
         // First click: show and set text
         ui->busy->show();
         ui->busy->raise();
-        ui->diagnosticTest->setText(tr("Waffle Copy Pro - Diagnostic Test\n\n"
+        ui->diagnosticTest->setText(tr("Waffle Copy Pro - Diagnostic Test\n\n" 
                                        "This is a placeholder for future diagnostic information. "
                                        "For now, it just shows this text."));
         ui->diagnosticTest->show();

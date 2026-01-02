@@ -140,6 +140,22 @@ background-color: rgb(61, 56, 70);</string>
      <pixmap>WaffleUI/leftLogo.png</pixmap>
     </property>
    </widget>
+   <widget class="ClickLabel" name="modPlayerButton">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>30</y>
+      <width>131</width>
+      <height>121</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: transparent;</string>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
    <widget class="ClickLabel" name="startRead">
     <property name="geometry">
      <rect>
@@ -697,52 +713,7 @@ background-color: rgb(61, 56, 70);</string>
    <zorder>portSelection</zorder>
    <zorder>mainTitle</zorder>
    <zorder>leftLogo</zorder>
-   <zorder>getADFFileName</zorder>
-   <zorder>fileSaveADF</zorder>
-   <zorder>fileReadADF</zorder>
-   <zorder>copyCompleted</zorder>
-   <zorder>copyError</zorder>
-   <zorder>showError</zorder>
-   <zorder>preCompSelection</zorder>
-   <zorder>eraseBeforeWrite</zorder>
-   <zorder>numTracks</zorder>
-   <zorder>skipReadError</zorder>
-   <zorder>skipWriteError</zorder>
-   <zorder>version</zorder>
-   <zorder>errorDialog</zorder>
-   <zorder>hdModeSelection</zorder>
-   <zorder>diagnosticButton</zorder>
-   <widget class="QPushButton" name="modPlayerButton">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>30</y>
-      <width>131</width>
-      <height>111</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">background-color: transparent; border: none;</string>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-    <property name="flat">
-     <bool>true</bool>
-    </property>
-   </widget>
-   <zorder>busy</zorder>
-   <zorder>background</zorder>
-   <zorder>stopButton</zorder>
-   <zorder>startWrite</zorder>
-   <zorder>startRead</zorder>
-   <zorder>setADFFileName</zorder>
-   <zorder>serialPortComboBox</zorder>
-   <zorder>scrollText</zorder>
-   <zorder>rightLogo</zorder>
-   <zorder>portSelection</zorder>
-   <zorder>mainTitle</zorder>
-   <zorder>leftLogo</zorder>
+   <zorder>modPlayerButton</zorder>
    <zorder>getADFFileName</zorder>
    <zorder>fileSaveADF</zorder>
    <zorder>fileReadADF</zorder>
@@ -759,7 +730,6 @@ background-color: rgb(61, 56, 70);</string>
    <zorder>hdModeSelection</zorder>
    <zorder>diagnosticButton</zorder>
    <zorder>diagnosticTest</zorder>
-   <zorder>modPlayerButton</zorder>
   </widget>
  </widget>
  <customwidgets>
