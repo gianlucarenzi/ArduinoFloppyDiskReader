@@ -50,8 +50,30 @@ jobs:
 
       - name: Deploy and Package
         run: |
+          $ROOT = "${{ github.workspace }}"
           $RELEASE_DIR = "waffleCopyPRO-Universal/release"
-          & "${{ env.Qt5_Dir }}\bin\windeployqt.exe" --force --no-translations --no-compiler-runtime --dir $RELEASE_DIR "$RELEASE_DIR\waffleCopyPRO-Universal.exe"
+          & "${{ env.Qt5_Dir }}\bin\windeployqt.exe" `
+          --force `
+          --no-translations `
+          --no-compiler-runtime `
+          --dir $RELEASE_DIR `
+          "$RELEASE_DIR\waffleCopyPRO-Universal.exe"
+          
+          $VCPKG_BIN = "$ROOT\vcpkg\installed\x64-windows\bin"
+          if (Test-Path $VCPKG_BIN) {
+              Copy-Item "$VCPKG_BIN\*.dll" $RELEASE_DIR -Force
+          }
+          
+          $MSVC_REDIST = Get-ChildItem `
+            "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Redist\MSVC" `
+            -Directory | Sort-Object Name -Descending | Select-Object -First 1
+          if ($MSVC_REDIST) {
+              $CRT_PATH = Join-Path $MSVC_REDIST.FullName "x64\Microsoft.VC142.CRT"
+              if (Test-Path $CRT_PATH) {
+                  Copy-Item "$CRT_PATH\*.dll" $RELEASE_DIR -Force
+              }
+          }
+          
           Copy-Item -Path "waffleCopyPRO-Universal/fonts" -Destination $RELEASE_DIR -Recurse
           Copy-Item -Path "waffleCopyPRO-Universal/WaffleUI" -Destination $RELEASE_DIR -Recurse
           Push-Location $RELEASE_DIR
