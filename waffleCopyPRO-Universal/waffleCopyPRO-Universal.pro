@@ -29,6 +29,8 @@ HEADERS += \
     inc/qtdrawbridge.h \
     inc/socketserver.h \
     inc/waffleconfig.h \
+    inc/vumeterwidget.h \
+    inc/mikmodplayer.h \
     lib/ADFWriter.h \
     lib/ArduinoInterface.h \
     lib/RotationExtractor.h \
@@ -66,6 +68,8 @@ SOURCES += \
     src/mainwindow.cpp \
     src/qtdrawbridge.cpp \
     src/socketserver.cpp \
+    src/vumeterwidget.cpp \
+    src/mikmodplayer.cpp \
     \
 
 
@@ -75,11 +79,24 @@ QMAKE_CXXFLAGS += -std=c++17 -Wall
 
 win32 {
     CONFIG += moc_predefs
+    VCPKG_ROOT = $$(VCPKG_ROOT)
+
+    isEmpty(VCPKG_ROOT) {
+	error("VCPKG_ROOT environment variable not set")
+    }
+
+    message("Using vcpkg from: $$VCPKG_ROOT")
 }
 
-!win32 {
+unix {
     QMAKE_CXXFLAGS += -Wextra
-    LIBS += -ldl
+    LIBS += -ldl -lmikmod
+
+    macx {
+	# Homebrew (Intel + Apple Silicon)
+	INCLUDEPATH += /usr/local/include /opt/homebrew/include
+	LIBS += -L/usr/local/lib -L/opt/homebrew/lib
+    }
 }
 
 win32-msvc* {

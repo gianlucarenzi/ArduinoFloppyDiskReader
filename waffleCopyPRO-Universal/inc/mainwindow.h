@@ -17,6 +17,8 @@
 #include <QSerialPortInfo>
 #include <QSerialPort>
 #include "socketserver.h"
+#include "mikmodplayer.h"
+#include "vumeterwidget.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -68,11 +70,18 @@ private:
     QString m_folder;
     QString m_error;
     QString m_sDefaultPath;
+    bool isDiagnosticVisible;
     QSettings settings;
     bool readyReadSHM;
-    bool isDiagnosticVisible;
     QThread *m_thread;
     void progressChange(QString s, int value);
+    MikModPlayer *player;
+    VuMeterWidget *vuMeter;
+    QTimer *m_vuMeterTimer;
+    void playMusic(void);
+    bool playMOD;
+    bool m_musicLoaded;
+    bool m_musicPaused;
 
 
 private slots:
@@ -105,6 +114,10 @@ private slots:
     void drStatusChange(int rval);
     void drErrorChange(int rval);
     void refreshSerialPorts();
+    // MOD Player
+    void handleSongFinished();
+    void updateVuMeter();
+    void toggleMusic();
 
 protected:
     void resizeEvent(QResizeEvent *event);

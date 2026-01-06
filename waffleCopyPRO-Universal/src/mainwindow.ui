@@ -2,6 +2,18 @@
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
+  <property name="minimumSize">
+   <size>
+    <width>1024</width>
+    <height>594</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>1024</width>
+    <height>594</height>
+   </size>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -21,18 +33,6 @@
    <bool>true</bool>
   </property>
   <widget class="QWidget" name="mainWindow">
-   <property name="minimumSize">
-    <size>
-     <width>1024</width>
-     <height>594</height>
-    </size>
-   </property>
-   <property name="maximumSize">
-    <size>
-     <width>1024</width>
-     <height>594</height>
-    </size>
-   </property>
    <widget class="QLabel" name="background">
     <property name="enabled">
      <bool>true</bool>

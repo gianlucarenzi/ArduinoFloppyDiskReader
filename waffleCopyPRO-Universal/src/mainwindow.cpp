@@ -19,7 +19,8 @@
 #include <QSettings>
 #include "socketserver.h"
 #include <QSerialPortInfo>
-
+#include "mikmodplayer.h"
+#include "vumeterwidget.h"
 
 #define TESTCASE_USB_DEVICE 0
 
@@ -45,7 +46,10 @@ MainWindow::MainWindow(QWidget *parent)
   doRefresh(true),
   skipReadError(false),
   skipWriteError(false),
-  isDiagnosticVisible(false)
+  isDiagnosticVisible(false),
+  player(new MikModPlayer(this, 20, 50)),
+  m_musicLoaded(false),
+  m_musicPaused(false)
 {
     ui->setupUi(this);
 
@@ -194,10 +198,24 @@ MainWindow::MainWindow(QWidget *parent)
     connect(socketServer, SIGNAL(drSide(int)), this, SLOT(drSideChange(int)));
     connect(socketServer, SIGNAL(drStatus(int)), this, SLOT(drStatusChange(int)));
     connect(socketServer, SIGNAL(drError(int)), this, SLOT(drErrorChange(int)));
+
+    // VuMeter
+    vuMeter = new VuMeterWidget(this); // Parent is MainWindow
+
+    m_vuMeterTimer = new QTimer(this);
+    connect(m_vuMeterTimer, &QTimer::timeout, this, &MainWindow::updateVuMeter);
+    m_vuMeterTimer->setInterval(50);
+
+    // Connect signals
+    connect(player, &MikModPlayer::songFinished, this, &MainWindow::handleSongFinished);
+    connect(ui->modPlayerButton, SIGNAL(emitClick()), this, SLOT(toggleMusic(void)));
+
 }
 
 MainWindow::~MainWindow()
 {
+    m_vuMeterTimer->stop();
+    player->stopPlayback();
     delete ui;
 }
 
@@ -828,5 +846,81 @@ void MainWindow::refreshSerialPorts()
         }
     }
     ui->serialPortComboBox->blockSignals(false);
+}
+
+void MainWindow::playMusic()
+{
+    // Directly load the module
+    player->loadModule("WaffleUI/stardstm.mod");
+    player->start();
+    m_vuMeterTimer->start();
+    m_musicLoaded = true;
+    m_musicPaused = false;
+}
+
+void MainWindow::handleSongFinished()
+{
+    qDebug() << "Song finished. Restart From beginning...";
+    m_vuMeterTimer->stop();
+    player->stopPlayback(); // Ensure playback is stopped
+    vuMeter->startDecay();  // Start VU Meter decay
+    playMusic();            // Restart from beginning
+}
+
+void MainWindow::updateVuMeter()
+{
+    if (player && player->isPlaying())
+    {
+        vuMeter->setAudioLevels(player->getCurrentLevels());
+    }
+}
+
+void MainWindow::toggleMusic()
+{
+    qDebug() << "toggleMusic called. m_musicLoaded:" << m_musicLoaded << "m_musicPaused:" << m_musicPaused;
+
+    // Calculate VU meter width based on channels
+    int channels = player->getNumChannels();
+    int vuMeterWidth = 0;
+    if (channels > 0) {
+        int barWidth = 24;
+        int barSpacing = 2;
+        vuMeterWidth = channels * barWidth + (channels + 1) * barSpacing;
+    } else {
+        vuMeterWidth = 100; // Fallback to default minimum width
+    }
+
+    // Calculate position
+    int x = (this->width() - vuMeterWidth) / 2;
+    int y = this->height() - vuMeter->height() - 5; // 5 pixels from the bottom
+
+    if (!m_musicLoaded) {
+        // State: Stopped -> Playing
+        qDebug() << "State: Stopped -> Playing";
+        vuMeter->setGeometry(x, y, vuMeterWidth, vuMeter->height());
+        vuMeter->show();
+        playMusic();
+    } else if (m_musicPaused) {
+        // State: Paused -> Playing (Resume)
+        qDebug() << "State: Paused -> Playing (Resume)";
+        vuMeter->setGeometry(x, y, vuMeterWidth, vuMeter->height());
+        vuMeter->show();
+        player->pausePlayback(); // Toggles pause off
+        m_vuMeterTimer->start();
+        m_musicPaused = false;
+    } else {
+        // State: Playing -> Paused
+        qDebug() << "State: Playing -> Paused";
+        player->pausePlayback(); // Toggles pause on
+        m_vuMeterTimer->stop();
+        vuMeter->startDecay();
+        // Hide the VU meter after it has decayed
+        QTimer::singleShot(1000, this, [this]() {
+            if (m_musicPaused) { // Check if it's still paused before hiding
+                vuMeter->hide();
+            }
+        });
+        m_musicPaused = true;
+    }
 }
 
