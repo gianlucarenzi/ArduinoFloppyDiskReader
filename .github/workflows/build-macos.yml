@@ -28,7 +28,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        arch -x86_64 /usr/local/bin/brew install libopenmpt portaudio sdl2
+        arch -x86_64 /usr/local/bin/brew install libmikmod
 
     - name: Build waffleCopyPRO-Universal
       run: |
