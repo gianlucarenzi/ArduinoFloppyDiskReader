@@ -26,14 +26,27 @@ jobs:
           arch:      	win64_msvc2019_64
           dir:          ${{ runner.temp }}
           setup-python: false
-          
+
+      - name: Install vcpkg
+	    shell: cmd
+    	run: |
+	      git clone https://github.com/microsoft/vcpkg.git
+	      .\vcpkg\bootstrap-vcpkg.bat
+
+      - name: Install libmikmod (vcpkg)
+        shell: cmd
+        run: |
+          .\vcpkg\vcpkg install libmikmod:x64-windows
+
       - name: Build Project
+        shell: cmd
+        env:
+          VCPKG_ROOT: ${{ github.workspace }}\vcpkg
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           cd waffleCopyPRO-Universal
           qmake -tp vc waffleCopyPRO-Universal.pro
           msbuild waffleCopyPRO-Universal.vcxproj /p:Configuration=Release
-        shell: cmd
 
       - name: Deploy and Package
         run: |
