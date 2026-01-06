@@ -28,10 +28,10 @@ jobs:
           setup-python: false
 
       - name: Install vcpkg
-	    shell: cmd
-    	run: |
-	      git clone https://github.com/microsoft/vcpkg.git
-	      .\vcpkg\bootstrap-vcpkg.bat
+        shell: cmd
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          .\vcpkg\bootstrap-vcpkg.bat
 
       - name: Install libmikmod (vcpkg)
         shell: cmd
