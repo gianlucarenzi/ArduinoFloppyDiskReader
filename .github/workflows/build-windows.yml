@@ -2,12 +2,12 @@ name: Build WaffleCopyPRO on Windows
 
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-  release:
-    types: [published]
+    tags:
+      - 'v*'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -85,13 +85,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: waffleCopyPRO-Universal-Windows
-          path: waffleCopyPRO-Universal/waffleCopyPRO-Universal-Windows.zip
+          path: waffleCopyPRO-Universal/release/
 
-      - name: Upload Release Asset
-        if: github.event_name == 'release' && github.event.action == 'published'
+      - name: Create Release and Upload Asset
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
         with:
           files: waffleCopyPRO-Universal/waffleCopyPRO-Universal-Windows.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: false
 
