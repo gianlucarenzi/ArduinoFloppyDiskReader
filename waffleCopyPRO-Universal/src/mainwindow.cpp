@@ -404,6 +404,7 @@ void MainWindow::doScroll(void)
 		QFont diagnosticFont = ui->diagnosticTest->font();
 		diagnosticFont.setPointSize(diagnosticFont.pointSize() + 1);
 		ui->diagnosticTest->setFont(diagnosticFont);
+        ui->diagnosticButton->setFont(this->font());
         doRefresh = ! doRefresh;
     }
 }
