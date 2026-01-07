@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1024</width>
+    <height>594</height>
+   </rect>
+  </property>
   <property name="minimumSize">
    <size>
     <width>1024</width>
@@ -13,14 +21,6 @@
     <width>1024</width>
     <height>594</height>
    </size>
-  </property>
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>1024</width>
-    <height>594</height>
-   </rect>
   </property>
   <property name="windowTitle">
    <string>WAFFLE-Copy-Professional</string>
@@ -536,8 +536,8 @@ background-color: rgb(61, 56, 70);</string>
    <widget class="QLabel" name="version">
     <property name="geometry">
      <rect>
-      <x>850</x>
-      <y>515</y>
+      <x>890</x>
+      <y>145</y>
       <width>111</width>
       <height>17</height>
      </rect>
@@ -632,7 +632,7 @@ background-color: rgb(61, 56, 70);</string>
    <widget class="QCheckBox" name="hdModeSelection">
     <property name="geometry">
      <rect>
-      <x>600</x>
+      <x>580</x>
       <y>510</y>
       <width>211</width>
       <height>25</height>
@@ -648,10 +648,10 @@ background-color: rgb(61, 56, 70);</string>
    <widget class="QPushButton" name="diagnosticButton">
     <property name="geometry">
      <rect>
-      <x>900</x>
-      <y>40</y>
-      <width>81</width>
-      <height>81</height>
+      <x>830</x>
+      <y>510</y>
+      <width>111</width>
+      <height>21</height>
      </rect>
     </property>
     <property name="focusPolicy">
@@ -664,10 +664,11 @@ background-color: rgb(61, 56, 70);</string>
      <string extracomment="Diagnostic Button"/>
     </property>
     <property name="styleSheet">
-     <string notr="true">background-color: transparent; border: none;</string>
+     <string notr="true">background-color: rgb(128, 128, 128);
+color: rgb(248, 228, 92);</string>
     </property>
     <property name="text">
-     <string/>
+     <string>Run Diagnostics</string>
     </property>
    </widget>
    <widget class="QTextEdit" name="diagnosticTest">
