@@ -252,7 +252,7 @@ void DiagnosticThread::run()
                     pollDevice.closePort();
                     emit diagnosticMessage("Diagnostic interrupted by user");
                     emit diagnosticComplete(false);
-                    return;
+                    return false;
                 }
 
                 // Check for disk
