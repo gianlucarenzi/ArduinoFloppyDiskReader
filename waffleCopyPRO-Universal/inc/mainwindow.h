@@ -11,6 +11,7 @@
 #include <QFontDatabase>
 #include <QDebug> // Added for QDebug
 #include "qtdrawbridge.h"
+#include "diagnosticthread.h"
 #include "waffleconfig.h"
 #include <QCursor>
 #include <QSettings>
@@ -46,6 +47,7 @@ private:
     QTimer *scrollTimer;
     QTimer *serialPortRefreshTimer;
     QtDrawBridge *amigaBridge;
+    DiagnosticThread *diagnosticThread;
     SocketServer *socketServer;
     QFileSystemWatcher *watcher;
     QStringList fileList; // This file list is shared with the QThread for READING/WRITING from Waffle
@@ -82,6 +84,7 @@ private:
     bool playMOD;
     bool m_musicLoaded;
     bool m_musicPaused;
+    QPoint m_diagnosticMousePressPos;
 
 
 private slots:
@@ -109,6 +112,8 @@ private slots:
     void manageQtDrawBridgeSignal(int rval);
     void onDiagnosticButtonClicked(void);
     void hideDiagnosticView(void);
+    void onDiagnosticMessage(QString message);
+    void onDiagnosticComplete(bool success);
     void drTrackChange(int rval);
     void drSideChange(int rval);
     void drStatusChange(int rval);
@@ -121,5 +126,6 @@ private slots:
 
 protected:
     void resizeEvent(QResizeEvent *event);
+    bool eventFilter(QObject *obj, QEvent *event) override;
 };
 #endif // MAINWINDOW_H

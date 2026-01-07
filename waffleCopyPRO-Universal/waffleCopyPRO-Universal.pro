@@ -25,6 +25,8 @@ INCLUDEPATH += \
 HEADERS += \
     inc/clicklabel.h \
     inc/compilerdefs.h \
+    inc/diagnosticconfig.h \
+    inc/diagnosticthread.h \
     inc/mainwindow.h \
     inc/qtdrawbridge.h \
     inc/socketserver.h \
@@ -63,6 +65,7 @@ SOURCES += \
 
 SOURCES += \
     src/clicklabel.cpp \
+    src/diagnosticthread.cpp \
     src/drawbridge.cpp \
     src/main.cpp \
     src/mainwindow.cpp \

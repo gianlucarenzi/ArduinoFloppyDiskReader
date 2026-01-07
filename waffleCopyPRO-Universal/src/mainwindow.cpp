@@ -6,8 +6,11 @@
 #include <QPaintEvent>
 #include <QResizeEvent>
 #include <QFileInfo>
+#include <QEvent>
+#include <QMouseEvent>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "diagnosticconfig.h"
 #include <stdio.h>
 #include <QString>
 #include <QFont>
@@ -19,6 +22,7 @@
 #include <QSettings>
 #include "socketserver.h"
 #include <QSerialPortInfo>
+#include <QScrollBar>
 #include "mikmodplayer.h"
 #include "vumeterwidget.h"
 
@@ -37,6 +41,7 @@ MainWindow::MainWindow(QWidget *parent)
   side(-1),
   status(-1),
   err(-1),
+  diagnosticThread(nullptr),
   readInProgress(false),
   writeInProgress(false),
   preComp(true),
@@ -52,6 +57,14 @@ MainWindow::MainWindow(QWidget *parent)
   m_musicPaused(false)
 {
     ui->setupUi(this);
+
+    // Platform-specific font size for diagnostic widget
+    // macOS: keep default (11pt), Windows/Linux: smaller (9pt)
+#if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
+    QFont diagnosticFont = ui->diagnosticTest->font();
+    diagnosticFont.setPointSize(9);
+    ui->diagnosticTest->setFont(diagnosticFont);
+#endif
 
     // Create WaffleFolder if not exists
     QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
@@ -118,13 +131,14 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->diagnosticButton, SIGNAL(clicked()), this, SLOT(onDiagnosticButtonClicked()));
     connect(ui->skipReadError, SIGNAL(clicked()), this, SLOT(toggleSkipReadError()));
     connect(ui->skipWriteError, SIGNAL(clicked()), this, SLOT(toggleSkipWriteError()));
-    connect(ui->diagnosticTest, SIGNAL(emitClick()), this, SLOT(hideDiagnosticView()));
 
     ui->busy->hide();
 
     ui->copyCompleted->hide();
     ui->copyError->hide();
     ui->diagnosticTest->hide();
+    // Install event filter on diagnosticTest to capture clicks
+    ui->diagnosticTest->viewport()->installEventFilter(this);
     // Busy background is invisible now
     ui->busy->raise();
     ui->busy->hide();
@@ -214,6 +228,19 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    // Stop and clean up diagnostic thread if running
+    if (diagnosticThread) {
+        if (diagnosticThread->isRunning()) {
+            diagnosticThread->requestInterruption();
+            if (!diagnosticThread->wait(3000)) {
+                diagnosticThread->terminate();
+                diagnosticThread->wait();
+            }
+        }
+        delete diagnosticThread;
+        diagnosticThread = nullptr;
+    }
+
     m_vuMeterTimer->stop();
     player->stopPlayback();
     delete ui;
@@ -779,29 +806,148 @@ void MainWindow::manageQtDrawBridgeSignal(int sig)
 
 void MainWindow::hideDiagnosticView(void)
 {
-    if (isDiagnosticVisible) {
-        ui->busy->hide();
-        ui->diagnosticTest->hide();
-        isDiagnosticVisible = false;
+    if (!isDiagnosticVisible) {
+        return;
     }
+
+    qDebug() << "hideDiagnosticView called";
+
+    // Set flag first to prevent any new signals from being processed
+    isDiagnosticVisible = false;
+
+    // Stop the diagnostic thread if it's still running
+    if (diagnosticThread) {
+        // Disconnect all signals immediately to prevent further widget updates
+        disconnect(diagnosticThread, nullptr, this, nullptr);
+
+        if (diagnosticThread->isRunning()) {
+            qDebug() << "Interrupting diagnostic thread...";
+            diagnosticThread->requestInterruption();
+
+            // Wait for thread to finish (max 5 seconds)
+            if (!diagnosticThread->wait(5000)) {
+                qDebug() << "Thread didn't finish in time, terminating forcefully";
+                diagnosticThread->terminate();
+                diagnosticThread->wait();
+            }
+            qDebug() << "Diagnostic thread stopped";
+        } else {
+            qDebug() << "Diagnostic thread already finished";
+        }
+
+        // Mark for deletion but don't delete immediately
+        // The thread will be cleaned up when creating a new one or on app exit
+        diagnosticThread->deleteLater();
+        diagnosticThread = nullptr;
+    }
+
+    // Now safe to hide widgets
+    if (ui->busy) {
+        ui->busy->hide();
+    }
+    if (ui->diagnosticTest) {
+        ui->diagnosticTest->hide();
+    }
+
+    qDebug() << "hideDiagnosticView completed";
 }
 
 void MainWindow::onDiagnosticButtonClicked(void)
 {
     qDebug() << "DIAGNOSTIC BUTTON CLICKED";
     if (!isDiagnosticVisible) {
-        // First click: show and set text
+        // Get the selected serial port
+        QString portName = ui->serialPortComboBox->currentText();
+
+        if (portName.isEmpty()) {
+            // Show error if no port is selected
+            ui->busy->show();
+            ui->busy->raise();
+            ui->diagnosticTest->clear();
+            ui->diagnosticTest->append(tr("ERROR: No serial port selected!\n\nPlease select a serial port from the dropdown menu."));
+            ui->diagnosticTest->show();
+            ui->diagnosticTest->raise();
+            isDiagnosticVisible = true;
+            return;
+        }
+
+        // Check if a diagnostic is already running
+        if (diagnosticThread && diagnosticThread->isRunning()) {
+            qDebug() << "Diagnostic already running, ignoring request";
+            return;
+        }
+
+        // Clean up any existing thread that hasn't been deleted yet
+        if (diagnosticThread) {
+            qDebug() << "Cleaning up old diagnostic thread";
+            diagnosticThread->deleteLater();
+            diagnosticThread = nullptr;
+        }
+
+        // Show the diagnostic view
         ui->busy->show();
         ui->busy->raise();
-        ui->diagnosticTest->setText(tr("Waffle Copy Pro - Diagnostic Test\n\n" 
-                                       "This is a placeholder for future diagnostic information. "
-                                       "For now, it just shows this text."));
+        ui->diagnosticTest->clear();
+        ui->diagnosticTest->append(tr("=== Waffle Copy Pro - Diagnostic Test ===\n"));
+        ui->diagnosticTest->append(tr("Starting diagnostic on port: %1\n").arg(portName));
+        ui->diagnosticTest->append(tr("Please ensure a write-protected AmigaDOS disk is inserted.\n"));
         ui->diagnosticTest->show();
         ui->diagnosticTest->raise();
         isDiagnosticVisible = true;
+
+        // Create and start the diagnostic thread
+        diagnosticThread = new DiagnosticThread();
+        connect(diagnosticThread, SIGNAL(diagnosticMessage(QString)), this, SLOT(onDiagnosticMessage(QString)));
+        connect(diagnosticThread, SIGNAL(diagnosticComplete(bool)), this, SLOT(onDiagnosticComplete(bool)));
+        // Do NOT auto-delete the thread - we manage it manually to avoid crashes
+
+        diagnosticThread->setup(portName);
+        diagnosticThread->start();
     } else {
         // Second click: hide
         hideDiagnosticView();
+    }
+}
+
+void MainWindow::onDiagnosticMessage(QString message)
+{
+    // Send to debug output
+    qDebug() << "[DIAGNOSTIC]" << message;
+
+    // Use QMetaObject::invokeMethod to ensure we're in the right thread and timing
+    if (isDiagnosticVisible && ui && ui->diagnosticTest) {
+        QMetaObject::invokeMethod(ui->diagnosticTest, "append", Qt::QueuedConnection, Q_ARG(QString, message));
+
+        // Auto-scroll to bottom (also queued)
+        QMetaObject::invokeMethod(this, [this]() {
+            if (isDiagnosticVisible && ui && ui->diagnosticTest) {
+                QScrollBar *scrollBar = ui->diagnosticTest->verticalScrollBar();
+                if (scrollBar) {
+                    scrollBar->setValue(scrollBar->maximum());
+                }
+            }
+        }, Qt::QueuedConnection);
+    }
+}
+
+void MainWindow::onDiagnosticComplete(bool success)
+{
+    qDebug() << "onDiagnosticComplete called, success:" << success << ", visible:" << isDiagnosticVisible;
+
+    if (isDiagnosticVisible && ui && ui->diagnosticTest) {
+        // Use QMetaObject::invokeMethod to safely append messages
+        QString finalMessage;
+        if (success) {
+            finalMessage = tr("\n=== ALL TESTS PASSED ===");
+        } else {
+            finalMessage = tr("\n=== SOME TESTS FAILED ===");
+        }
+        finalMessage += tr("\nClick anywhere on this window to close.");
+
+        QMetaObject::invokeMethod(ui->diagnosticTest, "append", Qt::QueuedConnection, Q_ARG(QString, finalMessage));
+        qDebug() << "onDiagnosticComplete scheduled append";
+    } else {
+        qDebug() << "Skipping append - widget not visible or invalid";
     }
 }
 
@@ -817,7 +963,10 @@ void MainWindow::refreshSerialPorts()
     QString currentPortName = ui->serialPortComboBox->currentText();
     ui->serialPortComboBox->clear();
 
-#if TESTCASE_USB_DEVICE
+#if defined(SIMULATE_DIAGNOSTIC_SUCCESS) || defined(SIMULATE_DIAGNOSTIC_FAILURE)
+    // Add simulated serial port for diagnostic simulation mode
+    ui->serialPortComboBox->addItem("SIMULATED_PORT");
+#elif TESTCASE_USB_DEVICE
     #ifdef _WIN32
         ui->serialPortComboBox->addItems({"COM1", "COM11", "COM22", "COM3"});
     #elif defined(__APPLE__)
@@ -836,6 +985,13 @@ void MainWindow::refreshSerialPorts()
             ui->serialPortComboBox->addItem(info.portName());
         }
     }
+
+    // If no ports found and simulation mode is enabled, add simulated port
+#if defined(SIMULATE_DIAGNOSTIC_SUCCESS) || defined(SIMULATE_DIAGNOSTIC_FAILURE)
+    if (ui->serialPortComboBox->count() == 0) {
+        ui->serialPortComboBox->addItem("SIMULATED_PORT");
+    }
+#endif
 #endif
 
     // Restore previous selection if still available
@@ -922,5 +1078,40 @@ void MainWindow::toggleMusic()
         });
         m_musicPaused = true;
     }
+}
+
+bool MainWindow::eventFilter(QObject *obj, QEvent *event)
+{
+    if (obj == ui->diagnosticTest->viewport() && isDiagnosticVisible) {
+        // Only handle mouse events, let keyboard events pass through
+        if (event->type() == QEvent::MouseButtonPress) {
+            QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
+            if (mouseEvent->button() == Qt::LeftButton) {
+                m_diagnosticMousePressPos = mouseEvent->pos();
+            }
+            // Let the event propagate normally
+            return QMainWindow::eventFilter(obj, event);
+        }
+        else if (event->type() == QEvent::MouseButtonRelease) {
+            QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
+            if (mouseEvent->button() == Qt::LeftButton) {
+                // Calculate distance from press to release
+                QPoint releasePos = mouseEvent->pos();
+                int distance = (releasePos - m_diagnosticMousePressPos).manhattanLength();
+
+                // Only close if it's a simple click (not a drag)
+                // Allow tolerance of 5 pixels for accidental micro-movements
+                if (distance <= 5) {
+                    // Use QTimer to defer the close, avoiding potential issues
+                    QTimer::singleShot(100, this, SLOT(hideDiagnosticView()));
+                    return true; // Event handled
+                }
+            }
+            // Let the event propagate normally
+            return QMainWindow::eventFilter(obj, event);
+        }
+    }
+    // Pass all other events to the parent class
+    return QMainWindow::eventFilter(obj, event);
 }
 

@@ -670,13 +670,13 @@ background-color: rgb(61, 56, 70);</string>
      <string/>
     </property>
    </widget>
-   <widget class="ClickLabel" name="diagnosticTest">
+   <widget class="QTextEdit" name="diagnosticTest">
     <property name="geometry">
      <rect>
-      <x>350</x>
-      <y>140</y>
-      <width>361</width>
-      <height>101</height>
+      <x>205</x>
+      <y>99</y>
+      <width>650</width>
+      <height>364</height>
      </rect>
     </property>
     <property name="font">
@@ -691,14 +691,11 @@ background-color: rgb(61, 56, 70);</string>
     <property name="frameShape">
      <enum>QFrame::StyledPanel</enum>
     </property>
-    <property name="alignment">
-     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-    </property>
-    <property name="wordWrap">
+    <property name="readOnly">
      <bool>true</bool>
     </property>
-    <property name="margin">
-     <number>5</number>
+    <property name="textInteractionFlags">
+     <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
     </property>
    </widget>
    <zorder>busy</zorder>
