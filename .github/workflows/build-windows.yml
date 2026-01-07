@@ -30,7 +30,7 @@ jobs:
       - name: Install vcpkg
         shell: cmd
         run: |
-          git clone https://github.com/microsoft/vcpkg.git
+          git clone --branch 2025.12.12 https://github.com/microsoft/vcpkg.git
           .\vcpkg\bootstrap-vcpkg.bat
 
       - name: Install libmikmod (vcpkg)
