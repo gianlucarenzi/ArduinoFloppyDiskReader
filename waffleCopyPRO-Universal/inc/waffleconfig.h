@@ -1,6 +1,6 @@
 #ifndef WAFFLECONFIG_H
 #define WAFFLECONFIG_H
 
-#define WAFFLE_VERSION "2.5.2"
+#define WAFFLE_VERSION "2.5.3"
 
 #endif // WAFFLECONFIG_H
