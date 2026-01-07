@@ -63,3 +63,6 @@ CVS
 /waffleCopyPRO-Universal/moc_vumeterwidget.cpp
 /waffleCopyPRO-Universal/moc_vumeterwidget.o
 /waffleCopyPRO-Universal/vumeterwidget.o
+/waffleCopyPRO-Universal/diagnosticthread.o
+/waffleCopyPRO-Universal/moc_diagnosticthread.cpp
+/waffleCopyPRO-Universal/moc_diagnosticthread.o
