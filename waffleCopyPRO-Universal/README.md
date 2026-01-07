@@ -78,13 +78,13 @@ Before you begin, ensure you have the following installed:
     sudo apt update
     sudo apt install build-essential qt5-default qtbase5-dev libqt5serialport5-dev libmikmod-dev libftdi1-dev
     ```
-    *Image placeholder: Screenshot of terminal showing `apt install` command and successful installation output.*
+    *Textual indication: After running the command, you should see output indicating packages being downloaded and installed, followed by a successful completion message.*
 3.  **Build the application**:
     ```bash
     qmake
     make
     ```
-    *Image placeholder: Screenshot of terminal showing `qmake` and `make` commands with successful compilation output.*
+    *Textual indication: The console output will show `qmake` generating the Makefile, followed by `make` compiling source files. Expect to see progress indicators and ultimately a message about the successful build of the application executable.*
 4.  **Run the application**:
     ```bash
     ./waffleCopyPRO-Universal
@@ -109,14 +109,14 @@ Before you begin, ensure you have the following installed:
     # For example, if Qt is installed in ~/Qt/5.15.2/clang_64/bin
     # export PATH=~/Qt/5.15.2/clang_64/bin:$PATH
     ```
-    *Image placeholder: Screenshot of terminal showing `brew install` command and successful installation output.*
+    *Textual indication: The terminal will display messages indicating `brew` downloading and installing `libmikmod`. If successful, it will confirm the installation.*
 4.  **Build the application**:
     ```bash
     qmake
     make
     macdeployqt waffleCopyPRO-Universal.app # To package the application and its dependencies
     ```
-    *Image placeholder: Screenshot of terminal showing `qmake`, `make`, and `macdeployqt` commands with successful output.*
+    *Textual indication: Console output will show `qmake` generating the Makefile, `make` compiling source files, and `macdeployqt` bundling the application into an `.app` package. Success will be indicated by completion messages for each step.*
 5.  **Run the application**:
     Open the generated `.app` bundle from Finder or via the terminal:
     ```bash
@@ -132,29 +132,29 @@ Before you begin, ensure you have the following installed:
     ```
 2.  **Install Visual Studio**:
     Install [Visual Studio 2019](https://visualstudio.microsoft.com/vs/older-versions/) (Community Edition is usually sufficient) with "Desktop development with C++" workload.
-    *Image placeholder: Screenshot of Visual Studio Installer with relevant workload selected.*
+    *Textual indication: During Visual Studio installation, ensure the "Desktop development with C++" workload is selected in the installer's component list. This workload includes essential C++ compilers and tools.*
 3.  **Install Qt 5.15.2**:
     Use the [Qt Online Installer](https://www.qt.io/download). Select "Qt 5.15.2" and ensure you pick the kit matching your Visual Studio version (e.g., `MSVC 2019 64-bit`).
-    *Image placeholder: Screenshot of Qt Online Installer with Qt 5.15.2 and MSVC kit selected.*
+    *Textual indication: In the Qt Online Installer, navigate to the "Select Components" section. Under "Qt," expand "Qt 5.15.2" and check the box for the kit matching your Visual Studio version (e.g., "MSVC 2019 64-bit").*
 4.  **Install vcpkg and dependencies**:
     ```cmd
     git clone --branch 2025.12.12 https://github.com/microsoft/vcpkg.git
     .\vcpkg\bootstrap-vcpkg.bat
     .\vcpkg\vcpkg install libmikmod:x64-windows
     ```
-    *Image placeholder: Screenshot of PowerShell/Command Prompt showing vcpkg commands and successful installation.*
+    *Textual indication: The PowerShell/Command Prompt will show output from `git clone`, `bootstrap-vcpkg.bat`, and `vcpkg install`. For `vcpkg install`, expect messages about acquiring and building `libmikmod` for `x64-windows`, culminating in a successful installation confirmation.*
 5.  **Build the application**:
     Open a "x64 Native Tools Command Prompt for VS 2019" (or similar, depending on your VS version). Navigate to the `waffleCopyPRO-Universal` directory.
     ```cmd
     qmake -tp vc waffleCopyPRO-Universal.pro
     msbuild waffleCopyPRO-Universal.vcxproj /p:Configuration=Release
     ```
-    *Image placeholder: Screenshot of Visual Studio Command Prompt showing `qmake` and `msbuild` commands with successful compilation output.*
+    *Textual indication: In the Visual Studio Command Prompt, `qmake` will generate the `vcxproj` file. `msbuild` will then compile the project, showing progress and eventually a "Build succeeded" message.*
 6.  **Deploy and Package**:
     The build process creates an executable. You'll likely need to deploy the Qt and vcpkg DLLs.
     Navigate to the `Release` folder within the `waffleCopyPRO-Universal` directory in your project's build output (e.g., `waffleCopyPRO-Universal\Release`).
     Run `windeployqt.exe` (located in your Qt installation, e.g., `C:\Qt\5.15.2\msvc2019_64\bin\windeployqt.exe`) on your executable to copy necessary Qt DLLs. Then manually copy `libmikmod.dll` from `vcpkg\installed\x64-windows\bin` to the same Release folder.
-    *Image placeholder: Screenshot of the Release folder with `waffleCopyPRO-Universal.exe` and necessary DLLs.*
+    *Textual indication: Navigate to the `Release` folder (e.g., `waffleCopyPRO-Universal\Release`) in your file explorer. You should see `waffleCopyPRO-Universal.exe` along with various Qt DLLs copied by `windeployqt.exe` and `libmikmod.dll` that you manually copied.*
 7.  **Run the application**:
     Double-click `waffleCopyPRO-Universal.exe` in the `Release` folder.
 
@@ -181,12 +181,12 @@ Upon launching WaffleCopyPRO-Universal, you will be presented with the main appl
 1.  **Select the Serial Port**: Choose the correct serial port connected to your floppy controller from the dropdown menu.
 2.  **Insert Floppy Disk**: Place the Amiga floppy disk you wish to read into your floppy drive.
 3.  **Navigate to "Read Disk"**: Click on the "Read Disk" tab or button.
-    *Image placeholder: Screenshot of the "Read Disk" tab/section within the application, showing options like file selection and start button.*
+    *Textual indication: The application's main window typically features a series of tabs or buttons across the top or side. Locate and click on the one labeled "Read Disk". Within this section, you'll find options for selecting an output file path for the `.adf` image and a prominent "Start" or "Read" button.*
 4.  **Choose Output File**: Specify where you want to save the `.adf` (Amiga Disk File) image.
 5.  **Start Reading**: Click the "Start" or "Read" button.
-    *Image placeholder: Screenshot of the application showing the progress bar during a disk read operation.*
+    *Textual indication: Once "Start" is clicked, the interface will display a progress bar, typically showing the percentage of tracks read, along with status messages (e.g., "Reading track 0", "Reading track 1", etc.). This bar will incrementally fill as the operation proceeds.*
 6.  **Completion**: Once the reading process is complete, a message will confirm success.
-    *Image placeholder: Screenshot of the application showing a "Read Complete!" message or similar confirmation.*
+    *Textual indication: Upon successful completion, the progress bar will disappear or show 100%, and a clear message, such as "Read Complete!" or "Disk Image Saved Successfully," will appear in the status area or a pop-up dialog.*
 
 ### Writing a Floppy Disk
 
@@ -195,19 +195,18 @@ Upon launching WaffleCopyPRO-Universal, you will be presented with the main appl
 1.  **Select the Serial Port**: Choose the correct serial port connected to your floppy controller.
 2.  **Insert Target Floppy Disk**: Place the floppy disk you want to write to into your floppy drive. This disk should be formatted or blank, or one you are willing to overwrite.
 3.  **Navigate to "Write Disk"**: Click on the "Write Disk" tab or button.
-    *Image placeholder: Screenshot of the "Write Disk" tab/section, showing options for selecting an ADF file and start button.*
+    *Textual indication: In the application's main window, similar to reading, locate and click on the tab or button labeled "Write Disk". This section will present options to select the `.adf` file you wish to write and a "Start" or "Write" button to initiate the process.*
 4.  **Choose Input File**: Select the `.adf` (or other supported image format) file you wish to write to the disk.
 5.  **Start Writing**: Click the "Start" or "Write" button.
-    *Image placeholder: Screenshot of the application showing the progress bar during a disk write operation.*
+    *Textual indication: After clicking "Start," a progress bar will be displayed, indicating the percentage of data written to the disk. Status messages like "Writing track X" will update as the operation progresses.*
 6.  **Completion**: A confirmation message will appear once the writing is finished.
-    *Image placeholder: Screenshot of the application showing a "Write Complete!" message or similar confirmation.*
+    *Textual indication: Once the writing process is finished, the progress bar will indicate 100% completion, and a confirmation message, such as "Write Complete!" or "Disk Image Written Successfully," will appear in the status area or a pop-up.*
 
 ### Other Features
 
 *   **Diagnostics**: Use the "Diagnostics" section to test your hardware connection and identify potential issues.
-    *Image placeholder: Screenshot of the "Diagnostics" tab/window.*
-*   **Settings**: Configure various parameters like rotational speed, track count, or specific hardware interface options.
-    *Image placeholder: Screenshot of the "Settings" dialog/tab.*
+    *Textual indication: Accessing the "Diagnostics" section (often a dedicated tab or menu item) will reveal options for testing the connection to your floppy controller, performing various hardware checks, and viewing real-time data from the device.*
+*   **Settings**: While there isn't a dedicated "Settings tab" in the main interface, application settings for various parameters like rotational speed, track count, or specific hardware interface options are managed internally using Qt's `QSettings` class. `QSettings` provides a platform-independent way to store and retrieve application settings, typically saved in configuration files (e.g., INI files on Windows, plist files on macOS, or XDG configuration files on Linux) or the system registry. These settings can often be configured through menu options, dialogs, or modified directly if you understand the configuration file format.
 
 ## How It Works: A Glimpse into the Code
 
