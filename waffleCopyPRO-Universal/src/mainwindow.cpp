@@ -903,7 +903,8 @@ void MainWindow::onDiagnosticButtonClicked(void)
         QString portName = ui->serialPortComboBox->currentText();
         DebugMsg::print(__func__, "onDiagnosticButtonClicked: UI portName before modification =" + portName);
 #ifndef _WIN32
-        portName.prepend("/dev/");
+        if (!portName.startsWith("/dev/"))
+            portName.prepend("/dev/");
 #endif
         DebugMsg::print(__func__, "onDiagnosticButtonClicked: UI portName after modification =" + portName);
 
