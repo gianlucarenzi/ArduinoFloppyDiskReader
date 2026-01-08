@@ -93,5 +93,3 @@ waffleCopyPRO-Universal.exe -debug > debug_output.txt 2>&1
 > Ciao, ho eseguito l'app in debug e allego `debug_output.txt`. Problema: la combo delle porte è vuota su Windows 10; dispositivo FTDI collegato e visibile come COM4 in Gestione dispositivi. Ho provato a riavviare ma il problema persiste.
 
 ---
-
-Se vuoi, posso aggiungere schermate esempio o una checklist stampabile per utenti finali; dimmi se preferisci la versione in inglese o tradotta in altre lingue.
