@@ -21,7 +21,8 @@ VuMeterWidget::VuMeterWidget(QWidget *parent)
     setWindowFlags(Qt::FramelessWindowHint);
 
     // Setup decay timer
-    m_decayTimer.setInterval(50); // Check and decay every 50ms
+    m_decayTimer.setTimerType(Qt::PreciseTimer);
+    m_decayTimer.setInterval(16); // ~60Hz for smooth animation
     connect(&m_decayTimer, &QTimer::timeout, this, &VuMeterWidget::decayLevels);
     m_decayTimer.start();
 }
@@ -34,10 +35,7 @@ void VuMeterWidget::setAudioLevels(const QVector<float>& levels)
         return;
     }
 
-    // If levels are received, stop decay if it was active
-    if (m_decayTimer.isActive()) {
-        m_decayTimer.stop();
-    }
+    // Keep decay timer running for smooth continuous updates
 
     // DebugMsg::print(__func__, "VuMeterWidget::setAudioLevels received:" + levels);
 
@@ -67,7 +65,7 @@ void VuMeterWidget::resetLevels()
 {
     m_currentLevels.fill(0.0f);
     m_peakLevels.fill(0.0f);
-    repaint();
+    update();
 }
 
 void VuMeterWidget::startDecay()
@@ -158,6 +156,6 @@ void VuMeterWidget::decayLevels()
     }
 
     if (changed) {
-        repaint(); // Request repaint if levels have changed
+        update(); // Request repaint if levels have changed
     }
 }
