@@ -1034,14 +1034,24 @@ void MainWindow::refreshSerialPorts()
     QString currentPortName = ui->serialPortComboBox->currentText();
     ui->serialPortComboBox->clear();
 
+    // Add all QSerialPortInfo ports
+    QList<QString> addedPorts;
     for (const QSerialPortInfo &info : QSerialPortInfo::availablePorts()) {
-        // Check for FTDI Vendor ID and common Product IDs
-        if (info.vendorIdentifier() == 0x0403 &&
-            (info.productIdentifier() == 0x6001 ||
-             info.productIdentifier() == 0x6010 ||
-             info.productIdentifier() == 0x6014))
-        {
-            ui->serialPortComboBox->addItem(info.portName());
+        QString portName = info.portName();
+        ui->serialPortComboBox->addItem(portName);
+        addedPorts.append(portName);
+    }
+
+    // Add SerialIO ports if not already present
+    std::vector<SerialIO::SerialPortInformation> serialPorts;
+    SerialIO::enumSerialPorts(serialPorts);
+    for (const auto &port : serialPorts) {
+        std::string portNameA;
+        quickw2a(port.portName, portNameA);
+        QString portName = QString::fromStdString(portNameA);
+        if (!addedPorts.contains(portName)) {
+            ui->serialPortComboBox->addItem(portName);
+            addedPorts.append(portName);
         }
     }
 
@@ -1054,6 +1064,7 @@ void MainWindow::refreshSerialPorts()
     }
     ui->serialPortComboBox->blockSignals(false);
 }
+
 
 void MainWindow::playMusic()
 {
