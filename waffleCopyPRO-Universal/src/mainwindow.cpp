@@ -928,8 +928,8 @@ void MainWindow::onDiagnosticButtonClicked(void)
         DebugMsg::print(__func__, "HIDING TRACKS");
         // Hide track indicators when diagnostic view is shown
         for (int i = 0; i < MAX_TRACKS; ++i) {
-            upperTrack[i]->setStyleSheet("color: rgb(0, 0, 0");
-            lowerTrack[i]->setStyleSheet("color: rgb(0, 0, 0");
+            upperTrack[i]->setStyleSheet("color: rgb(0, 0, 0);");
+            lowerTrack[i]->setStyleSheet("color: rgb(0, 0, 0);");
             upperTrack[i]->hide();
             lowerTrack[i]->hide();
         }
