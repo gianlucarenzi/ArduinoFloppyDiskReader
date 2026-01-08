@@ -30,7 +30,7 @@
         uint* MikModPlayer::p_md_devicebuffer = nullptr;
         int*  MikModPlayer::p_Player_Volume = nullptr;
     #endif
-    #define __PRETTY_FUNCTION__ "MikModPlayer::MikModPlayer(QObject, int, int)"
+
 #endif
 
 MikModPlayer::MikModPlayer(QObject *parent, int updateTimer, int pollTimer)
@@ -44,7 +44,7 @@ MikModPlayer::MikModPlayer(QObject *parent, int updateTimer, int pollTimer)
     connect(m_updateTimer, &QTimer::timeout, this, &MikModPlayer::updateMikMod);
     m_updateTimer->setInterval(updateTimer);
 
-    qDebug() << __PRETTY_FUNCTION__ << "Update (ms): " << m_updateTimer->interval();
+    qDebug() << __func__ << "Update (ms): " << m_updateTimer->interval();
     connect(this, &MikModPlayer::requestStartUpdateTimer, this, &MikModPlayer::m_startUpdateTimer);
     connect(this, &MikModPlayer::requestStopUpdateTimer, this, &MikModPlayer::m_stopUpdateTimer);
     connect(this, &MikModPlayer::requestTogglePause, this, &MikModPlayer::m_togglePause);

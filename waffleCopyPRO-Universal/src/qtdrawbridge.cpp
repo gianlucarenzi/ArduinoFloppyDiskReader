@@ -7,20 +7,16 @@ extern int wmain(QStringList list);
 
 QtDrawBridge::QtDrawBridge(void)
 {
-    qDebug() << __PRETTY_FUNCTION__ << "Called";
+    qDebug() << __func__ << "Called";
 }
 
 void QtDrawBridge::setup(QString port, QString filename, QStringList command)
 {
-    qDebug() << __PRETTY_FUNCTION__ << "Called" << "Port" << port << "Filename" << filename << "command" << command;
+    qDebug() << __func__ << "Called" << "Input Port =" << port << "Filename" << filename << "command" << command;
     m_filename = filename;
     m_command = command;
-#ifndef _WIN32
-    m_port = "/dev/";
-#else
-    m_port = "";
-#endif
     m_port += port;
+    qDebug() << __func__ << "Constructed m_port =" << m_port;
 }
 
 void QtDrawBridge::run()
@@ -29,8 +25,8 @@ void QtDrawBridge::run()
     list << m_port;
     list << m_filename;
     list << m_command;
-    qDebug() << __PRETTY_FUNCTION__ << "Called" << "StringList" << list;
+    qDebug() << __func__ << "Called" << "StringList" << list;
     int rval = wmain(list);
-    qDebug() << __PRETTY_FUNCTION__ << "Finish with " << rval;
+    qDebug() << __func__ << "Finish with " << rval;
     emit QtDrawBridgeSignal(rval);
 }

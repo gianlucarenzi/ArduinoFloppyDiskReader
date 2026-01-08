@@ -472,7 +472,21 @@ void MainWindow::prepareTracksPosition(void)
 
 void MainWindow::checkStartWrite(void)
 {
+    serialPortRefreshTimer->stop();
     qDebug() << "CHECK FOR WRITE";
+    qDebug() << "START WRITE DISK";
+    QString port = ui->serialPortComboBox->currentText();
+    qDebug() << "checkStartWrite: UI portName before modification =" << port;
+#ifndef _WIN32
+    port.prepend("/dev/");
+#endif
+    qDebug() << "checkStartWrite: UI portName after modification =" << port;
+
+    if (port.isEmpty()) {
+        showSetupError(tr("ERROR: No serial port selected!\n\nPlease select a serial port from the dropdown menu."));
+        return;
+    }
+
     if (ui->getADFFileName->text().isEmpty())
     {
         qDebug() << "NEED VALID IMAGE FILENAME First to write to floppy";
@@ -480,9 +494,12 @@ void MainWindow::checkStartWrite(void)
         return;
     }
 
-    // To have the correct text on the copyCompleted.
-    ui->copyCompleted->setText(tr("AMIGA DISK COPY COMPLETED"));
-    QString port = ui->serialPortComboBox->currentText();
+    ArduinoFloppyReader::DiagnosticResponse openResult = ArduinoFloppyReader::ADFWriterManager::getInstance().openDevice(port.toStdWString());
+    if (openResult != ArduinoFloppyReader::DiagnosticResponse::drOK) {
+        showSetupError(tr("ERROR: Could not open serial port for write operation: %1").arg(QString::fromStdString(ArduinoFloppyReader::ADFWriterManager::getInstance().getLastError())));
+        ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice();
+        return;
+    }
 
     QString filename = ui->getADFFileName->text();
     QFileInfo fileInfo(filename);
@@ -555,6 +572,23 @@ void MainWindow::checkStartRead(void)
     // To have the correct text on the copyCompleted.
     ui->copyCompleted->setText(tr("AMIGA DISK COPY COMPLETED"));
     QString port = ui->serialPortComboBox->currentText();
+    qDebug() << "checkStartRead: UI portName before modification =" << port;
+#ifndef _WIN32
+    port.prepend("/dev/");
+#endif
+    qDebug() << "checkStartRead: UI portName after modification =" << port;
+
+    if (port.isEmpty()) {
+        showSetupError(tr("ERROR: No serial port selected!\n\nPlease select a serial port from the dropdown menu."));
+        return;
+    }
+
+    ArduinoFloppyReader::DiagnosticResponse openResult = ArduinoFloppyReader::ADFWriterManager::getInstance().openDevice(port.toStdWString());
+    if (openResult != ArduinoFloppyReader::DiagnosticResponse::drOK) {
+        showSetupError(tr("ERROR: Could not open serial port for read operation: %1").arg(QString::fromStdString(ArduinoFloppyReader::ADFWriterManager::getInstance().getLastError())));
+        ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice();
+        return;
+    }
 
     QString filename = ui->setADFFileName->text();
     QFileInfo fileInfo(filename);
@@ -866,6 +900,11 @@ void MainWindow::onDiagnosticButtonClicked(void)
 
         // Get the selected serial port
         QString portName = ui->serialPortComboBox->currentText();
+        qDebug() << "onDiagnosticButtonClicked: UI portName before modification =" << portName;
+#ifndef _WIN32
+        portName.prepend("/dev/");
+#endif
+        qDebug() << "onDiagnosticButtonClicked: UI portName after modification =" << portName;
 
         if (portName.isEmpty()) {
             // Show error if no port is selected
@@ -876,6 +915,21 @@ void MainWindow::onDiagnosticButtonClicked(void)
             ui->diagnosticTest->show();
             ui->diagnosticTest->raise();
             isDiagnosticVisible = true;
+            return;
+        }
+
+        // Attempt to open the device using the manager
+        ArduinoFloppyReader::DiagnosticResponse openResult = ArduinoFloppyReader::ADFWriterManager::getInstance().openDevice(portName.toStdWString());
+        if (openResult != ArduinoFloppyReader::DiagnosticResponse::drOK) {
+            ui->busy->show();
+            ui->busy->raise();
+            ui->diagnosticTest->clear();
+            ui->diagnosticTest->append(tr("ERROR: Could not open serial port: %1\n").arg(QString::fromStdString(ArduinoFloppyReader::ADFWriterManager::getInstance().getLastError())));
+            ui->diagnosticTest->show();
+            ui->diagnosticTest->raise();
+            isDiagnosticVisible = true;
+            // Ensure the port is closed if we failed to open it (though openDevice should handle this)
+            ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice();
             return;
         }
 

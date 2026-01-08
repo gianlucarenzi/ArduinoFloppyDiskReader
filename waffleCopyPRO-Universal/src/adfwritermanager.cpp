@@ -1,3 +1,5 @@
+#include <iostream>
+
 // src/adfwritermanager.cpp
 #include "adfwritermanager.h"
 #include "lib/ADFWriter.h" // Include ADFWriter header
@@ -47,6 +49,7 @@ ADFWriterManager& ADFWriterManager::getInstance() {
 // --- Implementations of forwarded methods ---
 
 ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::openDevice(const std::wstring& portName) {
+    std::wcout << L"ADFWriterManager::openDevice: Attempting to open port = " << portName << std::endl;
     if (m_adfWriter.openDevice(portName)) {
         return ArduinoFloppyReader::DiagnosticResponse::drOK;
     } else {
@@ -64,6 +67,10 @@ std::string ADFWriterManager::getLastError() {
 
 const ArduinoFloppyReader::FirmwareVersion ADFWriterManager::getFirwareVersion() const {
     return m_adfWriter.getFirwareVersion();
+}
+
+DiagnosticResponse ADFWriterManager::getLastErrorCode() {
+    return m_adfWriter.getLastErrorCode();
 }
 
 bool ADFWriterManager::runDiagnostics(const std::wstring& portName, std::function<void(bool isError, const std::string message)> messageOutput, std::function<bool(bool isQuestion, const std::string question)> askQuestion) {

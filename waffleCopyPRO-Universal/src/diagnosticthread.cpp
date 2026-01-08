@@ -1,3 +1,5 @@
+#include <QDebug>
+
 #include "diagnosticthread.h"
 #include "diagnosticconfig.h"
 #include "ADFWriter.h"
@@ -7,6 +9,7 @@
 #include <QString>
 #include <QThread>
 #include <chrono>
+#include "adfwritermanager.h"
 
 DiagnosticThread::DiagnosticThread()
 {
@@ -14,12 +17,9 @@ DiagnosticThread::DiagnosticThread()
 
 void DiagnosticThread::setup(QString port)
 {
-#ifndef _WIN32
-    m_port = "/dev/";
-#else
-    m_port = "";
-#endif
+    qDebug() << __func__ << "Called. Input Port =" << port;
     m_port += port;
+    qDebug() << __func__ << "Constructed m_port =" << m_port;
 }
 
 void DiagnosticThread::run()
@@ -174,7 +174,7 @@ void DiagnosticThread::run()
         return;
     }
 
-    ArduinoFloppyReader::ADFWriter writer;
+
 
     // Convert QString to wstring for the port name
     std::wstring portName = m_port.toStdWString();
@@ -220,80 +220,79 @@ void DiagnosticThread::run()
             return true;
         }
 
-        // Questions about disk insertion - DO POLLING WITH 30 SECOND TIMEOUT
-        if (lowerQuestion.find("please insert") != std::string::npos ||
-            lowerQuestion.find("inserted disk is not write protected") != std::string::npos) {
-
-            emit diagnosticMessage("");
-            emit diagnosticMessage("Waiting for disk insertion (max 30 seconds)...");
-
-            // Create temporary interface for polling
-            ArduinoFloppyReader::ArduinoInterface pollDevice;
-
-            // Open the port
-            if (pollDevice.openPort(portName) != ArduinoFloppyReader::DiagnosticResponse::drOK) {
-                emit diagnosticMessage("ERROR: Cannot open port for disk detection");
-                return false;
-            }
-
-            // Enable reading
-            if (pollDevice.enableReading(true, false) != ArduinoFloppyReader::DiagnosticResponse::drOK) {
-                pollDevice.closePort();
-                emit diagnosticMessage("ERROR: Cannot enable drive for disk detection");
-                return false;
-            }
-
-            // Poll for disk with 30 second timeout
-            auto startTime = std::chrono::steady_clock::now();
-            const int timeoutSeconds = 30;
-            bool diskFound = false;
-            int lastSecond = -1;
-
-            while (std::chrono::duration_cast<std::chrono::seconds>(
-                   std::chrono::steady_clock::now() - startTime).count() < timeoutSeconds) {
-
-                // Check if thread interruption was requested
-                if (isInterruptionRequested()) {
-                    pollDevice.closePort();
-                    emit diagnosticMessage("Diagnostic interrupted by user");
-                    emit diagnosticComplete(false);
-                    return false;
-                }
-
-                // Check for disk
-                pollDevice.checkForDisk(true);
-                if (pollDevice.isDiskInDrive()) {
-                    diskFound = true;
-                    break;
-                }
-
-                // Show countdown every second
-                int currentSecond = std::chrono::duration_cast<std::chrono::seconds>(
-                    std::chrono::steady_clock::now() - startTime).count();
-                if (currentSecond != lastSecond && currentSecond % 5 == 0) {
-                    int remaining = timeoutSeconds - currentSecond;
-                    emit diagnosticMessage("  Still waiting... (" + QString::number(remaining) + " seconds remaining)");
-                    lastSecond = currentSecond;
-                }
-
-                // Wait 500ms before next check
-                QThread::msleep(500);
-            }
-
-            // Close the polling device
-            pollDevice.closePort();
-
-            if (diskFound) {
-                emit diagnosticMessage("Disk detected!");
-                return true;
-            } else {
-                emit diagnosticMessage("");
-                emit diagnosticMessage("ERROR: No disk detected after 30 seconds timeout");
-                emit diagnosticMessage("Please insert a disk and try again");
-                return false;
-            }
-        }
-
+                    // Questions about disk insertion - DO POLLING WITH 30 SECOND TIMEOUT
+                    if (lowerQuestion.find("please insert") != std::string::npos ||
+                        lowerQuestion.find("inserted disk is not write protected") != std::string::npos) {
+        
+                        emit diagnosticMessage("");
+                        emit diagnosticMessage("Waiting for disk insertion (max 30 seconds)...");
+        
+                        // Create temporary interface for polling
+                        ArduinoFloppyReader::ArduinoInterface pollDevice;
+        
+                        // Open the port
+                        if (pollDevice.openPort(portName) != ArduinoFloppyReader::DiagnosticResponse::drOK) {
+                            emit diagnosticMessage("ERROR: Cannot open port for disk detection");
+                            return false;
+                        }
+        
+                        // Enable reading
+                        if (pollDevice.enableReading(true, false) != ArduinoFloppyReader::DiagnosticResponse::drOK) {
+                            pollDevice.closePort();
+                            emit diagnosticMessage("ERROR: Cannot enable drive for disk detection");
+                            return false;
+                        }
+        
+                        // Poll for disk with 30 second timeout
+                        auto startTime = std::chrono::steady_clock::now();
+                        const int timeoutSeconds = 30;
+                        bool diskFound = false;
+                        int lastSecond = -1;
+        
+                        while (std::chrono::duration_cast<std::chrono::seconds>(
+                               std::chrono::steady_clock::now() - startTime).count() < timeoutSeconds) {
+        
+                            // Check if thread interruption was requested
+                            if (isInterruptionRequested()) {
+                                pollDevice.closePort();
+                                emit diagnosticMessage("Diagnostic interrupted by user");
+                                emit diagnosticComplete(false);
+                                return false;
+                            }
+        
+                            // Check for disk
+                            pollDevice.checkForDisk(true);
+                            if (pollDevice.isDiskInDrive()) {
+                                diskFound = true;
+                                break;
+                            }
+        
+                            // Show countdown every second
+                            int currentSecond = std::chrono::duration_cast<std::chrono::seconds>(
+                                std::chrono::steady_clock::now() - startTime).count();
+                            if (currentSecond != lastSecond && currentSecond % 5 == 0) {
+                                int remaining = timeoutSeconds - currentSecond;
+                                emit diagnosticMessage("  Still waiting... (" + QString::number(remaining) + " seconds remaining)");
+                                lastSecond = currentSecond;
+                            }
+        
+                            // Wait 500ms before next check
+                            QThread::msleep(500);
+                        }
+        
+                        // Close the polling device
+                        pollDevice.closePort();
+        
+                        if (diskFound) {
+                            emit diagnosticMessage("Disk detected!");
+                            return true;
+                        } else {
+                            emit diagnosticMessage("");
+                            emit diagnosticMessage("ERROR: No disk detected after 30 seconds timeout");
+                            emit diagnosticMessage("Please insert a disk and try again");
+                            return false;
+                        }
+                    }
         // Questions about continuing after warnings
         if (lowerQuestion.find("do you want to continue") != std::string::npos ||
             lowerQuestion.find("would you like") != std::string::npos) {
@@ -306,7 +305,7 @@ void DiagnosticThread::run()
     };
 
     // Run the diagnostics
-    bool result = writer.runDiagnostics(portName, messageOutput, askQuestion);
+    bool result = ArduinoFloppyReader::ADFWriterManager::getInstance().runDiagnostics(portName, messageOutput, askQuestion);
 
     // Emit completion signal
     if (result) {

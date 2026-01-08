@@ -53,6 +53,7 @@ public:
     void closeDevice();
     // From getLastError
     std::string getLastError();
+    DiagnosticResponse getLastErrorCode();
     // From getFirwareVersion
     const ArduinoFloppyReader::FirmwareVersion getFirwareVersion() const;
 
