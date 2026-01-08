@@ -22,6 +22,7 @@
 #include <QSettings>
 #include "socketserver.h"
 #include <QSerialPortInfo>
+#include "SerialIO.h"
 #include <QScrollBar>
 #include "mikmodplayer.h"
 #include "vumeterwidget.h"
