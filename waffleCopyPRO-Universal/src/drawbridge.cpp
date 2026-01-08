@@ -121,7 +121,7 @@ static void setupSocketClient(void)
 {
     //int rval;
     //int counter = 0;
-    //fprintf(stdout, "%s Called\n", __FUNCTION__);
+    //fprintf(stdout, "%s Called\n", __func__);
     if (sockfd == INVALID_SOCKET)
     {
 #ifdef _WIN32
@@ -184,7 +184,7 @@ static void setupSocketClient(void)
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd == INVALID_SOCKET)
         {
-            fprintf(stderr, "%s socket creation failed %d\n", __FUNCTION__, errno);
+            fprintf(stderr, "%s socket creation failed %d\n", __func__, errno);
             perror("OPEN SOCKET");
             ClearWinSock();
             return;
@@ -200,7 +200,7 @@ static void setupSocketClient(void)
         if (connect(sockfd, (sockaddr *) &servaddr, sizeof(servaddr)) != 0)
         {
             sockfd = INVALID_SOCKET;
-            fprintf(stderr, "%s connection with the server failed %d\n", __FUNCTION__, errno);
+            fprintf(stderr, "%s connection with the server failed %d\n", __func__, errno);
             perror("CONNECT SOCKET");
             close(sockfd);
             ClearWinSock();
@@ -233,7 +233,7 @@ static void setupSocketClient(void)
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
-    //fprintf(stdout, "%s Exit: sockfd %d\n", __FUNCTION__, sockfd);
+    //fprintf(stdout, "%s Exit: sockfd %d\n", __func__, sockfd);
 }
 
 
@@ -381,7 +381,7 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
                     update_error_file(1); // Set error for ask user
                     // This is not an error! I need to zero the badSectorCount (status file)
                     update_gui( currentTrack, currentSide, 1 ); // Set status flag for that track
-                    fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __FUNCTION__);
+                    fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __func__);
                     fflush(stderr);
                     input = wait_user_input(); // This locks the program flow as the toupper() function
                     update_error_file(0); // Clear error for next
@@ -432,7 +432,7 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
                     update_error_file(1); // Set error for ask user
                     // This is not an error! I need to zero the badSectorCount (status file)
                     update_gui( currentTrack, currentSide, 1 ); // Set status flag for that track
-                    fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __FUNCTION__);
+                    fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __func__);
                     fflush(stderr);
                     input = wait_user_input(); // This locks the program flow as the toupper() function
                     update_error_file(0); // Clear error for next
@@ -478,7 +478,7 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
                     update_error_file(1); // Set error for ask user
                     // This is not an error! I need to zero the badSectorCount (status file)
                     update_gui( currentTrack, currentSide, 1 ); // Set status flag for that track
-                    fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __FUNCTION__);
+                    fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __func__);
                     fflush(stderr);
                     input = wait_user_input(); // This locks the program flow as the toupper() function
                     update_error_file(0); // Clear error for next
@@ -586,7 +586,7 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool ski
 #ifdef __USE_GUI__
                     // Now we have to inform the GUI Thread we have an error, and we need to decide how to proceed
                     update_error_file(1); // set error flag
-                    fprintf(stdout, "\r\n %s READ ERROR NOW WAIT USER INPUT \r\n", __FUNCTION__);
+                    fprintf(stdout, "\r\n %s READ ERROR NOW WAIT USER INPUT \r\n", __func__);
                     fflush(stderr);
                     input = wait_user_input(); // This locks the program flow as getch()
                     update_error_file(0); // clear error flag for next one
@@ -687,7 +687,7 @@ void runDiagnostics(const std::wstring& port) {
 }
 
 #include <QStringList>
-#include <QDebug>
+#include "inc/debugmsg.h"
 #include <QTemporaryFile>
 #include <QFile>
 #include <qtdrawbridge.h>
@@ -710,17 +710,17 @@ int wmain(QStringList list)
     std::wstring port = list.at(0).toStdWString();
     std::wstring filename = list.at(1).toStdWString();;
 
-    qDebug() << "port" << QString::fromStdWString(port);
-    qDebug() << "filename" << QString::fromStdWString(filename);
+    DebugMsg::print(__func__, "port" + QString::fromStdWString(port));
+    DebugMsg::print(__func__, "filename" + QString::fromStdWString(filename));
 
-    qDebug() << "writeMode" << writeMode;
-    qDebug() << "verify" << verify;
-    qDebug() << "preComp" << preComp;
-    qDebug() << "eraseBeforeWrite" << eraseBeforeWrite;
-    qDebug() << "TRACKS" << numTracks;
-    qDebug() << "HD" << isHDMode;
-    qDebug() << "SKIPREADERROR" << skipReadError;
-    qDebug() << "SKIPWRITEERROR" << skipWriteError;
+    DebugMsg::print(__func__, "writeMode" + QString::number(writeMode));
+    DebugMsg::print(__func__, "verify" + QString::number(verify));
+    DebugMsg::print(__func__, "preComp" + QString::number(preComp));
+    DebugMsg::print(__func__, "eraseBeforeWrite" + QString::number(eraseBeforeWrite));
+    DebugMsg::print(__func__, "TRACKS" + QString::number(numTracks));
+    DebugMsg::print(__func__, "HD" + QString::number(isHDMode));
+    DebugMsg::print(__func__, "SKIPREADERROR" + QString::number(skipReadError));
+    DebugMsg::print(__func__, "SKIPWRITEERROR" + QString::number(skipWriteError));
 
     userInputDone = false; // It will be changed by the user on errors
 
@@ -776,11 +776,11 @@ int wmain(QStringList list)
     case DiagnosticResponse::drCTSFailure: globalError = 26; break;
     case DiagnosticResponse::drRewindFailure: globalError = 27; break;
     case DiagnosticResponse::drMediaTypeMismatch: globalError = 28; break;
-    default: qDebug() << "UNKONWN ERROR. PLEASE DEBUG"; globalError = 99; break;
+    default: DebugMsg::print(__func__, "UNKONWN ERROR. PLEASE DEBUG"); globalError = 99; break;
     }
 
 
-    qDebug() << "GLOBAL ERROR: " << globalError;
+    DebugMsg::print(__func__, "GLOBAL ERROR: " + QString::number(globalError));
     if (sockfd != INVALID_SOCKET)
     {
 #ifdef _WIN32

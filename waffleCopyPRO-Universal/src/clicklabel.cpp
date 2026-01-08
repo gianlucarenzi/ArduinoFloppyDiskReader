@@ -1,5 +1,5 @@
 #include <QLabel>
-#include <QDebug>
+#include "inc/debugmsg.h"
 #include "clicklabel.h"
 
 ClickLabel::ClickLabel(QWidget* parent, Qt::WindowFlags f)
@@ -12,12 +12,12 @@ ClickLabel::~ClickLabel() {}
 
 void ClickLabel::clicked(void)
 {
-    qDebug() << "CLICKED SLOT";
+    DebugMsg::print(__func__, "CLICKED SLOT");
 }
 
 void ClickLabel::mouseReleaseEvent(QMouseEvent* event)
 {
     Q_UNUSED(event);
-    qDebug() << "MOUSE RELEASE EVENT" << this->objectName();
+    DebugMsg::print(__func__, "MOUSE RELEASE EVENT" + this->objectName());
     emit emitClick();
 }

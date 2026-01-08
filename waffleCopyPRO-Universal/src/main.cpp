@@ -1,15 +1,16 @@
 #include "mainwindow.h"
+#include "inc/debugmsg.h"
 
 #include <QApplication>
 #include <QDir>
 #include <QFont>
 #include <QFontDatabase>
 #include <QString>
-#include <QDebug>
 
 int main(int argc, char *argv[])
 {
     bool useVNC = false;
+    bool useDebug = false;
     for (int i=0; i < argc; i++)
     {
         QString arg = argv[i];
@@ -17,7 +18,13 @@ int main(int argc, char *argv[])
         {
             useVNC = true;
         }
+        if (arg == "-debug")
+        {
+            useDebug = true;
+        }
     }
+
+    DebugMsg::init(useDebug);
 
     // Start an external Xorg based viewer
     if (useVNC)
@@ -52,7 +59,7 @@ int main(int argc, char *argv[])
 #endif
     if (id < 0)
     {
-        qDebug() << __FUNCTION__ << "Missing font!";
+        DebugMsg::print(__func__, "Missing font!");
     }
     else
     {

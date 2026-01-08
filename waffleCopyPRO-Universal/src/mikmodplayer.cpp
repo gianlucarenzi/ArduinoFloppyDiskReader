@@ -1,5 +1,5 @@
 #include "mikmodplayer.h"
-#include <QDebug>
+#include "inc/debugmsg.h"
 #include <QLibrary>
 #include <QVector>
 #include <algorithm>
@@ -44,7 +44,7 @@ MikModPlayer::MikModPlayer(QObject *parent, int updateTimer, int pollTimer)
     connect(m_updateTimer, &QTimer::timeout, this, &MikModPlayer::updateMikMod);
     m_updateTimer->setInterval(updateTimer);
 
-    qDebug() << __func__ << "Update (ms): " << m_updateTimer->interval();
+    DebugMsg::print(__func__, "Update (ms): " + QString::number(m_updateTimer->interval()));
     connect(this, &MikModPlayer::requestStartUpdateTimer, this, &MikModPlayer::m_startUpdateTimer);
     connect(this, &MikModPlayer::requestStopUpdateTimer, this, &MikModPlayer::m_stopUpdateTimer);
     connect(this, &MikModPlayer::requestTogglePause, this, &MikModPlayer::m_togglePause);
@@ -57,13 +57,13 @@ bool MikModPlayer::initLibrary()
     QLibrary lib;
     lib.setFileName("libmikmod.dll");
     if (!lib.load()) {
-        qDebug() << "Warning: libmikmod.dll not found.";
+        DebugMsg::print(__func__, "Warning: libmikmod.dll not found.");
         lib.setFileName("mikmod.dll");
         if (!lib.load()) {
-            qCritical() << "Error: mikmod.dll not found.";
+            DebugMsg::print(__func__, "Error: mikmod.dll not found.");
             return false;
         } else {
-            qDebug() << "Alternate mikmod.dll OK";
+            DebugMsg::print(__func__, "Alternate mikmod.dll OK");
         }
     }
 

@@ -1,7 +1,7 @@
 #include "vumeterwidget.h"
 #include <QPainter>
 #include <QLinearGradient>
-#include <QDebug> // For debugging
+#include "inc/debugmsg.h" // For debugging
 
 VuMeterWidget::VuMeterWidget(QWidget *parent)
     : QWidget{parent},
@@ -39,7 +39,7 @@ void VuMeterWidget::setAudioLevels(const QVector<float>& levels)
         m_decayTimer.stop();
     }
 
-    // qDebug() << "VuMeterWidget::setAudioLevels received:" << levels;
+    // DebugMsg::print(__func__, "VuMeterWidget::setAudioLevels received:" + levels);
 
     // Resize internal level vectors if channel count changes
     if (m_currentLevels.size() != levels.size()) {

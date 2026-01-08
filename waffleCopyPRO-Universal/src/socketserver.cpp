@@ -1,24 +1,24 @@
 #include "socketserver.h"
 #include "compilerdefs.h"
-#include <QDebug>
+#include "inc/debugmsg.h"
 #include "mainwindow.h"
 #include <QElapsedTimer>
 #include <QApplication>
 
 SocketServer::SocketServer(void)
 {
-    //qDebug() << __FUNCTION__ << "Called";
+    //DebugMsg::print(__func__, "Called");
 }
 
 SocketServer::~SocketServer(void)
 {
-    //qDebug() << __FUNCTION__ << "Called";
+    //DebugMsg::print(__func__, "Called");
     emit serverDelete();
 }
 
 void SocketServer::setup(void)
 {
-    //qDebug() << __FUNCTION__ << "Called";
+    //DebugMsg::print(__func__, "Called");
 }
 
 void SocketServer::ClearWinSock(void)
@@ -30,7 +30,7 @@ void SocketServer::ClearWinSock(void)
 }
 void SocketServer::process()
 {
-    //qDebug() << __FUNCTION__ << "Called";
+    //DebugMsg::print(__func__, "Called");
     int rval;
 #ifdef _WIN32
     // Initialize WinSock
@@ -38,7 +38,7 @@ void SocketServer::process()
     int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (iResult != 0)
     {
-        qDebug() << __FUNCTION__ << "Error at WSAStartup";
+        DebugMsg::print(__func__, "Error at WSAStartup");
         emit NoSocket();
         return;
     }
@@ -54,7 +54,7 @@ void SocketServer::process()
     // Resolve the server address and port
     rval = getaddrinfo(NULL, SOCKET_PORT, &hints, &result);
     if (rval != 0) {
-        qDebug() << __FUNCTION__ << "getaddrinfo failed with " << rval;
+        DebugMsg::print(__func__, "getaddrinfo failed with " + QString::number(rval));
         ClearWinSock();
         emit NoSocket();
         return;
@@ -64,7 +64,7 @@ void SocketServer::process()
     sockfd = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
     if (sockfd == INVALID_SOCKET)
     {
-        qDebug() << __FUNCTION__<< "socket creation failed, ---> sending NoSocket() signal";
+        DebugMsg::print(__func__, "socket creation failed, ---> sending NoSocket() signal");
         emit NoSocket();
         freeaddrinfo(result);
         ClearWinSock();
@@ -75,7 +75,7 @@ void SocketServer::process()
     rval = bind(sockfd, result->ai_addr, (int)result->ai_addrlen);
     if (rval == SOCKET_ERROR)
     {
-        qDebug() << __FUNCTION__<< "binding socket failed, ---> sending NoBinding() signal";
+        DebugMsg::print(__func__, "binding socket failed, ---> sending NoBinding() signal");
         emit NoSocketBind();
         freeaddrinfo(result);
         closesocket(sockfd);
@@ -107,12 +107,12 @@ void SocketServer::process()
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == INVALID_SOCKET)
     {
-        qDebug() << __FUNCTION__<< "socket creation failed, ---> sending NoSocket() signal";
+        DebugMsg::print(__func__, "socket creation failed, ---> sending NoSocket() signal");
         emit NoSocket();
         ClearWinSock();
         return;
     } else {
-        //qDebug() << __FUNCTION__ << "socket successfully created";
+        //DebugMsg::print(__func__, "socket successfully created");
     }
     // CleanUp servaddr struct
     memset(&servaddr, 0, sizeof(servaddr));
@@ -126,26 +126,26 @@ void SocketServer::process()
     rval = bind(sockfd, (sockaddr *) &servaddr, sizeof(servaddr));
     if (rval == SOCKET_ERROR)
     {
-        qDebug() << __FUNCTION__ << "socket bind failed";
+        DebugMsg::print(__func__, "socket bind failed");
         emit NoSocketBind();
         close(sockfd);
         ClearWinSock();
         return;
     } else {
-        //qDebug() << __FUNCTION__ << "socket successfully binded";
+        //DebugMsg::print(__func__, "socket successfully binded");
     }
 
     // Now server is ready to listen and verification
     rval = listen(sockfd, 5);
     if (rval == SOCKET_ERROR)
     {
-        qDebug() << __FUNCTION__ << "listen failed";
+        DebugMsg::print(__func__, "listen failed");
         emit NoListen();
         close(sockfd);
         ClearWinSock();
         return;
     } else {
-        //qDebug() << __FUNCTION__ << "server listening...";
+        //DebugMsg::print(__func__, "server listening...");
     }
 
     len = sizeof(cli);
@@ -154,12 +154,12 @@ void SocketServer::process()
     connfd = accept(sockfd, (sockaddr *) &cli, &len);
     if (connfd == INVALID_SOCKET)
     {
-        qDebug() << __FUNCTION__ << "server accept failed";
+        DebugMsg::print(__func__, "server accept failed");
         emit NoAccept();
         close(sockfd);
         ClearWinSock();
     } else {
-       // qDebug() << __FUNCTION__ << "server accept the client...";
+       // DebugMsg::print(__func__, "server accept the client...");
     }
 
 #endif
@@ -173,14 +173,14 @@ void SocketServer::process()
         rval = recv(connfd, buff, sizeof(buff), 0);
         if (rval < 0)
         {
-            qDebug() << __FUNCTION__ << "Error";
+            DebugMsg::print(__func__, "Error");
             break;
         }
         else
         {
             if (rval == 0)
             {
-                qDebug() << __FUNCTION__ << "Nothing to read. Maybe client disconnected?";
+                DebugMsg::print(__func__, "Nothing to read. Maybe client disconnected?");
 #ifdef _WIN32
                 closesocket(connfd);
 #else
@@ -191,7 +191,7 @@ void SocketServer::process()
                 connfd = accept(sockfd, NULL, NULL);
                 if (connfd == INVALID_SOCKET)
                 {
-                    qDebug() << __FUNCTION__ << "server accept failed";
+                    DebugMsg::print(__func__, "server accept failed");
                     emit NoAccept();
                     rval = connfd;
                     break;
@@ -200,7 +200,7 @@ void SocketServer::process()
                 connfd = accept(sockfd, (sockaddr*) &cli, &len);
                 if (connfd < 0)
                 {
-                    qDebug() << __FUNCTION__ << "server accept failed";
+                    DebugMsg::print(__func__, "server accept failed");
                     emit NoAccept();
                     rval = connfd;
                     break;
@@ -209,42 +209,42 @@ void SocketServer::process()
             }
             else
             {
-                //qDebug() << buff;
+                //DebugMsg::print(__func__, buff);
                 QStringList m_Protocol;
                 QString data = QString::fromLatin1(buff);
                 int size = data.size();
-                //qDebug() << m_Protocol << "Size" << size;
+                //DebugMsg::print(__func__, m_Protocol + "Size" + QString::number(size));
                 // Sometimes all data can be sent alltogether, so we need to split all commands in pieces
                 if (size > 9)
                 {
                     // We need to split all strings apart
                     // TRACK:003SIDE:01STATUS:0ERROR=1
-                    qDebug() << __FUNCTION__ << "Error!!!";
+                    DebugMsg::print(__func__, "Error!!!");
                 }
                 else
                 {
                     if (data.contains("STATUS"))
                     {
                         int val = data.split(QLatin1Char(':'))[1].toInt();
-                        //qDebug() << "emit STATUS" << val;
+                        //DebugMsg::print(__func__, "emit STATUS" + QString::number(val));
                         emit drStatus(val);
                     }
                     if (data.contains("TRACK"))
                     {
                         int val = data.split(QLatin1Char(':'))[1].toInt();
-                        //qDebug() << "emit TRACK" << val;
+                        //DebugMsg::print(__func__, "emit TRACK" + QString::number(val));
                         emit drTrack(val);
                     }
                     if (data.contains("SIDE"))
                     {
                         int val = data.split(QLatin1Char(':'))[1].toInt();
-                        //qDebug() << "emit SIDE" << val;
+                        //DebugMsg::print(__func__, "emit SIDE" + QString::number(val));
                         emit drSide(val);
                     }
                     if (data.contains("ERROR"))
                     {
                         int val = data.split(QLatin1Char(':'))[1].toInt();
-                        //qDebug() << "emit ERROR" << val;
+                        //DebugMsg::print(__func__, "emit ERROR" + QString::number(val));
                         emit drError(val);
                     }
                 }
@@ -253,13 +253,13 @@ void SocketServer::process()
 
 //       if (m_timer.elapsed() > 1000)
 //       {
-//           qDebug() << __FUNCTION__ << "Called";
+//           DebugMsg::print(__func__, "Called");
 //           counter++;
 //           if (counter >= 100) { rval = 199; break; }
 //           m_timer.start();
 //       }
     }
-    qDebug() << __FUNCTION__ << "Finish with " << rval;
+    DebugMsg::print(__func__, "Finish with " + QString::number(rval));
     if (connfd >= 0)
 #ifdef _WIN32
         closesocket(connfd);

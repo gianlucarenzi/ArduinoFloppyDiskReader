@@ -1,5 +1,5 @@
 #include "adfwritermanager.h"
-#include <QDebug>
+#include "inc/debugmsg.h"
 #include <clicklabel.h>
 #include <QFileDialog>
 #include <QWidget>
@@ -144,11 +144,11 @@ MainWindow::MainWindow(QWidget *parent)
     ui->version->show();
     // Settings
     // If not exists default is true
-    qDebug() << "BEFORE PRECOMP" << preComp;
-    qDebug() << "BEFORE ERASEBEFOREWRITE" << eraseBeforeWrite;
-    qDebug() << "BEFORE TRACKS82" << tracks82;
-    qDebug() << "BEFORE SKIPREADERROR" << skipReadError;
-    qDebug() << "BEFORE SKIPWRITEERROR" << skipWriteError;
+    DebugMsg::print(__func__, "BEFORE PRECOMP" + QString::number(preComp));
+    DebugMsg::print(__func__, "BEFORE ERASEBEFOREWRITE" + QString::number(eraseBeforeWrite));
+    DebugMsg::print(__func__, "BEFORE TRACKS82" + QString::number(tracks82));
+    DebugMsg::print(__func__, "BEFORE SKIPREADERROR" + QString::number(skipReadError));
+    DebugMsg::print(__func__, "BEFORE SKIPWRITEERROR" + QString::number(skipWriteError));
 
     preComp = settings.value("PRECOMP", true).toBool();
     eraseBeforeWrite = settings.value("ERASEBEFOREWRITE", false).toBool();
@@ -173,18 +173,18 @@ MainWindow::MainWindow(QWidget *parent)
         if (ui->serialPortComboBox->count() > 0) {
             QString currentPort = ui->serialPortComboBox->currentText();
             if (!currentPort.isEmpty()) {
-                qDebug() << "WRITE INITIAL SETTINGS SERIALPORTNAME" << currentPort;
+                DebugMsg::print(__func__, "WRITE INITIAL SETTINGS SERIALPORTNAME" + currentPort);
                 settings.setValue("SERIALPORTNAME", currentPort);
                 settings.sync();
             }
         }
     }
 
-    qDebug() << "AFTER PRECOMP" << preComp;
-    qDebug() << "AFTER ERASEBEFOREWRITE" << eraseBeforeWrite;
-    qDebug() << "AFTER TRACKS82" << tracks82;
-    qDebug() << "AFTER SKIPREADERROR" << skipReadError;
-    qDebug() << "AFTER SKIPWRITEERROR" << skipWriteError;
+    DebugMsg::print(__func__, "AFTER PRECOMP" + QString::number(preComp));
+    DebugMsg::print(__func__, "AFTER ERASEBEFOREWRITE" + QString::number(eraseBeforeWrite));
+    DebugMsg::print(__func__, "AFTER TRACKS82" + QString::number(tracks82));
+    DebugMsg::print(__func__, "AFTER SKIPREADERROR" + QString::number(skipReadError));
+    DebugMsg::print(__func__, "AFTER SKIPWRITEERROR" + QString::number(skipWriteError));
 
     ui->errorDialog->hide();
     ui->errorDialog->raise();
@@ -193,13 +193,13 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->retryButton, SIGNAL(clicked()), this, SLOT(errorDialog_RetryClicked()));
     readyReadSHM = false;
 
-    qDebug() << "Creating new socketServer";
+    DebugMsg::print(__func__, "Creating new socketServer");
     socketServer = new SocketServer();
     m_thread = new QThread();
     socketServer->moveToThread(m_thread);
     m_thread->start();
     connect(m_thread, SIGNAL(started()), socketServer, SLOT(process()));
-    qDebug() << "New socketServer is running";
+    DebugMsg::print(__func__, "New socketServer is running");
 
     // Connect all thread from socketServer
     connect(socketServer, SIGNAL(drTrack(int)), this, SLOT(drTrackChange(int)));
@@ -226,7 +226,7 @@ MainWindow::MainWindow(QWidget *parent)
 // Slot implementation for diagnostic timeout
 void MainWindow::onDiagnosticTimeout()
 {
-    qDebug() << "Diagnostic timeout occurred. Hiding diagnostic view.";
+    DebugMsg::print(__func__, "Diagnostic timeout occurred. Hiding diagnostic view.");
     hideDiagnosticView();
 }
 
@@ -256,7 +256,7 @@ void MainWindow::manageSerialPort(const QString &p)
 {
     if (p.isEmpty())
         return;
-    qDebug() << "WRITE SETTINGS SERIALPORTNAME" << p;
+    DebugMsg::print(__func__, "WRITE SETTINGS SERIALPORTNAME" + p);
     settings.setValue("SERIALPORTNAME", p);
     settings.sync();
 }
@@ -264,7 +264,7 @@ void MainWindow::manageSerialPort(const QString &p)
 void MainWindow::togglePreComp(void)
 {
     preComp = !preComp;
-    qDebug() << "WRITE SETTINGS PRECOMP" << preComp;
+    DebugMsg::print(__func__, "WRITE SETTINGS PRECOMP" + QString::number(preComp));
     ui->preCompSelection->setChecked(preComp);
     // Store preComp into settings
     settings.setValue("PRECOMP", preComp);
@@ -274,7 +274,7 @@ void MainWindow::togglePreComp(void)
 void MainWindow::toggleEraseBeforeWrite(void)
 {
     eraseBeforeWrite = !eraseBeforeWrite;
-    qDebug() << "WRITE SETTINGS ERASE BEFORE WRITE" << eraseBeforeWrite;
+    DebugMsg::print(__func__, "WRITE SETTINGS ERASE BEFORE WRITE" + QString::number(eraseBeforeWrite));
     ui->eraseBeforeWrite->setChecked(eraseBeforeWrite);
     settings.setValue("ERASEBEFOREWRITE", eraseBeforeWrite);
     settings.sync();
@@ -284,9 +284,9 @@ void MainWindow::toggleNumTracks(void)
 {
     tracks82 = !tracks82;
     if (tracks82)
-        qDebug() << "WRITE SETTINGS 82 TRACKS";
+        DebugMsg::print(__func__, "WRITE SETTINGS 82 TRACKS");
     else
-        qDebug() << "WRITE SETTINGS 80 Tracks";
+        DebugMsg::print(__func__, "WRITE SETTINGS 80 Tracks");
     ui->numTracks->setChecked(tracks82);
     settings.setValue("TRACKS82", tracks82);
     settings.sync();
@@ -296,9 +296,9 @@ void MainWindow::toggleDiskDensityMode(void)
 {
     diskDriveHDensityMode = !diskDriveHDensityMode;
     if (diskDriveHDensityMode)
-        qDebug() << "USING HIGH DENSITY MODE";
+        DebugMsg::print(__func__, "USING HIGH DENSITY MODE");
     else
-        qDebug() << "USING DOUBLE DENSITY MODE (DEFAULT)";
+        DebugMsg::print(__func__, "USING DOUBLE DENSITY MODE (DEFAULT)");
     ui->hdModeSelection->setChecked(diskDriveHDensityMode);
     settings.setValue("HD", diskDriveHDensityMode);
     settings.sync();
@@ -308,9 +308,9 @@ void MainWindow::toggleSkipReadError(void)
 {
     skipReadError = !skipReadError;
     if (skipReadError)
-        qDebug() << "SKIP READ ERROR ENABLED";
+        DebugMsg::print(__func__, "SKIP READ ERROR ENABLED");
     else
-        qDebug() << "SKIP READ ERROR DISABLED";
+        DebugMsg::print(__func__, "SKIP READ ERROR DISABLED");
     ui->skipReadError->setChecked(skipReadError);
     settings.setValue("SKIPREADERROR", skipReadError);
     settings.sync();
@@ -320,9 +320,9 @@ void MainWindow::toggleSkipWriteError(void)
 {
     skipWriteError = !skipWriteError;
     if (skipWriteError)
-        qDebug() << "SKIP WRITE ERROR ENABLED";
+        DebugMsg::print(__func__, "SKIP WRITE ERROR ENABLED");
     else
-        qDebug() << "SKIP WRITE ERROR DISABLED";
+        DebugMsg::print(__func__, "SKIP WRITE ERROR DISABLED");
     ui->skipWriteError->setChecked(skipWriteError);
     settings.setValue("SKIPWRITEERROR", skipWriteError);
     settings.sync();
@@ -330,7 +330,7 @@ void MainWindow::toggleSkipWriteError(void)
 
 void MainWindow::doneWork(void)
 {
-    qDebug() << "doneWork" << "status:" << status;
+    DebugMsg::print(__func__, "doneWork status:" + QString::number(status));
     if (status != 0) {
         ui->copyError->show();
         ui->copyError->raise();
@@ -350,7 +350,7 @@ void MainWindow::done(void)
     ui->busy->hide();
     ui->stopButton->hide();
     //prepareTracksPosition();
-    qDebug() << "DONE";
+    DebugMsg::print(__func__, "DONE");
     readyReadSHM = false;
 }
 
@@ -380,7 +380,7 @@ void MainWindow::doScroll(void)
     if (p >= i)
         p = 0;
     int y = ypos + sinetab[ slt ];
-    //qDebug() << "Y: " << y;
+    //DebugMsg::print(__func__, "Y: " + QString::number(y));
     ui->scrollText->setGeometry(ui->scrollText->pos().x(), y,
                                 ui->scrollText->width(), ui->scrollText->height());
     slt++;
@@ -476,14 +476,14 @@ void MainWindow::prepareTracksPosition(void)
 void MainWindow::checkStartWrite(void)
 {
     serialPortRefreshTimer->stop();
-    qDebug() << "CHECK FOR WRITE";
-    qDebug() << "START WRITE DISK";
+    DebugMsg::print(__func__, "CHECK FOR WRITE");
+    DebugMsg::print(__func__, "START WRITE DISK");
     QString port = ui->serialPortComboBox->currentText();
-    qDebug() << "checkStartWrite: UI portName before modification =" << port;
+    DebugMsg::print(__func__, "checkStartWrite: UI portName before modification =" + port);
 #ifndef _WIN32
     port.prepend("/dev/");
 #endif
-    qDebug() << "checkStartWrite: UI portName after modification =" << port;
+    DebugMsg::print(__func__, "checkStartWrite: UI portName after modification =" + port);
 
     if (port.isEmpty()) {
         showSetupError(tr("ERROR: No serial port selected!\n\nPlease select a serial port from the dropdown menu."));
@@ -492,7 +492,7 @@ void MainWindow::checkStartWrite(void)
 
     if (ui->getADFFileName->text().isEmpty())
     {
-        qDebug() << "NEED VALID IMAGE FILENAME First to write to floppy";
+        DebugMsg::print(__func__, "NEED VALID IMAGE FILENAME First to write to floppy");
         showSetupError(tr("NEED VALID IMAGE FILENAME FIRST TO WRITE TO FLOPPY"));
         return;
     }
@@ -520,13 +520,13 @@ void MainWindow::checkStartWrite(void)
     if (skipWriteError)
         command.append("SKIPWRITEERROR");
 
-    qDebug() << "PORT: " << port;
-    qDebug() << "FILENAME: " << filename;
-    qDebug() << "COMMAND: " << command;
+    DebugMsg::print(__func__, "PORT: " + port);
+    DebugMsg::print(__func__, "FILENAME: " + filename);
+    DebugMsg::print(__func__, "COMMAND: " + command.join(" "));
 
-    qDebug() << "Track: " << m_track;
-    qDebug() << "Side: " << m_side;
-    qDebug() << "Status: " << m_status << "NEED TO WRITE";
+    DebugMsg::print(__func__, "Track: " + QString::number(track));
+    DebugMsg::print(__func__, "Side: " + QString::number(side));
+    DebugMsg::print(__func__, "Status: " + QString::number(status) + "NEED TO WRITE");
 
     prepareTracksPosition();
     amigaBridge->setup(port, filename, command);
@@ -557,12 +557,12 @@ void MainWindow::manageError(void)
 void MainWindow::checkStartRead(void)
 {
     serialPortRefreshTimer->stop();
-    qDebug() << "CHECK FOR READ";
-    qDebug() << "START READ DISK";
+    DebugMsg::print(__func__, "CHECK FOR READ");
+    DebugMsg::print(__func__, "START READ DISK");
     // This should start the reading from WAFFLE and write to ADF File
     if (ui->setADFFileName->text().isEmpty())
     {
-        qDebug() << "NEED VALID IMAGE FILENAME First to write to disk from floppy";
+        DebugMsg::print(__func__, "NEED VALID IMAGE FILENAME First to write to disk from floppy");
         showSetupError("NEED VALID IMAGE FILENAME FIRST TO WRITE TO DISK FROM FLOPPY");
         return;
     }
@@ -570,11 +570,11 @@ void MainWindow::checkStartRead(void)
     // To have the correct text on the copyCompleted.
     ui->copyCompleted->setText(tr("AMIGA DISK COPY COMPLETED"));
     QString port = ui->serialPortComboBox->currentText();
-    qDebug() << "checkStartRead: UI portName before modification =" << port;
+    DebugMsg::print(__func__, "checkStartRead: UI portName before modification =" + port);
 #ifndef _WIN32
     port.prepend("/dev/");
 #endif
-    qDebug() << "checkStartRead: UI portName after modification =" << port;
+    DebugMsg::print(__func__, "checkStartRead: UI portName after modification =" + port);
 
     if (port.isEmpty()) {
         showSetupError(tr("ERROR: No serial port selected!\n\nPlease select a serial port from the dropdown menu."));
@@ -599,13 +599,13 @@ void MainWindow::checkStartRead(void)
     if (diskDriveHDensityMode)
         command.append("HD");
 
-    qDebug() << "PORT: " << port;
-    qDebug() << "FILENAME: " << filename;
-    qDebug() << "COMMAND: " << command;
+    DebugMsg::print(__func__, "PORT: " + port);
+    DebugMsg::print(__func__, "FILENAME: " + filename);
+    DebugMsg::print(__func__, "COMMAND: " + command.join(" "));
 
-    qDebug() << "Track: " << m_track;
-    qDebug() << "Side: " << m_side;
-    qDebug() << "Status: " << m_status << "NEED TO READ";
+    DebugMsg::print(__func__, "Track: " + QString::number(track));
+    DebugMsg::print(__func__, "Side: " + QString::number(side));
+    DebugMsg::print(__func__, "Status: " + QString::number(status) + "NEED TO READ");
 
     prepareTracksPosition();
     amigaBridge->setup(port, filename, command);
@@ -634,7 +634,7 @@ void MainWindow::startRead(void)
 
 void MainWindow::wSysWatcher(void)
 {
-    //qDebug() << "TIMER FIRE!";
+    //DebugMsg::print(__func__, "TIMER FIRE!");
     progressChange("Timer", 0);
 }
 
@@ -644,7 +644,7 @@ void MainWindow::progressChange(QString s, int value)
 
     if (readyReadSHM)
     {
-        //qDebug() << __FUNCTION__ << "called with" << s << "Value" << value;
+        //DebugMsg::print(__func__, "called with" + s + "Value" + QString::number(value));
         if (s == "Track")   track = value;
 
         if (s == "Side" )   side = value;
@@ -667,19 +667,19 @@ void MainWindow::progressChange(QString s, int value)
                 ui->errorDialog->hide();
             }
 
-            //qDebug() << __FUNCTION__ << "ERRORCODE" << err;
+            //DebugMsg::print(__func__, "ERRORCODE" + QString::number(err));
             if (err != 0)
             {
                 // The only way to setup a 'RED' square, is when err != 0, the
                 // square will be printed in RED
                 status = 1;
-                //qDebug() << __FUNCTION__ << "ERRORCODE CHANGE TO RED";
+                //DebugMsg::print(__func__, "ERRORCODE CHANGE TO RED");
             }
         }
 
         if (track < 0 || side < 0 || status < 0) toShow = false; else toShow = true;
 
-        //qDebug() << __FUNCTION__ << "TRACK: " << track << "SIDE: " << side << "STATUS: " << status << "ERROR: " << err << "toShow" << toShow;
+        //DebugMsg::print(__func__, "TRACK: " + QString::number(track) + "SIDE: " + QString::number(side) + "STATUS: " + QString::number(status) + "ERROR: " + QString::number(err) + "toShow" + QString::number(toShow));
         if (toShow)
         {
             // Error = red squares. good green or yellow if verify
@@ -701,34 +701,34 @@ void MainWindow::progressChange(QString s, int value)
                 break;
             }
         } else {
-            //qDebug() << "Nothing to show...";
+            //DebugMsg::print(__func__, "Nothing to show...");
         }
     } else {
-        //qDebug() << "Thread NOT READY YET";
+        //DebugMsg::print(__func__, "Thread NOT READY YET");
     }
 }
 
 void MainWindow::drStatusChange(int val)
 {
-    //qDebug() << __FUNCTION__ << "SIGNAL drSTATUS" << val;
+    //DebugMsg::print(__func__, "SIGNAL drSTATUS" + QString::number(val));
     progressChange("Status", val);
 }
 
 void MainWindow::drSideChange(int val)
 {
-    //qDebug() << __FUNCTION__ << "SIGNAL drSIDE" << val;
+    //DebugMsg::print(__func__, "SIGNAL drSIDE" + QString::number(val));
     progressChange("Side", val);
 }
 
 void MainWindow::drTrackChange(int val)
 {
-    //qDebug() << __FUNCTION__ << "SIGNAL drTrack" << val;
+    //DebugMsg::print(__func__, "SIGNAL drTrack" + QString::number(val));
     progressChange("Track", val);
 }
 
 void MainWindow::drErrorChange(int val)
 {
-    //qDebug() << __FUNCTION__ << "SIGNAL drError" << val;
+    //DebugMsg::print(__func__, "SIGNAL drError" + QString::number(val));
     progressChange("Error", val);
 }
 
@@ -755,7 +755,7 @@ extern void set_user_input(char data);
 
 void MainWindow::errorDialog_SkipClicked(void)
 {
-    //qDebug() << __FUNCTION__ << "SKIP Clicked";
+    //DebugMsg::print(__func__, "SKIP Clicked");
     set_user_input('S'); // Skip
     ui->errorDialog->hide();
     serialPortRefreshTimer->start();
@@ -763,7 +763,7 @@ void MainWindow::errorDialog_SkipClicked(void)
 
 void MainWindow::errorDialog_CancelClicked(void)
 {
-    //qDebug() << __FUNCTION__ << "ABORT Clicked";
+    //DebugMsg::print(__func__, "ABORT Clicked");
     set_user_input('A'); // Abort
     ui->errorDialog->hide();
     stopClicked();
@@ -772,7 +772,7 @@ void MainWindow::errorDialog_CancelClicked(void)
 
 void MainWindow::errorDialog_RetryClicked(void)
 {
-    //qDebug() << __FUNCTION__ << "RETRY Clicked";
+    //DebugMsg::print(__func__, "RETRY Clicked");
     set_user_input('R'); // Retry
     ui->errorDialog->hide();
 }
@@ -780,7 +780,7 @@ void MainWindow::errorDialog_RetryClicked(void)
 void MainWindow::manageQtDrawBridgeSignal(int sig)
 {
     bool toShow = true;
-    //qDebug() << __FUNCTION__ << "Signal RECEIVED FROM QtDrawBridge: " << sig;
+    //DebugMsg::print(__func__, "Signal RECEIVED FROM QtDrawBridge: " + QString::number(sig));
     status = sig;
     switch (sig)
     {
@@ -848,18 +848,18 @@ void MainWindow::hideDiagnosticView(void)
             disconnect(diagnosticThread, nullptr, this, nullptr);
 
             if (diagnosticThread->isRunning()) {
-                qDebug() << "Interrupting diagnostic thread...";
+                DebugMsg::print(__func__, "Interrupting diagnostic thread...");
                 diagnosticThread->requestInterruption();
 
                 // Wait for thread to finish (max 5 seconds)
                 if (!diagnosticThread->wait(5000)) {
-                    qDebug() << "Thread didn't finish in time, terminating forcefully";
+                    DebugMsg::print(__func__, "Thread didn't finish in time, terminating forcefully");
                     diagnosticThread->terminate();
                     diagnosticThread->wait();
                 }
-                qDebug() << "Diagnostic thread stopped";
+                DebugMsg::print(__func__, "Diagnostic thread stopped");
             } else {
-                qDebug() << "Diagnostic thread already finished";
+                DebugMsg::print(__func__, "Diagnostic thread already finished");
             }
 
             // Mark for deletion but don't delete immediately
@@ -867,7 +867,7 @@ void MainWindow::hideDiagnosticView(void)
             diagnosticThread->deleteLater();
             diagnosticThread = nullptr;
         } else {
-            qDebug() << "Diagnostic thread was null";
+            DebugMsg::print(__func__, "Diagnostic thread was null");
         }
 
         // Now safe to hide widgets
@@ -878,19 +878,19 @@ void MainWindow::hideDiagnosticView(void)
             ui->diagnosticTest->hide();
         }
         diagnosticTimeoutTimer->stop(); // Stop the timer when hiding
-        qDebug() << "hideDiagnosticView completed";
+        DebugMsg::print(__func__, "hideDiagnosticView completed");
     } else {
-        qDebug() << "hideDiagnosticView called but not visible or invalid UI";
+        DebugMsg::print(__func__, "hideDiagnosticView called but not visible or invalid UI");
     }
 }
 
 void MainWindow::onDiagnosticButtonClicked(void)
 {
-    qDebug() << "DIAGNOSTIC BUTTON CLICKED";
+    DebugMsg::print(__func__, "DIAGNOSTIC BUTTON CLICKED");
 
     // Check if a diagnostic is already running
     if (diagnosticThread && diagnosticThread->isRunning()) {
-        qDebug() << "Diagnostic already running, ignoring request";
+        DebugMsg::print(__func__, "Diagnostic already running, ignoring request");
         return;
     }
 
@@ -900,11 +900,11 @@ void MainWindow::onDiagnosticButtonClicked(void)
 
         // Get the selected serial port
         QString portName = ui->serialPortComboBox->currentText();
-        qDebug() << "onDiagnosticButtonClicked: UI portName before modification =" << portName;
+        DebugMsg::print(__func__, "onDiagnosticButtonClicked: UI portName before modification =" + portName);
 #ifndef _WIN32
         portName.prepend("/dev/");
 #endif
-        qDebug() << "onDiagnosticButtonClicked: UI portName after modification =" << portName;
+        DebugMsg::print(__func__, "onDiagnosticButtonClicked: UI portName after modification =" + portName);
 
         if (portName.isEmpty()) {
             // Show error if no port is selected
@@ -920,12 +920,12 @@ void MainWindow::onDiagnosticButtonClicked(void)
 
         // Clean up any existing thread that hasn't been deleted yet
         if (diagnosticThread) {
-            qDebug() << "Cleaning up old diagnostic thread";
+            DebugMsg::print(__func__, "Cleaning up old diagnostic thread");
             diagnosticThread->deleteLater();
             diagnosticThread = nullptr;
         }
 
-        qDebug() << "HIDING TRACKS";
+        DebugMsg::print(__func__, "HIDING TRACKS");
         // Hide track indicators when diagnostic view is shown
         for (int i = 0; i < MAX_TRACKS; ++i) {
             upperTrack[i]->setStyleSheet("color: rgb(0, 0, 0");
@@ -968,12 +968,12 @@ void MainWindow::onDiagnosticButtonClicked(void)
 void MainWindow::onDiagnosticMessage(QString message)
 {
     // Send to debug output
-    qDebug() << "[DIAGNOSTIC]" << message;
+    DebugMsg::print(__func__, "[DIAGNOSTIC]" + message);
 
     // Stop timeout timer when disk is detected - no more timeout once disk is present
     if (message.contains("Disk detected", Qt::CaseInsensitive)) {
         if (diagnosticTimeoutTimer && diagnosticTimeoutTimer->isActive()) {
-            qDebug() << "Disk detected - stopping diagnostic timeout timer";
+            DebugMsg::print(__func__, "Disk detected - stopping diagnostic timeout timer");
             diagnosticTimeoutTimer->stop(); // Stop timer completely, diagnostic can now run without timeout
         }
     }
@@ -996,7 +996,7 @@ void MainWindow::onDiagnosticMessage(QString message)
 
 void MainWindow::onDiagnosticComplete(bool success)
 {
-    qDebug() << "onDiagnosticComplete called, success:" << success << ", visible:" << isDiagnosticVisible;
+    DebugMsg::print(__func__, "onDiagnosticComplete called, success:" + QString::number(success) + ", visible:" + QString::number(isDiagnosticVisible));
 
     if (isDiagnosticVisible && ui && ui->diagnosticTest) {
         // Use QMetaObject::invokeMethod to safely append messages
@@ -1009,9 +1009,9 @@ void MainWindow::onDiagnosticComplete(bool success)
         finalMessage += tr("\nClick anywhere on this window to close.");
 
         QMetaObject::invokeMethod(ui->diagnosticTest, "append", Qt::QueuedConnection, Q_ARG(QString, finalMessage));
-        qDebug() << "onDiagnosticComplete scheduled append";
+        DebugMsg::print(__func__, "onDiagnosticComplete scheduled append");
     } else {
-        qDebug() << "Skipping append - widget not visible or invalid";
+        DebugMsg::print(__func__, "Skipping append - widget not visible or invalid");
     }
 
     // Ensure the port is closed after diagnostics are finished
@@ -1066,7 +1066,7 @@ void MainWindow::playMusic()
 
 void MainWindow::handleSongFinished()
 {
-    qDebug() << "Song finished. Restart From beginning...";
+    DebugMsg::print(__func__, "Song finished. Restart From beginning...");
     m_vuMeterTimer->stop();
     player->stopPlayback(); // Ensure playback is stopped
     vuMeter->startDecay();  // Start VU Meter decay
@@ -1083,7 +1083,7 @@ void MainWindow::updateVuMeter()
 
 void MainWindow::toggleMusic()
 {
-    qDebug() << "toggleMusic called. m_musicLoaded:" << m_musicLoaded << "m_musicPaused:" << m_musicPaused;
+    DebugMsg::print(__func__, "toggleMusic called. m_musicLoaded:" + QString::number(m_musicLoaded) + "m_musicPaused:" + QString::number(m_musicPaused));
 
     // Calculate VU meter width based on channels
     int channels = player->getNumChannels();
@@ -1102,13 +1102,13 @@ void MainWindow::toggleMusic()
 
     if (!m_musicLoaded) {
         // State: Stopped -> Playing
-        qDebug() << "State: Stopped -> Playing";
+        DebugMsg::print(__func__, "State: Stopped -> Playing");
         vuMeter->setGeometry(x, y, vuMeterWidth, vuMeter->height());
         vuMeter->show();
         playMusic();
     } else if (m_musicPaused) {
         // State: Paused -> Playing (Resume)
-        qDebug() << "State: Paused -> Playing (Resume)";
+        DebugMsg::print(__func__, "State: Paused -> Playing (Resume)");
         vuMeter->setGeometry(x, y, vuMeterWidth, vuMeter->height());
         vuMeter->show();
         player->pausePlayback(); // Toggles pause off
@@ -1116,7 +1116,7 @@ void MainWindow::toggleMusic()
         m_musicPaused = false;
     } else {
         // State: Playing -> Paused
-        qDebug() << "State: Playing -> Paused";
+        DebugMsg::print(__func__, "State: Playing -> Paused");
         player->pausePlayback(); // Toggles pause on
         m_vuMeterTimer->stop();
         vuMeter->startDecay();

@@ -1,7 +1,6 @@
-#include <QDebug>
+#include "inc/debugmsg.h"
 
 #include "diagnosticthread.h"
-#include "diagnosticconfig.h"
 #include "ADFWriter.h"
 #include "ArduinoInterface.h"
 #include <string>
@@ -18,9 +17,9 @@ DiagnosticThread::DiagnosticThread()
 
 void DiagnosticThread::setup(QString port)
 {
-    qDebug() << __func__ << "Called. Input Port =" << port;
+    DebugMsg::print(__func__, "Called. Input Port =" + port);
     m_port = port;
-    qDebug() << __func__ << "Constructed m_port =" << m_port;
+    DebugMsg::print(__func__, "Constructed m_port =" + m_port);
 }
 
 void DiagnosticThread::run()

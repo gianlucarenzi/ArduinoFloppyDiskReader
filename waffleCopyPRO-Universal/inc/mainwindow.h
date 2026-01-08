@@ -9,7 +9,6 @@
 #include <QFileSystemWatcher>
 #include <QFont>
 #include <QFontDatabase>
-#include <QDebug> // Added for QDebug
 #include "qtdrawbridge.h"
 #include "diagnosticthread.h"
 #include "waffleconfig.h"
