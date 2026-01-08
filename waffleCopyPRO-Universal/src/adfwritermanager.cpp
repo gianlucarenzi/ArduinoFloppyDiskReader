@@ -77,128 +77,63 @@ bool ADFWriterManager::runDiagnostics(const std::wstring& portName, std::functio
     return m_adfWriter.runDiagnostics(portName, messageOutput, askQuestion);
 }
 
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::checkDiskCapacity(bool& /*isHD*/) {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::setDiskCapacity(bool /*isHDMode*/) {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::checkForDisk(bool /*checkOnly*/) {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::testCTS() {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::testTransferSpeed() {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::checkIfDiskIsWriteProtected(bool /*checkOnly*/) {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::enableReading(bool /*enable*/, bool /*reset*/) {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::testIndexPulse() {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::measureDriveRPM(float& /*rpm*/) {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::guessPlusMode(bool& /*isPlus*/) {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::eeprom_IsDrawbridgePlusMode(bool& /*isPlusReally*/) {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::eeprom_SetDrawbridgePlusMode(bool /*setPlusMode*/) {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::findTrack0() {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::selectTrack(uint32_t /*track*/, ArduinoFloppyReader::TrackSearchSpeed /*speed*/) {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::testDataPulse() {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::selectSurface(ArduinoFloppyReader::DiskSurface /*surface*/) {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::readCurrentTrack(void* /*data*/, unsigned short /*dataLength*/, bool /*readRaw*/) {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::enableWriting(bool /*enable*/, bool /*reset*/) {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::eraseCurrentTrack() {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::DiagnosticResponse ADFWriterManager::eraseFluxOnTrack() {
-    // Functionality not implemented in ADFWriterManager and cannot be delegated to ADFWriter.
-    return ArduinoFloppyReader::DiagnosticResponse::drError;
-}
-
-ArduinoFloppyReader::ADFResult ADFWriterManager::ADFToDisk(const std::wstring& inputFile, bool mediaIsHD, bool verify, bool usePrecompMode, bool eraseFirst, bool writeFromIndex, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, bool isVerifyError, const ArduinoFloppyReader::CallbackOperation operation) > callback) {
+ADFResult ADFWriterManager::ADFToDisk(const std::wstring& inputFile, bool mediaIsHD, bool verify, bool usePrecompMode, bool eraseFirst, bool writeFromIndex, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, bool isVerifyError, const ArduinoFloppyReader::CallbackOperation operation) > callback) {
     return m_adfWriter.ADFToDisk(inputFile, mediaIsHD, verify, usePrecompMode, eraseFirst, writeFromIndex, callback);
 }
 
-ArduinoFloppyReader::ADFResult ADFWriterManager::SCPToDisk(const std::wstring& inputFile, bool extraErases, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, bool isVerifyError, const ArduinoFloppyReader::CallbackOperation operation) > callback) {
+ADFResult ADFWriterManager::SCPToDisk(const std::wstring& inputFile, bool extraErases, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, bool isVerifyError, const ArduinoFloppyReader::CallbackOperation operation) > callback) {
     return m_adfWriter.SCPToDisk(inputFile, extraErases, callback);
 }
 
-ArduinoFloppyReader::ADFResult ADFWriterManager::IPFToDisk(const std::wstring& inputFile, bool extraErases, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, bool isVerifyError, const ArduinoFloppyReader::CallbackOperation operation) > callback) {
+ADFResult ADFWriterManager::IPFToDisk(const std::wstring& inputFile, bool extraErases, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, bool isVerifyError, const ArduinoFloppyReader::CallbackOperation operation) > callback) {
     return m_adfWriter.IPFToDisk(inputFile, extraErases, callback);
 }
 
-ArduinoFloppyReader::ADFResult ADFWriterManager::DiskToADF(const std::wstring& outputFile, bool hdMode, int numTracks, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound, const int totalSectors, const ArduinoFloppyReader::CallbackOperation operation)> callback) {
+ADFResult ADFWriterManager::DiskToADF(const std::wstring& outputFile, bool hdMode, int numTracks, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound, const int totalSectors, const ArduinoFloppyReader::CallbackOperation operation)> callback) {
     return m_adfWriter.DiskToADF(outputFile, hdMode, numTracks, callback);
 }
 
-ArduinoFloppyReader::ADFResult ADFWriterManager::DiskToSCP(const std::wstring& outputFile, bool hdMode, int numTracks, unsigned char revolutions, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound, const int totalSectors, const ArduinoFloppyReader::CallbackOperation)> callback, bool useNewFluxReader) {
+ADFResult ADFWriterManager::DiskToSCP(const std::wstring& outputFile, bool hdMode, int numTracks, unsigned char revolutions, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound, const int totalSectors, const ArduinoFloppyReader::CallbackOperation)> callback, bool useNewFluxReader) {
     return m_adfWriter.DiskToSCP(outputFile, hdMode, numTracks, revolutions, callback, useNewFluxReader);
 }
 
-ArduinoFloppyReader::ADFResult ADFWriterManager::GuessDiskDensity(bool& isHD) {
+ADFResult ADFWriterManager::GuessDiskDensity(bool& isHD) {
     return m_adfWriter.GuessDiskDensity(isHD);
+}
+
+// Implementations for exposed ArduinoInterface diagnostic methods
+DiagnosticResponse ADFWriterManager::checkIfDiskIsWriteProtected(bool forceCheck) {
+    return m_adfWriter.checkIfDiskIsWriteProtected(forceCheck);
+}
+bool ADFWriterManager::isDiskInDrive() {
+    return m_adfWriter.isDiskInDrive();
+}
+DiagnosticResponse ADFWriterManager::testCTS() {
+    return m_adfWriter.testCTS();
+}
+DiagnosticResponse ADFWriterManager::testTransferSpeed() {
+    return m_adfWriter.testTransferSpeed();
+}
+DiagnosticResponse ADFWriterManager::testIndexPulse() {
+    return m_adfWriter.testIndexPulse();
+}
+DiagnosticResponse ADFWriterManager::measureDriveRPM(float& rpm) {
+    return m_adfWriter.measureDriveRPM(rpm);
+}
+DiagnosticResponse ADFWriterManager::findTrack0() {
+    return m_adfWriter.findTrack0();
+}
+DiagnosticResponse ADFWriterManager::selectTrack(unsigned char trackIndex, ArduinoFloppyReader::TrackSearchSpeed searchSpeed) {
+    return m_adfWriter.selectTrack(trackIndex, searchSpeed);
+}
+DiagnosticResponse ADFWriterManager::selectSurface(ArduinoFloppyReader::DiskSurface side) {
+    return m_adfWriter.selectSurface(side);
+}
+DiagnosticResponse ADFWriterManager::readCurrentTrack(void* trackData, const int dataLength, const bool readFromIndexPulse) {
+    return m_adfWriter.readCurrentTrack(trackData, dataLength, readFromIndexPulse);
+}
+DiagnosticResponse ADFWriterManager::enableReading(bool enable, bool reset, bool dontWait) {
+    return m_adfWriter.enableReading(enable, reset, dontWait);
 }
 
 } // namespace ArduinoFloppyReader

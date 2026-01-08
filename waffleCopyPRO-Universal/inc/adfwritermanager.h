@@ -60,46 +60,7 @@ public:
     // From runDiagnostics
     bool runDiagnostics(const std::wstring& portName, std::function<void(bool isError, const std::string message)> messageOutput, std::function<bool(bool isQuestion, const std::string question)> askQuestion);
 
-    // From checkDiskCapacity
-    ArduinoFloppyReader::DiagnosticResponse checkDiskCapacity(bool& isHD);
-    // From setDiskCapacity
-    ArduinoFloppyReader::DiagnosticResponse setDiskCapacity(bool isHDMode);
-    // From checkForDisk
-    ArduinoFloppyReader::DiagnosticResponse checkForDisk(bool checkOnly);
-    // From testCTS
-    ArduinoFloppyReader::DiagnosticResponse testCTS();
-    // From testTransferSpeed
-    ArduinoFloppyReader::DiagnosticResponse testTransferSpeed();
-    // From checkIfDiskIsWriteProtected
-    ArduinoFloppyReader::DiagnosticResponse checkIfDiskIsWriteProtected(bool checkOnly);
-    // From enableReading
-    ArduinoFloppyReader::DiagnosticResponse enableReading(bool enable, bool reset);
-    // From testIndexPulse
-    ArduinoFloppyReader::DiagnosticResponse testIndexPulse();
-    // From measureDriveRPM
-    ArduinoFloppyReader::DiagnosticResponse measureDriveRPM(float& rpm);
-    // From guessPlusMode
-    ArduinoFloppyReader::DiagnosticResponse guessPlusMode(bool& isPlus);
-    // From eeprom_IsDrawbridgePlusMode
-    ArduinoFloppyReader::DiagnosticResponse eeprom_IsDrawbridgePlusMode(bool& isPlusReally);
-    // From eeprom_SetDrawbridgePlusMode
-    ArduinoFloppyReader::DiagnosticResponse eeprom_SetDrawbridgePlusMode(bool setPlusMode);
-    // From findTrack0
-    ArduinoFloppyReader::DiagnosticResponse findTrack0();
-    // From selectTrack
-    ArduinoFloppyReader::DiagnosticResponse selectTrack(uint32_t track, ArduinoFloppyReader::TrackSearchSpeed speed = ArduinoFloppyReader::TrackSearchSpeed::tssNormal);
-    // From testDataPulse
-    ArduinoFloppyReader::DiagnosticResponse testDataPulse();
-    // From selectSurface
-    ArduinoFloppyReader::DiagnosticResponse selectSurface(ArduinoFloppyReader::DiskSurface surface);
-    // From readCurrentTrack
-    ArduinoFloppyReader::DiagnosticResponse readCurrentTrack(void* data, unsigned short dataLength, bool readRaw);
-    // From enableWriting
-    ArduinoFloppyReader::DiagnosticResponse enableWriting(bool enable, bool reset);
-    // From eraseCurrentTrack
-    ArduinoFloppyReader::DiagnosticResponse eraseCurrentTrack();
-    // From eraseFluxOnTrack
-    ArduinoFloppyReader::DiagnosticResponse eraseFluxOnTrack();
+
 
     // From ADFToDisk
     ArduinoFloppyReader::ADFResult ADFToDisk(const std::wstring& inputFile, bool mediaIsHD, bool verify, bool usePrecompMode, bool eraseFirst, bool writeFromIndex, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, bool isVerifyError, const ArduinoFloppyReader::CallbackOperation operation) > callback);
@@ -113,6 +74,19 @@ public:
     ArduinoFloppyReader::ADFResult DiskToSCP(const std::wstring& outputFile, bool hdMode, int numTracks, unsigned char revolutions, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound, const int totalSectors, const ArduinoFloppyReader::CallbackOperation)> callback, bool useNewFluxReader = false);
     // From GuessDiskDensity
     ArduinoFloppyReader::ADFResult GuessDiskDensity(bool& isHD);
+
+    // Exposing ArduinoInterface diagnostic methods
+    DiagnosticResponse checkIfDiskIsWriteProtected(bool forceCheck);
+    bool isDiskInDrive();
+    DiagnosticResponse testCTS();
+    DiagnosticResponse testTransferSpeed();
+    DiagnosticResponse testIndexPulse();
+    DiagnosticResponse measureDriveRPM(float& rpm);
+    DiagnosticResponse findTrack0();
+    DiagnosticResponse selectTrack(unsigned char trackIndex, ArduinoFloppyReader::TrackSearchSpeed searchSpeed = ArduinoFloppyReader::TrackSearchSpeed::tssNormal);
+    DiagnosticResponse selectSurface(ArduinoFloppyReader::DiskSurface side);
+    DiagnosticResponse readCurrentTrack(void* trackData, const int dataLength, const bool readFromIndexPulse);
+    DiagnosticResponse enableReading(bool enable, bool reset = true, bool dontWait = false);
 };
 
 } // namespace ArduinoFloppyReader

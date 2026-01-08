@@ -24,7 +24,7 @@
 // The class also handles writing an ADF file back to disk and optionally verifying the write.
 // 
 // The MFM decoding algorithm and information regarding finding the start of a sector
-// were taken from the excellent documentation by Laurent Clévy at http://lclevy.free.fr/adflib/adf_info.html
+// were taken from the excellent documentation by Laurent Clï¿½vy at http://lclevy.free.fr/adflib/adf_info.html
 // Also credits to Keith Monahan https://www.techtravels.org/tag/mfm/ regarding a bug in the MFM sector start data
 //
 // V2.8
@@ -152,6 +152,19 @@ namespace ArduinoFloppyReader {
 		
 		// Attempt to work out what the density of the currently inserted disk is
 		ADFResult GuessDiskDensity(bool& isHD);
+
+		// Exposing ArduinoInterface diagnostic methods
+        DiagnosticResponse checkIfDiskIsWriteProtected(bool forceCheck) { return m_device.checkIfDiskIsWriteProtected(forceCheck); }
+        bool isDiskInDrive() const { return m_device.isDiskInDrive(); }
+        DiagnosticResponse testCTS() { return m_device.testCTS(); }
+        DiagnosticResponse testTransferSpeed() { return m_device.testTransferSpeed(); }
+        DiagnosticResponse testIndexPulse() { return m_device.testIndexPulse(); }
+        DiagnosticResponse measureDriveRPM(float& rpm) { return m_device.measureDriveRPM(rpm); }
+        DiagnosticResponse findTrack0() { return m_device.findTrack0(); }
+        DiagnosticResponse selectTrack(unsigned char trackIndex, TrackSearchSpeed searchSpeed = TrackSearchSpeed::tssNormal) { return m_device.selectTrack(trackIndex, searchSpeed); }
+        DiagnosticResponse selectSurface(DiskSurface side) { return m_device.selectSurface(side); }
+        DiagnosticResponse readCurrentTrack(void* trackData, const int dataLength, const bool readFromIndexPulse) { return m_device.readCurrentTrack(trackData, dataLength, readFromIndexPulse); }
+        DiagnosticResponse enableReading(bool enable, bool reset = true, bool dontWait = false) { return m_device.enableReading(enable, reset, dontWait); }
 	};
 
 

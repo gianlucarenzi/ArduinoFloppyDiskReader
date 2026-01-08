@@ -25,239 +25,372 @@ void DiagnosticThread::setup(QString port)
 
 void DiagnosticThread::run()
 {
-    // Global prompt for disk insertion
-    emit diagnosticMessage("");
-    emit diagnosticMessage(">>> PLEASE INSERT A WRITE-PROTECTED AMIGADOS DISK IN THE DRIVE <<<");
-    emit diagnosticMessage(">>> The disk will be used for testing and must be write-protected <<<");
-    emit diagnosticMessage("");
-    QThread::msleep(1000); // Initial display time for the message
+    // Initialize state machine
+    m_currentState = DiagnosticState::dsInitialize;
+    m_overallSuccess = true;
 
-#if defined(SIMULATE_DIAGNOSTIC_SUCCESS) || defined(SIMULATE_DIAGNOSTIC_FAILURE)
-    // ============================================
-    // SIMULATED DIAGNOSTIC MODE
-    // ============================================
+    // Main state machine loop
+    while (m_currentState != DiagnosticState::dsCleaning) {
+        // Check for user interruption (except during cleanup)
+        if (checkInterruption() && m_currentState != DiagnosticState::dsError) {
+            emit diagnosticMessage("Diagnostic interrupted by user.");
+            transitionToError();
+            continue;
+        }
 
-    emit diagnosticMessage("=== SIMULATION MODE ACTIVE ===");
-    emit diagnosticMessage("(No real hardware required)");
-    emit diagnosticMessage("");
-    QThread::msleep(800);
+        // State machine dispatcher
+        switch (m_currentState) {
+            case DiagnosticState::dsInitialize:
+                m_currentState = stateInitialize();
+                break;
 
-    if (isInterruptionRequested()) {
-        emit diagnosticMessage("Diagnostic interrupted by user");
-        emit diagnosticComplete(false);
-        return;
+            case DiagnosticState::dsWaitForDisk:
+                m_currentState = stateWaitForDisk();
+                break;
+
+            case DiagnosticState::dsFirmwareVersion:
+                m_currentState = stateFirmwareVersion();
+                break;
+
+            case DiagnosticState::dsTestCTS:
+                m_currentState = stateTestCTS();
+                break;
+
+            case DiagnosticState::dsTestTransferSpeed:
+                m_currentState = stateTestTransferSpeed();
+                break;
+
+            case DiagnosticState::dsMeasureRPM:
+                m_currentState = stateMeasureRPM();
+                break;
+
+            case DiagnosticState::dsTrackSeek:
+                m_currentState = stateTrackSeek();
+                break;
+
+            case DiagnosticState::dsReadTrack40:
+                m_currentState = stateReadTrack40();
+                break;
+
+            case DiagnosticState::dsComplete:
+                m_currentState = stateComplete();
+                break;
+
+            case DiagnosticState::dsError:
+                m_currentState = stateCleaning();
+                break;
+
+            case DiagnosticState::dsCleaning:
+                // Should not reach here due to loop condition
+                break;
+        }
     }
 
-    emit diagnosticMessage("Attempting to open and use " + m_port + " without CTS");
-    QThread::msleep(600);
+    // Final cleanup state
+    stateCleaning();
+}
 
-    emit diagnosticMessage("Testing CTS pin");
-    QThread::msleep(500);
-    emit diagnosticMessage("CTS OK. Reconnecting with CTS enabled");
-    QThread::msleep(600);
+// ============================================================================
+// Helper Methods
+// ============================================================================
 
-    emit diagnosticMessage("Board is running firmware version 1.9.5");
-    QThread::msleep(500);
+void DiagnosticThread::transitionToError()
+{
+    m_overallSuccess = false;
+    m_currentState = DiagnosticState::dsError;
+}
 
-    emit diagnosticMessage("Fetching latest firmware version...");
-    QThread::msleep(1000);
-    emit diagnosticMessage("Firmware is up-to-date");
-    QThread::msleep(600);
+bool DiagnosticThread::checkInterruption()
+{
+    return isInterruptionRequested();
+}
 
-    if (isInterruptionRequested()) {
-        emit diagnosticMessage("Diagnostic interrupted by user");
-        emit diagnosticComplete(false);
-        return;
-    }
+// ============================================================================
+// State Handler Methods
+// ============================================================================
 
-    emit diagnosticMessage("Features Set:");
-    emit diagnosticMessage("      o Disk Change Pin Support");
-    emit diagnosticMessage("      o DrawBridge Classic");
-    emit diagnosticMessage("      o HD/DD Detect Enabled");
-    QThread::msleep(800);
-
-    emit diagnosticMessage("Testing USB->Serial transfer speed (read)");
-    QThread::msleep(1500);
-    emit diagnosticMessage("Read speed test passed. USB to serial converter is functioning correctly!");
-    QThread::msleep(600);
-
+DiagnosticState DiagnosticThread::stateInitialize()
+{
+    // Display initial prompt
     emit diagnosticMessage("");
-    emit diagnosticMessage(">>> PLEASE INSERT A WRITE-PROTECTED AMIGADOS DISK IN THE DRIVE <<<");
-    emit diagnosticMessage(">>> The disk will be used for testing and must be write-protected <<<");
+    emit diagnosticMessage(">>> PLEASE INSERT AN AMIGADOS DISK IN THE DRIVE <<<");
+    emit diagnosticMessage(">>> The disk will be used for testing <<<");
     emit diagnosticMessage("");
-    QThread::msleep(1000);
-    emit diagnosticMessage("Waiting for disk insertion...");
-    QThread::msleep(1500);
-    emit diagnosticMessage("Please ensure the disk is write-protected...");
-    QThread::msleep(1500);
-    emit diagnosticMessage("Checking for disk...");
-    QThread::msleep(10000);
-
-    if (isInterruptionRequested()) {
-        emit diagnosticMessage("Diagnostic interrupted by user");
-        emit diagnosticComplete(false);
-        return;
-    }
-
-    emit diagnosticMessage("Testing write-protect signal");
-    QThread::msleep(600);
-    emit diagnosticMessage(">>> Disk is correctly write-protected");
-    QThread::msleep(600);
-
-    emit diagnosticMessage("Enabling the drive");
-    QThread::msleep(1000);
-    emit diagnosticMessage("The drive should now be spinning and the LED should be on");
-    QThread::msleep(800);
-
-    emit diagnosticMessage("Checking for INDEX pulse from drive");
-    QThread::msleep(800);
-
-#ifdef SIMULATE_DIAGNOSTIC_FAILURE
-    // SIMULATE FAILURE HERE
-    emit diagnosticMessage("ERROR: No INDEX pulse detected from drive");
-    emit diagnosticMessage("Please check that a disk is inserted and the following PINS on the Arduino: 2");
-    QThread::msleep(1000);
-    emit diagnosticMessage("\n=== DIAGNOSTIC TEST FAILED ===");
-    emit diagnosticComplete(false);
-    return;
-#else
-    emit diagnosticMessage("INDEX pulse detected");
-    QThread::msleep(600);
-#endif
-
-    emit diagnosticMessage("Measuring Drive RPM...");
-    QThread::msleep(1500);
-    emit diagnosticMessage("Drive RPM measured as 299.85 RPM");
-    QThread::msleep(700);
-
-    emit diagnosticMessage("Checking board type...");
-    QThread::msleep(800);
-    emit diagnosticMessage("Board EEPROM setting matches detected board type.");
-    QThread::msleep(600);
-
-    emit diagnosticMessage("Asking the Arduino to find Track 0");
-    QThread::msleep(1200);
-    emit diagnosticMessage("Track 0 was found. Asking the Arduino to find Track 70");
-    QThread::msleep(1500);
-    emit diagnosticMessage("You should hear the drive head moving to track 70");
-    QThread::msleep(800);
-
-    emit diagnosticMessage("Starting drive, and seeking to track 40.");
-    QThread::msleep(1200);
-    emit diagnosticMessage("Disk inserted was detected as DOUBLE DENSITY");
-    QThread::msleep(700);
-
-    emit diagnosticMessage("Checking for DATA from drive");
-    QThread::msleep(800);
-    emit diagnosticMessage("DATA pulse detected");
-    QThread::msleep(600);
-
-    if (isInterruptionRequested()) {
-        emit diagnosticMessage("Diagnostic interrupted by user");
-        emit diagnosticComplete(false);
-        return;
-    }
-
-    emit diagnosticMessage("Attempting to read a track from the UPPER side of the disk");
-    QThread::msleep(2000);
-    emit diagnosticMessage("Tracks found!");
-    QThread::msleep(700);
-
-    emit diagnosticMessage("Attempting to read a track from the LOWER side of the disk");
-    QThread::msleep(2000);
-    emit diagnosticMessage("Tracks found!");
-    QThread::msleep(700);
-
-    emit diagnosticMessage("\n=== DIAGNOSTIC TEST COMPLETED SUCCESSFULLY ===");
-    emit diagnosticComplete(true);
-
-#else
-    // ============================================
-    // REAL HARDWARE MODE
-    // ============================================
-
-    if (isInterruptionRequested()) {
-        emit diagnosticMessage("Diagnostic interrupted by user");
-        emit diagnosticComplete(false);
-        return;
-    }
+    QThread::msleep(INITIAL_PROMPT_DELAY);
 
     // Convert QString to wstring for the port name
     std::wstring portName = m_port.toStdWString();
 
     // Attempt to open the device
+    emit diagnosticMessage("Attempting to open device: " + m_port);
     DiagnosticResponse openResult = ADFWriterManager::getInstance().openDevice(portName);
     if (openResult != DiagnosticResponse::drOK) {
-        emit diagnosticMessage(QString("ERROR: Could not open serial port for diagnostic: %1\n").arg(QString::fromStdString(ADFWriterManager::getInstance().getLastError())));
-        ADFWriterManager::getInstance().closeDevice(); // Ensure port is closed
-        emit diagnosticComplete(false);
-        return;
+        emit diagnosticMessage(QString("ERROR: Could not open serial port for diagnostic: %1\n")
+            .arg(QString::fromStdString(ADFWriterManager::getInstance().getLastError())));
+        m_overallSuccess = false;
+        return DiagnosticState::dsError;
+    }
+    emit diagnosticMessage("Device opened successfully.");
+
+    return DiagnosticState::dsWaitForDisk;
+}
+
+DiagnosticState DiagnosticThread::stateWaitForDisk()
+{
+    emit diagnosticMessage("Waiting for a disk to be inserted...");
+    //emit diagnosticMessage("  Note: Using INDEX pulse detection - disk must be spinning");
+
+    int diskWaitAttempts = 0;
+    const int statusMessageInterval = DISK_WAIT_STATUS_INTERVAL / DISK_WAIT_POLL_INTERVAL;
+
+    while (!isInterruptionRequested()) {
+        // Use INDEX pulse test to detect disk presence
+        // The INDEX pulse comes from a hole in the disk hub - if detected, disk is present
+        DiagnosticResponse indexPulseStatus = ADFWriterManager::getInstance().testIndexPulse();
+
+        // Success condition: INDEX pulse detected means disk is present and spinning
+        if (indexPulseStatus == DiagnosticResponse::drOK) {
+            emit diagnosticMessage("Disk detected!");
+            return DiagnosticState::dsFirmwareVersion;
+        }
+
+        // Periodic status updates (every 5 seconds)
+        //if (diskWaitAttempts % statusMessageInterval == 0) {
+        //    emit diagnosticMessage("  Still waiting... (No INDEX pulse detected - insert disk)");
+        //}
+
+        // Wait before next check
+        QThread::msleep(DISK_WAIT_POLL_INTERVAL);
+        diskWaitAttempts++;
+
+        // Timeout check
+        if (diskWaitAttempts * DISK_WAIT_POLL_INTERVAL >= DISK_WAIT_TIMEOUT) {
+            emit diagnosticMessage("ERROR: Timeout waiting for disk.");
+            m_overallSuccess = false;
+            return DiagnosticState::dsError;
+        }
     }
 
-    // Define the messageOutput callback
-    auto messageOutput = [this](bool isError, const std::string message) {
-        QString qMessage = QString::fromStdString(message);
-        if (isError) {
-            qMessage = "ERROR: " + qMessage;
+    // User interruption
+    emit diagnosticMessage("Diagnostic interrupted by user during disk wait.");
+    m_overallSuccess = false;
+    return DiagnosticState::dsError;
+}
+
+DiagnosticState DiagnosticThread::stateFirmwareVersion()
+{
+    FirmwareVersion version = ADFWriterManager::getInstance().getFirwareVersion();
+    if (version.major == 0 && version.minor == 0) {
+        emit diagnosticMessage("ERROR: Could not read firmware version: " +
+            QString::fromStdString(ADFWriterManager::getInstance().getLastError()));
+        m_overallSuccess = false;
+    } else {
+        emit diagnosticMessage(QString("Firmware Version: %1.%2.%3")
+            .arg(version.major).arg(version.minor).arg(version.buildNumber));
+    }
+
+    QThread::msleep(INTER_STATE_DELAY);
+    return DiagnosticState::dsMeasureRPM;  // Skip CTS and transfer speed tests
+}
+
+DiagnosticState DiagnosticThread::stateTestCTS()
+{
+    emit diagnosticMessage("Testing CTS pin...");
+
+    if (ADFWriterManager::getInstance().testCTS() != DiagnosticResponse::drOK) {
+        emit diagnosticMessage("ERROR: CTS test failed: " +
+            QString::fromStdString(ADFWriterManager::getInstance().getLastError()));
+        m_overallSuccess = false;
+        return DiagnosticState::dsError;
+    }
+
+    emit diagnosticMessage("CTS test passed.");
+    QThread::msleep(INTER_STATE_DELAY);
+    return DiagnosticState::dsTestTransferSpeed;
+}
+
+DiagnosticState DiagnosticThread::stateTestTransferSpeed()
+{
+    emit diagnosticMessage("Testing USB->Serial transfer speed...");
+
+    if (ADFWriterManager::getInstance().testTransferSpeed() != DiagnosticResponse::drOK) {
+        emit diagnosticMessage("ERROR: Transfer speed test failed: " +
+            QString::fromStdString(ADFWriterManager::getInstance().getLastError()));
+        m_overallSuccess = false;
+        return DiagnosticState::dsError;
+    }
+
+    emit diagnosticMessage("Transfer speed test passed.");
+    QThread::msleep(INTER_STATE_DELAY);
+    return DiagnosticState::dsMeasureRPM;
+}
+
+DiagnosticState DiagnosticThread::stateMeasureRPM()
+{
+    emit diagnosticMessage("Measuring Drive RPM...");
+
+    float rpm = 0.0f;
+    DiagnosticResponse result = ADFWriterManager::getInstance().measureDriveRPM(rpm);
+
+    // Check if firmware is too old for RPM measurement
+    if (result == DiagnosticResponse::drOldFirmware) {
+        emit diagnosticMessage("  RPM test skipped (requires firmware v1.9+)");
+        QThread::msleep(INTER_STATE_DELAY);
+        return DiagnosticState::dsTrackSeek;
+    }
+
+    if (result != DiagnosticResponse::drOK) {
+        emit diagnosticMessage("ERROR: RPM measurement failed: " +
+            QString::fromStdString(ADFWriterManager::getInstance().getLastError()));
+        m_overallSuccess = false;
+        return DiagnosticState::dsError;
+    }
+
+    // Display result
+    emit diagnosticMessage(QString("Drive RPM: %1").arg(rpm));
+
+    // Validate RPM range
+    if (rpm < RPM_MIN_RANGE || rpm > RPM_MAX_RANGE) {
+        emit diagnosticMessage(QString("WARNING: RPM is outside optimal range (%1-%2).")
+            .arg(RPM_MIN_RANGE).arg(RPM_MAX_RANGE));
+    }
+
+    QThread::msleep(INTER_STATE_DELAY);
+    return DiagnosticState::dsTrackSeek;
+}
+
+DiagnosticState DiagnosticThread::stateTrackSeek()
+{
+    emit diagnosticMessage("Performing track seek tests (Track 0 <-> Track 79)...");
+
+    for (int i = 0; i < TRACK_SEEK_ITERATIONS; ++i) {
+        // Check for interruption
+        if (isInterruptionRequested()) {
+            emit diagnosticMessage("Diagnostic interrupted during track seek test.");
+            m_overallSuccess = false;
+            return DiagnosticState::dsError;
         }
-        emit diagnosticMessage(qMessage);
-    };
 
-    // Define the askQuestion callback - with disk polling for real hardware
-    auto askQuestion = [this, &messageOutput, &portName](bool isQuestion, const std::string question) -> bool {
-        QString qQuestion = QString::fromStdString(question);
+        // Seek to Track 0
+        emit diagnosticMessage(QString("  Seek iteration %1: Finding Track 0").arg(i + 1));
+        if (ADFWriterManager::getInstance().findTrack0() != DiagnosticResponse::drOK) {
+            emit diagnosticMessage("ERROR: Failed to find Track 0: " +
+                QString::fromStdString(ADFWriterManager::getInstance().getLastError()));
+            m_overallSuccess = false;
+            return DiagnosticState::dsError;
+        }
+        QThread::msleep(TRACK_SEEK_SHORT_DELAY);
 
-        // Log the question/message
-        emit diagnosticMessage(">>> " + qQuestion);
-
-        // If it's not a yes/no question, just return true to continue
-        if (!isQuestion) {
-            return true;
+        // Check for interruption again
+        if (isInterruptionRequested()) {
+            emit diagnosticMessage("Diagnostic interrupted during track seek test.");
+            m_overallSuccess = false;
+            return DiagnosticState::dsError;
         }
 
-        // For yes/no questions, check the content and respond appropriately
-        std::string lowerQuestion = question;
-        std::transform(lowerQuestion.begin(), lowerQuestion.end(), lowerQuestion.begin(), ::tolower);
-
-        // Questions about hearing/seeing the drive work
-        if (lowerQuestion.find("did the floppy disk start spinning") != std::string::npos) {
-            emit diagnosticMessage("The drive should now be spinning and the LED should be on");
-            return true;
+        // Seek to Track 79
+        emit diagnosticMessage(QString("  Seek iteration %1: Selecting Track 79").arg(i + 1));
+        if (ADFWriterManager::getInstance().selectTrack(TRACK_MAX) != DiagnosticResponse::drOK) {
+            emit diagnosticMessage("ERROR: Failed to select Track 79: " +
+                QString::fromStdString(ADFWriterManager::getInstance().getLastError()));
+            m_overallSuccess = false;
+            return DiagnosticState::dsError;
         }
+        QThread::msleep(TRACK_SEEK_LONG_DELAY);
+    }
 
-        if (lowerQuestion.find("could you hear") != std::string::npos) {
-            emit diagnosticMessage("You should hear the drive head moving to the specified track");
-            return true;
-        }
+    // All iterations completed successfully
+    return DiagnosticState::dsReadTrack40;
+}
 
-        if (lowerQuestion.find("did you hear") != std::string::npos) {
-            emit diagnosticMessage("You should hear the drive head moving");
-            return true;
-        }
+DiagnosticState DiagnosticThread::stateReadTrack40()
+{
+    emit diagnosticMessage("Reading Track 40 (Upper and Lower surfaces)...");
 
+    // Step 1: Select Track 40
+    if (ADFWriterManager::getInstance().selectTrack(TRACK_READ_TEST) != DiagnosticResponse::drOK) {
+        emit diagnosticMessage("ERROR: Failed to select Track 40: " +
+            QString::fromStdString(ADFWriterManager::getInstance().getLastError()));
+        m_overallSuccess = false;
+        return DiagnosticState::dsError;
+    }
 
-        // Questions about continuing after warnings
-        if (lowerQuestion.find("do you want to continue") != std::string::npos ||
-            lowerQuestion.find("would you like") != std::string::npos) {
-            emit diagnosticMessage("Continuing with diagnostic test...");
-            return true;
-        }
+    // Step 2: Read Upper Surface
+    emit diagnosticMessage("  Selecting Upper surface...");
+    if (ADFWriterManager::getInstance().selectSurface(DiskSurface::dsUpper) != DiagnosticResponse::drOK) {
+        emit diagnosticMessage("ERROR: Failed to select Upper surface: " +
+            QString::fromStdString(ADFWriterManager::getInstance().getLastError()));
+        m_overallSuccess = false;
+        return DiagnosticState::dsError;
+    }
 
-        // Default: continue the test
-        return true;
-    };
+    unsigned char trackData[RAW_TRACKDATA_LENGTH_DD];
+    emit diagnosticMessage("  Reading Upper track data...");
+    if (ADFWriterManager::getInstance().readCurrentTrack(trackData, RAW_TRACKDATA_LENGTH_DD, true)
+        != DiagnosticResponse::drOK) {
+        emit diagnosticMessage("ERROR: Failed to read Upper track: " +
+            QString::fromStdString(ADFWriterManager::getInstance().getLastError()));
+        m_overallSuccess = false;
+        return DiagnosticState::dsError;
+    }
+    emit diagnosticMessage("  Upper track read successfully.");
 
-    // Run the diagnostics
-    bool result = ADFWriterManager::getInstance().runDiagnostics(portName, messageOutput, askQuestion);
+    // Check for interruption before continuing
+    if (isInterruptionRequested()) {
+        emit diagnosticMessage("Diagnostic interrupted during track read.");
+        m_overallSuccess = false;
+        return DiagnosticState::dsError;
+    }
 
-    // Emit completion signal
-    if (result) {
+    QThread::msleep(SURFACE_READ_DELAY);
+
+    // Step 3: Read Lower Surface
+    emit diagnosticMessage("  Selecting Lower surface...");
+    if (ADFWriterManager::getInstance().selectSurface(DiskSurface::dsLower) != DiagnosticResponse::drOK) {
+        emit diagnosticMessage("ERROR: Failed to select Lower surface: " +
+            QString::fromStdString(ADFWriterManager::getInstance().getLastError()));
+        m_overallSuccess = false;
+        return DiagnosticState::dsError;
+    }
+
+    emit diagnosticMessage("  Reading Lower track data...");
+    if (ADFWriterManager::getInstance().readCurrentTrack(trackData, RAW_TRACKDATA_LENGTH_DD, true)
+        != DiagnosticResponse::drOK) {
+        emit diagnosticMessage("ERROR: Failed to read Lower track: " +
+            QString::fromStdString(ADFWriterManager::getInstance().getLastError()));
+        m_overallSuccess = false;
+        return DiagnosticState::dsError;
+    }
+    emit diagnosticMessage("  Lower track read successfully.");
+
+    QThread::msleep(SURFACE_READ_DELAY);
+
+    // Both surfaces read successfully
+    return DiagnosticState::dsComplete;
+}
+
+DiagnosticState DiagnosticThread::stateComplete()
+{
+    emit diagnosticMessage("Diagnostic tests completed.");
+
+    if (m_overallSuccess) {
         emit diagnosticMessage("\n=== DIAGNOSTIC TEST COMPLETED SUCCESSFULLY ===");
     } else {
         emit diagnosticMessage("\n=== DIAGNOSTIC TEST FAILED ===");
     }
 
-    emit diagnosticComplete(result);
+    // Transition to cleaning
+    return DiagnosticState::dsCleaning;
+}
 
-#endif // SIMULATE_DIAGNOSTIC_SUCCESS || SIMULATE_DIAGNOSTIC_FAILURE
+DiagnosticState DiagnosticThread::stateCleaning()
+{
+    // Close device connection
+    ADFWriterManager::getInstance().closeDevice();
+
+    // Emit final completion signal
+    emit diagnosticComplete(m_overallSuccess);
+
+    // Return dsCleaning to signal loop termination
+    return DiagnosticState::dsCleaning;
 }

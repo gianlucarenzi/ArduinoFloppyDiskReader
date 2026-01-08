@@ -938,6 +938,8 @@ void MainWindow::onDiagnosticButtonClicked(void)
         for (int i = 0; i < MAX_TRACKS; ++i) {
             upperTrack[i]->setStyleSheet("color: rgb(0, 0, 0");
             lowerTrack[i]->setStyleSheet("color: rgb(0, 0, 0");
+            upperTrack[i]->hide();
+            lowerTrack[i]->hide();
         }
 
         // Show the diagnostic view
@@ -946,7 +948,6 @@ void MainWindow::onDiagnosticButtonClicked(void)
         ui->diagnosticTest->clear();
         ui->diagnosticTest->append(tr("=== Waffle Copy Pro - Diagnostic Test ===\n"));
         ui->diagnosticTest->append(tr("Starting diagnostic on port: %1\n").arg(portName));
-        ui->diagnosticTest->append(tr("Please ensure a write-protected AmigaDOS disk is inserted.\n"));
         ui->diagnosticTest->show();
         ui->diagnosticTest->raise();
         isDiagnosticVisible = true;
@@ -971,6 +972,14 @@ void MainWindow::onDiagnosticMessage(QString message)
 {
     // Send to debug output
     qDebug() << "[DIAGNOSTIC]" << message;
+
+    // Stop timeout timer when disk is detected - no more timeout once disk is present
+    if (message.contains("Disk detected", Qt::CaseInsensitive)) {
+        if (diagnosticTimeoutTimer && diagnosticTimeoutTimer->isActive()) {
+            qDebug() << "Disk detected - stopping diagnostic timeout timer";
+            diagnosticTimeoutTimer->stop(); // Stop timer completely, diagnostic can now run without timeout
+        }
+    }
 
     // Use QMetaObject::invokeMethod to ensure we're in the right thread and timing
     if (isDiagnosticVisible && ui && ui->diagnosticTest) {
@@ -1006,16 +1015,6 @@ void MainWindow::onDiagnosticComplete(bool success)
         qDebug() << "onDiagnosticComplete scheduled append";
     } else {
         qDebug() << "Skipping append - widget not visible or invalid";
-    }
-
-    // Show track indicators again after diagnostics are complete
-    for (int i = 0; i < MAX_TRACKS; ++i) {
-        if (upperTrack[i]) {
-            upperTrack[i]->show();
-        }
-        if (lowerTrack[i]) {
-            lowerTrack[i]->show();
-        }
     }
 
     // Ensure the port is closed after diagnostics are finished
