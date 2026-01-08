@@ -225,6 +225,16 @@ MainWindow::MainWindow(QWidget *parent)
     connect(player, &MikModPlayer::songFinished, this, &MainWindow::handleSongFinished);
     connect(ui->modPlayerButton, SIGNAL(emitClick()), this, SLOT(toggleMusic(void)));
 
+    diagnosticTimeoutTimer = new QTimer(this);
+    diagnosticTimeoutTimer->setSingleShot(true); // Ensures it fires only once
+    connect(diagnosticTimeoutTimer, &QTimer::timeout, this, &MainWindow::onDiagnosticTimeout);
+}
+
+// Slot implementation for diagnostic timeout
+void MainWindow::onDiagnosticTimeout()
+{
+    qDebug() << "Diagnostic timeout occurred. Hiding diagnostic view.";
+    hideDiagnosticView();
 }
 
 MainWindow::~MainWindow()
@@ -494,12 +504,7 @@ void MainWindow::checkStartWrite(void)
         return;
     }
 
-    ArduinoFloppyReader::DiagnosticResponse openResult = ArduinoFloppyReader::ADFWriterManager::getInstance().openDevice(port.toStdWString());
-    if (openResult != ArduinoFloppyReader::DiagnosticResponse::drOK) {
-        showSetupError(tr("ERROR: Could not open serial port for write operation: %1").arg(QString::fromStdString(ArduinoFloppyReader::ADFWriterManager::getInstance().getLastError())));
-        ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice();
-        return;
-    }
+
 
     QString filename = ui->getADFFileName->text();
     QFileInfo fileInfo(filename);
@@ -583,12 +588,7 @@ void MainWindow::checkStartRead(void)
         return;
     }
 
-    ArduinoFloppyReader::DiagnosticResponse openResult = ArduinoFloppyReader::ADFWriterManager::getInstance().openDevice(port.toStdWString());
-    if (openResult != ArduinoFloppyReader::DiagnosticResponse::drOK) {
-        showSetupError(tr("ERROR: Could not open serial port for read operation: %1").arg(QString::fromStdString(ArduinoFloppyReader::ADFWriterManager::getInstance().getLastError())));
-        ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice();
-        return;
-    }
+
 
     QString filename = ui->setADFFileName->text();
     QFileInfo fileInfo(filename);
@@ -884,7 +884,7 @@ void MainWindow::hideDiagnosticView(void)
         if (ui->diagnosticTest) {
             ui->diagnosticTest->hide();
         }
-
+        diagnosticTimeoutTimer->stop(); // Stop the timer when hiding
         qDebug() << "hideDiagnosticView completed";
     } else {
         qDebug() << "hideDiagnosticView called but not visible or invalid UI";
@@ -918,20 +918,7 @@ void MainWindow::onDiagnosticButtonClicked(void)
             return;
         }
 
-        // Attempt to open the device using the manager
-        ArduinoFloppyReader::DiagnosticResponse openResult = ArduinoFloppyReader::ADFWriterManager::getInstance().openDevice(portName.toStdWString());
-        if (openResult != ArduinoFloppyReader::DiagnosticResponse::drOK) {
-            ui->busy->show();
-            ui->busy->raise();
-            ui->diagnosticTest->clear();
-            ui->diagnosticTest->append(tr("ERROR: Could not open serial port: %1\n").arg(QString::fromStdString(ArduinoFloppyReader::ADFWriterManager::getInstance().getLastError())));
-            ui->diagnosticTest->show();
-            ui->diagnosticTest->raise();
-            isDiagnosticVisible = true;
-            // Ensure the port is closed if we failed to open it (though openDevice should handle this)
-            ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice();
-            return;
-        }
+
 
         // Check if a diagnostic is already running
         if (diagnosticThread && diagnosticThread->isRunning()) {
@@ -963,6 +950,8 @@ void MainWindow::onDiagnosticButtonClicked(void)
         ui->diagnosticTest->show();
         ui->diagnosticTest->raise();
         isDiagnosticVisible = true;
+
+        diagnosticTimeoutTimer->start(30000); // 30 seconds timeout
 
         // Create and start the diagnostic thread
         diagnosticThread = new DiagnosticThread();
@@ -1031,7 +1020,7 @@ void MainWindow::onDiagnosticComplete(bool success)
 
     // Ensure the port is closed after diagnostics are finished
     ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice();
-
+    diagnosticTimeoutTimer->stop(); // Stop the timer when diagnostics complete
     // Removed QTimer::singleShot to allow click-to-close behavior
     // QTimer::singleShot(2000, this, SLOT(hideDiagnosticView()));
 }

@@ -85,9 +85,11 @@ private:
     bool m_musicLoaded;
     bool m_musicPaused;
     QPoint m_diagnosticMousePressPos;
+    QTimer *diagnosticTimeoutTimer;
 
 
 private slots:
+    void onDiagnosticTimeout();
     void checkStartWrite(void);
     void checkStartRead(void);
     void on_fileReadADF_clicked();
