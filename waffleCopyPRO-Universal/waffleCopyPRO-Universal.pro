@@ -25,7 +25,6 @@ INCLUDEPATH += \
 HEADERS += \
     inc/clicklabel.h \
     inc/compilerdefs.h \
-    inc/diagnosticconfig.h \
     inc/diagnosticthread.h \
     inc/mainwindow.h \
     inc/qtdrawbridge.h \
