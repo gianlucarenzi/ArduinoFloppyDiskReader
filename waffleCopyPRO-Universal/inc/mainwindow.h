@@ -20,6 +20,7 @@
 #include "socketserver.h"
 #include "mikmodplayer.h"
 #include "vumeterwidget.h"
+#include <QLineEdit>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }

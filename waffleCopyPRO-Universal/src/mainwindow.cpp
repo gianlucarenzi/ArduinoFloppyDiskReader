@@ -11,7 +11,6 @@
 #include <QMouseEvent>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "diagnosticconfig.h"
 #include <stdio.h>
 #include <QString>
 #include <QFont>
@@ -26,12 +25,6 @@
 #include <QScrollBar>
 #include "mikmodplayer.h"
 #include "vumeterwidget.h"
-
-#define TESTCASE_USB_DEVICE 0
-
-#ifndef TESTCASE_USB_DEVICE
-#define TESTCASE_USB_DEVICE 0
-#endif
 
 extern void set_user_input(char data);
 
@@ -60,10 +53,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     // Platform-specific font size for diagnostic widget
-    // macOS: keep default (11pt), Windows/Linux: smaller (9pt)
+    // macOS: keep default (11pt), Windows/Linux: smaller (10pt)
 #if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
     QFont diagnosticFont = ui->diagnosticTest->font();
-    diagnosticFont.setPointSize(9);
+    diagnosticFont.setPointSize(10);
     ui->diagnosticTest->setFont(diagnosticFont);
 #endif
 
@@ -894,6 +887,13 @@ void MainWindow::hideDiagnosticView(void)
 void MainWindow::onDiagnosticButtonClicked(void)
 {
     qDebug() << "DIAGNOSTIC BUTTON CLICKED";
+
+    // Check if a diagnostic is already running
+    if (diagnosticThread && diagnosticThread->isRunning()) {
+        qDebug() << "Diagnostic already running, ignoring request";
+        return;
+    }
+
     if (!isDiagnosticVisible) {
         // Ensure the serial port is closed before starting diagnostics
         ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice();
@@ -918,14 +918,6 @@ void MainWindow::onDiagnosticButtonClicked(void)
             return;
         }
 
-
-
-        // Check if a diagnostic is already running
-        if (diagnosticThread && diagnosticThread->isRunning()) {
-            qDebug() << "Diagnostic already running, ignoring request";
-            return;
-        }
-
         // Clean up any existing thread that hasn't been deleted yet
         if (diagnosticThread) {
             qDebug() << "Cleaning up old diagnostic thread";
@@ -941,6 +933,11 @@ void MainWindow::onDiagnosticButtonClicked(void)
             upperTrack[i]->hide();
             lowerTrack[i]->hide();
         }
+
+#ifdef Q_OS_MAC
+        ui->getADFFileName->setAttribute(Qt::WA_MacShowFocusRect, false);
+        ui->setADFFileName->setAttribute(Qt::WA_MacShowFocusRect, false);
+#endif
 
         // Show the diagnostic view
         ui->busy->show();
@@ -1036,18 +1033,6 @@ void MainWindow::refreshSerialPorts()
     QString currentPortName = ui->serialPortComboBox->currentText();
     ui->serialPortComboBox->clear();
 
-#if defined(SIMULATE_DIAGNOSTIC_SUCCESS) || defined(SIMULATE_DIAGNOSTIC_FAILURE)
-    // Add simulated serial port for diagnostic simulation mode
-    ui->serialPortComboBox->addItem("SIMULATED_PORT");
-#elif TESTCASE_USB_DEVICE
-    #ifdef _WIN32
-        ui->serialPortComboBox->addItems({"COM1", "COM11", "COM22", "COM3"});
-    #elif defined(__APPLE__)
-        ui->serialPortComboBox->addItems({"/dev/tty.usbserial-012345", "/dev/tty.usbserial-987654", "/dev/tty.usbserial-deadbeef", "/dev/tty.usbserial-feedf00d"});
-    #else // Linux
-        ui->serialPortComboBox->addItems({"/dev/ttyUSB0", "/dev/ttyUSB12", "/dev/ttyUSB21", "/dev/ttyUSB99"});
-    #endif
-#else
     for (const QSerialPortInfo &info : QSerialPortInfo::availablePorts()) {
         // Check for FTDI Vendor ID and common Product IDs
         if (info.vendorIdentifier() == 0x0403 &&
@@ -1058,14 +1043,6 @@ void MainWindow::refreshSerialPorts()
             ui->serialPortComboBox->addItem(info.portName());
         }
     }
-
-    // If no ports found and simulation mode is enabled, add simulated port
-#if defined(SIMULATE_DIAGNOSTIC_SUCCESS) || defined(SIMULATE_DIAGNOSTIC_FAILURE)
-    if (ui->serialPortComboBox->count() == 0) {
-        ui->serialPortComboBox->addItem("SIMULATED_PORT");
-    }
-#endif
-#endif
 
     // Restore previous selection if still available
     if (!currentPortName.isEmpty()) {
