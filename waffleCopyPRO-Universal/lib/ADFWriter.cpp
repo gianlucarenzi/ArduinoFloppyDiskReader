@@ -53,6 +53,8 @@ const long long StreamMax = std::numeric_limits<std::streamsize>::max();
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include <Windows.h>
 #pragma comment(lib,"Ws2_32.lib")
 #else
