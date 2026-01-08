@@ -13,6 +13,6 @@ void DebugMsg::print(const char* func, const QString& msg)
 {
     if (s_enabled)
     {
-        QTextStream(stdout) << func << ": " << msg << Qt::endl;
+        QTextStream(stdout) << func << ": " << msg << endl;
     }
 }
