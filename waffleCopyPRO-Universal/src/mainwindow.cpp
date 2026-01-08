@@ -1,3 +1,4 @@
+#include "adfwritermanager.h"
 #include <QDebug>
 #include <clicklabel.h>
 #include <QFileDialog>
@@ -243,6 +244,7 @@ MainWindow::~MainWindow()
 
     m_vuMeterTimer->stop();
     player->stopPlayback();
+    ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice(); // Ensure port is closed on exit
     delete ui;
 }
 
@@ -335,6 +337,7 @@ void MainWindow::doneWork(void)
     }
     readyReadSHM = false;
     serialPortRefreshTimer->start();
+    ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice(); // Close port after operation
 }
 
 void MainWindow::done(void)
@@ -355,6 +358,7 @@ void MainWindow::stopClicked(void)
         ui->errorDialog->hide();
     ui->stopButton->hide();
     amigaBridge->terminate();
+    ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice(); // Close port on stop
 }
 
 void MainWindow::doScroll(void)
@@ -807,56 +811,59 @@ void MainWindow::manageQtDrawBridgeSignal(int sig)
 
 void MainWindow::hideDiagnosticView(void)
 {
-    if (!isDiagnosticVisible) {
-        return;
-    }
+    if (isDiagnosticVisible && ui && ui->diagnosticTest) {
+        // Set flag first to prevent any new signals from being processed
+        isDiagnosticVisible = false;
 
-    qDebug() << "hideDiagnosticView called";
+        // Stop the diagnostic thread if it's still running
+        if (diagnosticThread) {
+            // Disconnect all signals immediately to prevent further widget updates
+            disconnect(diagnosticThread, nullptr, this, nullptr);
 
-    // Set flag first to prevent any new signals from being processed
-    isDiagnosticVisible = false;
+            if (diagnosticThread->isRunning()) {
+                qDebug() << "Interrupting diagnostic thread...";
+                diagnosticThread->requestInterruption();
 
-    // Stop the diagnostic thread if it's still running
-    if (diagnosticThread) {
-        // Disconnect all signals immediately to prevent further widget updates
-        disconnect(diagnosticThread, nullptr, this, nullptr);
-
-        if (diagnosticThread->isRunning()) {
-            qDebug() << "Interrupting diagnostic thread...";
-            diagnosticThread->requestInterruption();
-
-            // Wait for thread to finish (max 5 seconds)
-            if (!diagnosticThread->wait(5000)) {
-                qDebug() << "Thread didn't finish in time, terminating forcefully";
-                diagnosticThread->terminate();
-                diagnosticThread->wait();
+                // Wait for thread to finish (max 5 seconds)
+                if (!diagnosticThread->wait(5000)) {
+                    qDebug() << "Thread didn't finish in time, terminating forcefully";
+                    diagnosticThread->terminate();
+                    diagnosticThread->wait();
+                }
+                qDebug() << "Diagnostic thread stopped";
+            } else {
+                qDebug() << "Diagnostic thread already finished";
             }
-            qDebug() << "Diagnostic thread stopped";
+
+            // Mark for deletion but don't delete immediately
+            // The thread will be cleaned up when creating a new one or on app exit
+            diagnosticThread->deleteLater();
+            diagnosticThread = nullptr;
         } else {
-            qDebug() << "Diagnostic thread already finished";
+            qDebug() << "Diagnostic thread was null";
         }
 
-        // Mark for deletion but don't delete immediately
-        // The thread will be cleaned up when creating a new one or on app exit
-        diagnosticThread->deleteLater();
-        diagnosticThread = nullptr;
-    }
+        // Now safe to hide widgets
+        if (ui->busy) {
+            ui->busy->hide();
+        }
+        if (ui->diagnosticTest) {
+            ui->diagnosticTest->hide();
+        }
 
-    // Now safe to hide widgets
-    if (ui->busy) {
-        ui->busy->hide();
+        qDebug() << "hideDiagnosticView completed";
+    } else {
+        qDebug() << "hideDiagnosticView called but not visible or invalid UI";
     }
-    if (ui->diagnosticTest) {
-        ui->diagnosticTest->hide();
-    }
-
-    qDebug() << "hideDiagnosticView completed";
 }
 
 void MainWindow::onDiagnosticButtonClicked(void)
 {
     qDebug() << "DIAGNOSTIC BUTTON CLICKED";
     if (!isDiagnosticVisible) {
+        // Ensure the serial port is closed before starting diagnostics
+        ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice();
+
         // Get the selected serial port
         QString portName = ui->serialPortComboBox->currentText();
 
@@ -883,6 +890,13 @@ void MainWindow::onDiagnosticButtonClicked(void)
             qDebug() << "Cleaning up old diagnostic thread";
             diagnosticThread->deleteLater();
             diagnosticThread = nullptr;
+        }
+
+        qDebug() << "HIDING TRACKS";
+        // Hide track indicators when diagnostic view is shown
+        for (int i = 0; i < MAX_TRACKS; ++i) {
+            upperTrack[i]->setStyleSheet("color: rgb(0, 0, 0");
+            lowerTrack[i]->setStyleSheet("color: rgb(0, 0, 0");
         }
 
         // Show the diagnostic view
@@ -950,6 +964,22 @@ void MainWindow::onDiagnosticComplete(bool success)
     } else {
         qDebug() << "Skipping append - widget not visible or invalid";
     }
+
+    // Show track indicators again after diagnostics are complete
+    for (int i = 0; i < MAX_TRACKS; ++i) {
+        if (upperTrack[i]) {
+            upperTrack[i]->show();
+        }
+        if (lowerTrack[i]) {
+            lowerTrack[i]->show();
+        }
+    }
+
+    // Ensure the port is closed after diagnostics are finished
+    ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice();
+
+    // Removed QTimer::singleShot to allow click-to-close behavior
+    // QTimer::singleShot(2000, this, SLOT(hideDiagnosticView()));
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event)

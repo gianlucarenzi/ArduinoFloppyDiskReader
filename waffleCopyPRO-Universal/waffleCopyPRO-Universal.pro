@@ -33,6 +33,7 @@ HEADERS += \
     inc/waffleconfig.h \
     inc/vumeterwidget.h \
     inc/mikmodplayer.h \
+    inc/adfwritermanager.h \
     lib/ADFWriter.h \
     lib/ArduinoInterface.h \
     lib/RotationExtractor.h \
@@ -73,6 +74,7 @@ SOURCES += \
     src/socketserver.cpp \
     src/vumeterwidget.cpp \
     src/mikmodplayer.cpp \
+    src/adfwritermanager.cpp \
     \
 
 

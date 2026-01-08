@@ -14,7 +14,12 @@ DiagnosticThread::DiagnosticThread()
 
 void DiagnosticThread::setup(QString port)
 {
-    m_port = port;
+#ifndef _WIN32
+    m_port = "/dev/";
+#else
+    m_port = "";
+#endif
+    m_port += port;
 }
 
 void DiagnosticThread::run()
