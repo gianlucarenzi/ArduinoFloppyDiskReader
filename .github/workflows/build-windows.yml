@@ -79,13 +79,32 @@ jobs:
           Push-Location $RELEASE_DIR
           Compress-Archive -Path * -DestinationPath "../waffleCopyPRO-Universal-Windows.zip"
           Pop-Location
+
+          # Create a simple PowerShell installer that installs the zip into Program Files and creates a Start Menu shortcut
+          $installer = @'
+param()
+$zip = Join-Path $PSScriptRoot "waffleCopyPRO-Universal-Windows.zip"
+$dest = Join-Path $env:ProgramFiles "WaffleCopyPRO"
+if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
+Expand-Archive -Path $zip -DestinationPath $dest -Force
+$WshShell = New-Object -ComObject WScript.Shell
+$shortcutPath = Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\WaffleCopyPRO.lnk"
+$shortcut = $WshShell.CreateShortcut($shortcutPath)
+$shortcut.TargetPath = Join-Path $dest "waffleCopyPRO-Universal.exe"
+$shortcut.WorkingDirectory = $dest
+$shortcut.Save()
+'@
+          Set-Content -Path "waffleCopyPRO-Universal/Install-WaffleCopyPRO.ps1" -Value $installer -Encoding UTF8
         shell: pwsh
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: waffleCopyPRO-Universal-Windows
-          path: waffleCopyPRO-Universal/release/
+          path: |
+            waffleCopyPRO-Universal/release/
+            waffleCopyPRO-Universal/waffleCopyPRO-Universal-Windows.zip
+            waffleCopyPRO-Universal/Install-WaffleCopyPRO.ps1
 
       - name: Create Release and Upload Asset
         if: startsWith(github.ref, 'refs/tags/v')
