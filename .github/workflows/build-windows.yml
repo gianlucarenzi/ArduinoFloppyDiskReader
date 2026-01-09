@@ -108,23 +108,23 @@ jobs:
           # Create product.wxs with a generated UpgradeCode
           $upgrade = [guid]::NewGuid().ToString()
           $product = @"
-<?xml version='1.0' encoding='UTF-8'?>
-<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
-  <Product Id='*' Name='WaffleCopyPRO' Language='1033' Version='1.0.0.0' Manufacturer='Waffle' UpgradeCode='$upgrade'>
-    <Package InstallerVersion='500' Compressed='yes' InstallScope='perMachine' />
-    <MediaTemplate />
-    <Directory Id='TARGETDIR' Name='SourceDir'>
-      <Directory Id='ProgramFilesFolder'>
-        <Directory Id='INSTALLFOLDER' Name='WaffleCopyPRO' />
-      </Directory>
-    </Directory>
-    <Feature Id='ProductFeature' Title='WaffleCopyPRO' Level='1'>
-      <ComponentGroupRef Id='APPFILES'/>
-    </Feature>
-  </Product>
-</Wix>
-"@
-          Set-Content -Path "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\product.wxs" -Value $product -Encoding UTF8
+          <?xml version='1.0' encoding='UTF-8'?>
+          <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+            <Product Id='*' Name='WaffleCopyPRO' Language='1033' Version='1.0.0.0' Manufacturer='Waffle' UpgradeCode='$upgrade'>
+              <Package InstallerVersion='500' Compressed='yes' InstallScope='perMachine' />
+              <MediaTemplate />
+              <Directory Id='TARGETDIR' Name='SourceDir'>
+                <Directory Id='ProgramFilesFolder'>
+                  <Directory Id='INSTALLFOLDER' Name='WaffleCopyPRO' />
+                </Directory>
+              </Directory>
+              <Feature Id='ProductFeature' Title='WaffleCopyPRO' Level='1'>
+                <ComponentGroupRef Id='APPFILES'/>
+              </Feature>
+            </Product>
+          </Wix>
+          "@
+          Set-Content -Path "$env:GITHUB_WORKSPACE\\waffleCopyPRO-Universal\\product.wxs" -Value $product -Encoding UTF8
           # Compile and link with WiX
           & "$WIXBIN\candle.exe" -dReleaseDir="$RELEASE_DIR" "$env:GITHUB_WORKSPACE\app.wxs" "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\product.wxs" -out "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\product.wixobj"
           & "$WIXBIN\light.exe" "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\product.wixobj" -out "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\waffleCopyPRO-Universal.msi"
