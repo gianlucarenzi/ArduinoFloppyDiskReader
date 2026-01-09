@@ -79,18 +79,19 @@ jobs:
         mkdir -p ../release
         DMG_TMP="../release/waffleCopyPRO_tmp.dmg"
         VOL_NAME="WaffleCopyPRO"
-        SIZE=150m
-        rm -f "$DMG_TMP" ../release/waffleCopyPRO-Universal.dmg
-        # Create a writable DMG
-        hdiutil create -size $SIZE -fs HFS+ -volname "$VOL_NAME" -ov -format UDRW "$DMG_TMP"
+        SRC_DIR="../release/dmg_src"
+        rm -rf "$SRC_DIR" "$DMG_TMP" ../release/waffleCopyPRO-Universal.dmg
+        mkdir -p "$SRC_DIR"
+        # Copy app and resources into source folder
+        cp -R waffleCopyPRO-Universal.app "$SRC_DIR"/
+        mkdir -p "$SRC_DIR"/.background
+        cp ../assets/dmg-background.png "$SRC_DIR"/.background/background.png
+        ln -s /Applications "$SRC_DIR"/Applications
+        # Create a writable DMG from source folder
+        hdiutil create -srcfolder "$SRC_DIR" -volname "$VOL_NAME" -ov -format UDRW "$DMG_TMP"
         # Attach it
         hdiutil attach "$DMG_TMP" -mountpoint /Volumes/"$VOL_NAME" -nobrowse -noverify || true
-        sleep 1
-        # Copy app and resources
-        cp -R waffleCopyPRO-Universal.app /Volumes/"$VOL_NAME"/
-        mkdir -p /Volumes/"$VOL_NAME"/.background
-        cp ../assets/dmg-background.png /Volumes/"$VOL_NAME"/.background/background.png
-        ln -s /Applications /Volumes/"$VOL_NAME"/Applications
+        sleep 2
         # Configure Finder window appearance and icon positions
         osascript <<APPLESCRIPT
         tell application "Finder"
@@ -117,6 +118,7 @@ jobs:
         hdiutil detach /Volumes/"$VOL_NAME"
         hdiutil convert "$DMG_TMP" -format UDZO -imagekey zlib-level=9 -o ../release/waffleCopyPRO-Universal.dmg
         rm -f "$DMG_TMP"
+        rm -rf "$SRC_DIR"
         mv ../release/waffleCopyPRO-Universal.dmg ../waffleCopyPRO-Universal.dmg
 
     - name: Upload DMG Artifact
