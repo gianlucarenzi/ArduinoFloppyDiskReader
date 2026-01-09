@@ -46,6 +46,7 @@ jobs:
 
     - name: Generate DMG background
       run: |
+        mkdir -p assets
         python3 -m pip install --user pillow
         python3 - <<'PY'
         from PIL import Image, ImageDraw
