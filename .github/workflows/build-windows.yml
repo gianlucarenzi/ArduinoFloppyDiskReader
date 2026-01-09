@@ -126,8 +126,9 @@ jobs:
           "@
           Set-Content -Path "$env:GITHUB_WORKSPACE\\waffleCopyPRO-Universal\\product.wxs" -Value $product -Encoding UTF8
           # Compile and link with WiX
-          & "$WIXBIN\candle.exe" -dReleaseDir="$RELEASE_DIR" "$env:GITHUB_WORKSPACE\app.wxs" "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\product.wxs" -out "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\product.wixobj"
-          & "$WIXBIN\light.exe" "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\product.wixobj" -out "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\waffleCopyPRO-Universal.msi"
+          & "$WIXBIN\candle.exe" -dReleaseDir="$RELEASE_DIR" "$env:GITHUB_WORKSPACE\app.wxs" -out "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\app.wixobj"
+          & "$WIXBIN\candle.exe" -dReleaseDir="$RELEASE_DIR" "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\product.wxs" -out "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\product.wixobj"
+          & "$WIXBIN\light.exe" "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\app.wixobj" "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\product.wixobj" -out "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\waffleCopyPRO-Universal.msi"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
