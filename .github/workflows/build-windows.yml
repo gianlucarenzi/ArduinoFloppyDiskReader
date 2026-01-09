@@ -81,17 +81,60 @@ jobs:
           Pop-Location
         shell: pwsh
 
+      - name: Install NSIS
+        shell: cmd
+        run: choco install nsis -y
+
+      - name: Create NSIS installer script and build
+        shell: pwsh
+        run: |
+          $NSIS_SCRIPT = "waffleCopyPRO-Universal/installer.nsi"
+          $script = @'
+!define APPNAME "waffleCopyPRO Universal"
+!define APP_EXE "waffleCopyPRO-Universal.exe"
+OutFile "waffleCopyPRO-Universal-Installer.exe"
+; Default to per-user install directory to allow installation without admin privileges.
+InstallDir "$LOCALAPPDATA\\${APPNAME}"
+; Use user execution level so per-user installs do not require elevation.
+RequestExecutionLevel user
+Page directory
+Page instfiles
+Section "Install"
+  SetOutPath "$INSTDIR"
+  File /r "waffleCopyPRO-Universal\\release\\*.*"
+  CreateDirectory "$SMPROGRAMS\\${APPNAME}"
+  CreateShortCut "$SMPROGRAMS\\${APPNAME}\\${APPNAME}.lnk" "$INSTDIR\\${APP_EXE}" "" "$INSTDIR\\${APP_EXE}" 0
+  CreateShortCut "$DESKTOP\\${APPNAME}.lnk" "$INSTDIR\\${APP_EXE}" "" "$INSTDIR\\${APP_EXE}" 0
+  WriteUninstaller "$INSTDIR\\Uninstall.exe"
+SectionEnd
+
+Section "Uninstall"
+  Delete "$DESKTOP\\${APPNAME}.lnk"
+  Delete "$SMPROGRAMS\\${APPNAME}\\${APPNAME}.lnk"
+  Delete "$INSTDIR\\${APP_EXE}"
+  Delete "$INSTDIR\\Uninstall.exe"
+  RMDir /r "$INSTDIR"
+SectionEnd
+'@
+          $script | Out-File -FilePath $NSIS_SCRIPT -Encoding UTF8
+          & "C:\Program Files (x86)\NSIS\makensis.exe" $NSIS_SCRIPT
+          Move-Item "waffleCopyPRO-Universal-Installer.exe" "waffleCopyPRO-Universal-Windows-Installer.exe"
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: waffleCopyPRO-Universal-Windows
-          path: waffleCopyPRO-Universal/release/
+          path: |
+            waffleCopyPRO-Universal/release/
+            waffleCopyPRO-Universal-Windows-Installer.exe
 
       - name: Create Release and Upload Asset
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
         with:
-          files: waffleCopyPRO-Universal/waffleCopyPRO-Universal-Windows.zip
+          files: |
+            waffleCopyPRO-Universal/waffleCopyPRO-Universal-Windows.zip
+            waffleCopyPRO-Universal-Windows-Installer.exe
           draft: false
           prerelease: false
 

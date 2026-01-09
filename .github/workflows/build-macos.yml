@@ -44,14 +44,32 @@ jobs:
         cp -R fonts waffleCopyPRO-Universal.app/Contents/Resources/
         cp -R WaffleUI waffleCopyPRO-Universal.app/Contents/Resources/
 
+    - name: Generate DMG background
+      run: |
+        python3 -m pip install --user pillow
+        python3 - <<'PY'
+        from PIL import Image, ImageDraw
+        w,h=540,380
+        img=Image.new('RGB',(w,h),(60,80,120))
+        draw=ImageDraw.Draw(img)
+        for i in range(h):
+            r=int(60 + (i*(180-60)/h))
+            g=int(80 + (i*(220-80)/h))
+            b=int(120 + (i*(255-120)/h))
+            draw.line([(0,i),(w,i)], fill=(r,g,b))
+        draw.text((20,h-40),"waffleCopyPRO", fill=(255,255,255))
+        img.save("assets/dmg-background.png")
+        PY
+
+    - name: Install create-dmg
+      run: |
+        npm install -g create-dmg
+
     - name: Create DMG Installer
       run: |
-        hdiutil create -fs HFS+ \
-          -volname "waffleCopyPRO Universal" \
-          -srcfolder "waffleCopyPRO-Universal/waffleCopyPRO-Universal.app" \
-          -ov \
-          -format UDZO \
-          "waffleCopyPRO-Universal.dmg"
+        mkdir -p release
+        create-dmg "waffleCopyPRO-Universal/waffleCopyPRO-Universal.app" --overwrite --out release --background "assets/dmg-background.png" --icon-size 128 --window-size 540 380 --icon "waffleCopyPRO-Universal.app" 140 190 --icon "Applications" 400 190
+        mv release/*.dmg waffleCopyPRO-Universal.dmg
 
     - name: Upload DMG Artifact
       uses: actions/upload-artifact@v4
