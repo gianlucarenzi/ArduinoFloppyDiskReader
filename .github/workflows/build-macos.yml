@@ -112,7 +112,7 @@ jobs:
             delay 2
           end tell
         end tell
-APPLESCRIPT
+        APPLESCRIPT
         # Detach and convert to compressed read-only DMG
         hdiutil detach /Volumes/"$VOL_NAME"
         hdiutil convert "$DMG_TMP" -format UDZO -imagekey zlib-level=9 -o ../release/waffleCopyPRO-Universal.dmg
