@@ -44,6 +44,17 @@ jobs:
         cp -R fonts waffleCopyPRO-Universal.app/Contents/Resources/
         cp -R WaffleUI waffleCopyPRO-Universal.app/Contents/Resources/
 
+    - name: Ensure Info.plist has bundle name
+      run: |
+        cd waffleCopyPRO-Universal
+        PLIST=waffleCopyPRO-Universal.app/Contents/Info.plist
+        if [ -f "$PLIST" ]; then
+          /usr/libexec/PlistBuddy -c "Print :CFBundleName" "$PLIST" >/dev/null 2>&1 && /usr/libexec/PlistBuddy -c "Set :CFBundleName 'waffleCopyPRO-Universal'" "$PLIST" || /usr/libexec/PlistBuddy -c "Add :CFBundleName string 'waffleCopyPRO-Universal'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" "$PLIST" >/dev/null 2>&1 && /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName 'WaffleCopyPRO'" "$PLIST" || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string 'WaffleCopyPRO'" "$PLIST"
+        else
+          echo "Info.plist not found at $PLIST"
+        fi
+
     - name: Generate DMG background
       run: |
         mkdir -p assets
@@ -62,15 +73,51 @@ jobs:
         img.save("assets/dmg-background.png")
         PY
 
-    - name: Install create-dmg
+    - name: Create DMG Installer (hdiutil)
       run: |
-        npm install -g create-dmg
-
-    - name: Create DMG Installer
-      run: |
-        mkdir -p release
-        create-dmg "waffleCopyPRO-Universal/waffleCopyPRO-Universal.app" --overwrite --out release --background "assets/dmg-background.png" --icon-size 128 --window-size 540 380 --icon "waffleCopyPRO-Universal.app" 140 190 --icon "Applications" 400 190
-        mv release/*.dmg waffleCopyPRO-Universal.dmg
+        cd waffleCopyPRO-Universal
+        mkdir -p ../release
+        DMG_TMP="../release/waffleCopyPRO_tmp.dmg"
+        VOL_NAME="WaffleCopyPRO"
+        SIZE=150m
+        rm -f "$DMG_TMP" ../release/waffleCopyPRO-Universal.dmg
+        # Create a writable DMG
+        hdiutil create -size $SIZE -fs HFS+ -volname "$VOL_NAME" -ov -format UDRW "$DMG_TMP"
+        # Attach it
+        hdiutil attach "$DMG_TMP" -mountpoint /Volumes/"$VOL_NAME" -nobrowse -noverify || true
+        sleep 1
+        # Copy app and resources
+        cp -R waffleCopyPRO-Universal.app /Volumes/"$VOL_NAME"/
+        mkdir -p /Volumes/"$VOL_NAME"/.background
+        cp ../assets/dmg-background.png /Volumes/"$VOL_NAME"/.background/background.png
+        ln -s /Applications /Volumes/"$VOL_NAME"/Applications
+        # Configure Finder window appearance and icon positions
+        osascript <<APPLESCRIPT
+        tell application "Finder"
+          tell disk "$VOL_NAME"
+            open
+            set current view of container window to icon view
+            set toolbar visible of container window to false
+            set statusbar visible of container window to false
+            set the bounds of container window to {100, 100, 640, 480}
+            set viewOptions to the icon view options of container window
+            set arrangement of viewOptions to not arranged
+            set icon size of viewOptions to 128
+            set background picture of viewOptions to file ".background:background.png"
+            set position of item "waffleCopyPRO-Universal.app" of container window to {140, 190}
+            set position of item "Applications" of container window to {400, 190}
+            close
+            open
+            update without registering applications
+            delay 2
+          end tell
+        end tell
+APPLESCRIPT
+        # Detach and convert to compressed read-only DMG
+        hdiutil detach /Volumes/"$VOL_NAME"
+        hdiutil convert "$DMG_TMP" -format UDZO -imagekey zlib-level=9 -o ../release/waffleCopyPRO-Universal.dmg
+        rm -f "$DMG_TMP"
+        mv ../release/waffleCopyPRO-Universal.dmg ../waffleCopyPRO-Universal.dmg
 
     - name: Upload DMG Artifact
       uses: actions/upload-artifact@v4
