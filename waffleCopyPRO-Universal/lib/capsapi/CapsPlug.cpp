@@ -69,6 +69,16 @@ SDWORD CapsInit()
 #ifdef WIN32
 	capi = LoadLibrary(L"CAPSImg.dll");
 #else
+#ifdef __APPLE__
+	capi = dlopen("@rpath/CAPSImage.framework/Versions/Current/CAPSImage", RTLD_NOW);
+	if (!capi) capi = dlopen("CAPSImage.framework/Versions/Current/CAPSImage", RTLD_NOW);
+	if (!capi) capi = dlopen("CAPSImage.framework/CAPSImage", RTLD_NOW);
+	if (!capi) capi = dlopen("libcapsimage.dylib", RTLD_NOW);
+	if (!capi) capi = dlopen("libcapsimage.5.dylib", RTLD_NOW);
+	if (!capi) capi = dlopen("libcapsimage.5.1.dylib", RTLD_NOW);
+	if (!capi) capi = dlopen("libcapsimage.4.dylib", RTLD_NOW);
+	if (!capi) capi = dlopen("libcapsimage.4.2.dylib", RTLD_NOW);
+#endif
 	capi = dlopen("libcapsimage.so.5", RTLD_NOW);
 	if (!capi) capi = dlopen("libcapsimage.so.5", RTLD_NOW);
 	if (!capi) capi = dlopen("libcapsimage.so.5.1", RTLD_NOW);

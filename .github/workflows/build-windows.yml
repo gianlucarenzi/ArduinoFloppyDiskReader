@@ -73,6 +73,16 @@ jobs:
                   Copy-Item "$CRT_PATH\*.dll" $RELEASE_DIR -Force
               }
           }
+
+          # Copy CAPS DLLs if provided in repo locations
+          $CAPS_PATH1 = Join-Path $ROOT "waffleCopyPRO-Universal\lib\capsapi"
+          if (Test-Path $CAPS_PATH1) {
+            Copy-Item -Path (Join-Path $CAPS_PATH1 "*.dll") -Destination $RELEASE_DIR -Force -ErrorAction SilentlyContinue
+          }
+          $CAPS_PATH2 = Join-Path $ROOT "lib\capsapi"
+          if (Test-Path $CAPS_PATH2) {
+            Copy-Item -Path (Join-Path $CAPS_PATH2 "*.dll") -Destination $RELEASE_DIR -Force -ErrorAction SilentlyContinue
+          }
           
           Copy-Item -Path "waffleCopyPRO-Universal/fonts" -Destination $RELEASE_DIR -Recurse
           Copy-Item -Path "waffleCopyPRO-Universal/WaffleUI" -Destination $RELEASE_DIR -Recurse

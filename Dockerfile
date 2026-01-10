@@ -57,5 +57,12 @@ RUN echo '#!/bin/bash' > AppDir/AppRun && \
     echo 'exec "./waffleCopyPRO-Universal" "$@"' >> AppDir/AppRun && \
     chmod +x AppDir/AppRun
 
+# Bundle CAPS libraries from repo into the AppImage and set rpath for the executable
+RUN mkdir -p AppDir/usr/lib && \
+    cp -v /app/lib/capsapi/*.so* AppDir/usr/lib/ || true && \
+    if [ -f AppDir/usr/bin/waffleCopyPRO-Universal ]; then \
+      patchelf --set-rpath '$ORIGIN/../lib' AppDir/usr/bin/waffleCopyPRO-Universal || true; \
+    fi
+
 # Convert AppDir to AppImage using appimagetool
 RUN /usr/local/appimagetool_extracted/AppRun AppDir
