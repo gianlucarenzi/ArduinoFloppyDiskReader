@@ -257,7 +257,7 @@ void MainWindow::manageSerialPort(const QString &p)
 {
     if (p.isEmpty())
         return;
-    DebugMsg::print(__func__, "WRITE SETTINGS SERIALPORTNAME" + p);
+    DebugMsg::print(__func__, "WRITE SETTINGS SERIALPORTNAME: " + p);
     settings.setValue("SERIALPORTNAME", p);
     settings.sync();
 }
@@ -265,7 +265,7 @@ void MainWindow::manageSerialPort(const QString &p)
 void MainWindow::togglePreComp(void)
 {
     preComp = !preComp;
-    DebugMsg::print(__func__, "WRITE SETTINGS PRECOMP" + QString::number(preComp));
+    DebugMsg::print(__func__, "WRITE SETTINGS PRECOMP: " + QString::number(preComp));
     ui->preCompSelection->setChecked(preComp);
     // Store preComp into settings
     settings.setValue("PRECOMP", preComp);
@@ -275,7 +275,7 @@ void MainWindow::togglePreComp(void)
 void MainWindow::toggleEraseBeforeWrite(void)
 {
     eraseBeforeWrite = !eraseBeforeWrite;
-    DebugMsg::print(__func__, "WRITE SETTINGS ERASE BEFORE WRITE" + QString::number(eraseBeforeWrite));
+    DebugMsg::print(__func__, "WRITE SETTINGS ERASE BEFORE WRITE: " + QString::number(eraseBeforeWrite));
     ui->eraseBeforeWrite->setChecked(eraseBeforeWrite);
     settings.setValue("ERASEBEFOREWRITE", eraseBeforeWrite);
     settings.sync();
@@ -287,7 +287,7 @@ void MainWindow::toggleNumTracks(void)
     if (tracks82)
         DebugMsg::print(__func__, "WRITE SETTINGS 82 TRACKS");
     else
-        DebugMsg::print(__func__, "WRITE SETTINGS 80 Tracks");
+        DebugMsg::print(__func__, "WRITE SETTINGS 80 TRACKS");
     ui->numTracks->setChecked(tracks82);
     settings.setValue("TRACKS82", tracks82);
     settings.sync();
@@ -482,7 +482,8 @@ void MainWindow::checkStartWrite(void)
     QString port = ui->serialPortComboBox->currentText();
     DebugMsg::print(__func__, "checkStartWrite: UI portName before modification =" + port);
 #ifndef _WIN32
-    port.prepend("/dev/");
+    if (!port.startsWith("/dev/"))
+        port.prepend("/dev/");
 #endif
     DebugMsg::print(__func__, "checkStartWrite: UI portName after modification =" + port);
 
@@ -573,7 +574,8 @@ void MainWindow::checkStartRead(void)
     QString port = ui->serialPortComboBox->currentText();
     DebugMsg::print(__func__, "checkStartRead: UI portName before modification =" + port);
 #ifndef _WIN32
-    port.prepend("/dev/");
+    if (!port.startsWith("/dev/"))
+        port.prepend("/dev/");
 #endif
     DebugMsg::print(__func__, "checkStartRead: UI portName after modification =" + port);
 
@@ -1039,6 +1041,10 @@ void MainWindow::refreshSerialPorts()
     QList<QString> addedPorts;
     for (const QSerialPortInfo &info : QSerialPortInfo::availablePorts()) {
         QString portName = info.portName();
+#ifndef _WIN32
+        if (!portName.startsWith("/dev/"))
+            portName.prepend("/dev/");
+#endif
         ui->serialPortComboBox->addItem(portName);
         addedPorts.append(portName);
     }
