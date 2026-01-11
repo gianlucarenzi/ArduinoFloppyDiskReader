@@ -110,10 +110,6 @@ Compression=lzma
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64
 
-[Languages]
-Name: "english"; MessagesFile: "compiler:Default.isl"
-Name: "italian"; MessagesFile: "compiler:Languages\\Italian.isl"
-
 [Files]
 Source: "{$RELEASE_DIR}\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
