@@ -200,6 +200,11 @@ PCHAR CapsGetPlatformName(UDWORD pid)
 	return res;
 }
 
+SDWORD CapsIsLoaded()
+{
+	return capi ? 1 : 0;
+}
+
 // lock memory mapped image
 SDWORD CapsLockImageMemory(SDWORD id, PUBYTE buffer, UDWORD length, UDWORD flag)
 {

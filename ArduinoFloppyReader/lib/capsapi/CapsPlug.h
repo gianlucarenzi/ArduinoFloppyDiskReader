@@ -32,6 +32,7 @@ SDWORD CapsUnlockTrack(SDWORD id, UDWORD cylinder, UDWORD head);
 SDWORD CapsUnlockAllTracks(SDWORD id);
 SDWORD CapsGetInfo(void* si, SDWORD id, UDWORD cylinder, UDWORD head, UDWORD inftype, UDWORD infid);
 PCHAR  CapsGetPlatformName(UDWORD pid);
+SDWORD CapsIsLoaded();
 
 }
 
