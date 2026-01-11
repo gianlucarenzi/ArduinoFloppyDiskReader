@@ -1,3 +1,4 @@
+#include "debugmsg.h"
 /* Dynamic PLL for *UAE
 *
 * Copyright (C) 2021-2024 Robert Smith (@RobSmithDev)
@@ -57,7 +58,8 @@ BridgePLL::BridgePLL(bool enabled, bool enableReplay) : m_enabled(enabled)
 #endif
 
 // Reset the PLL
-void BridgePLL::reset() {
+void BridgePLL::reset()
+{
     m_clock = CLOCK_CENTRE;
     m_nFluxSoFar = 0; 
     m_indexFound = false;
@@ -70,7 +72,8 @@ void BridgePLL::reset() {
 }
 
 // Prepare this to be used, by preparing the rotation extractor
-void BridgePLL::prepareExtractor(bool isHD, const RotationExtractor::IndexSequenceMarker& indexSequence) {
+void BridgePLL::prepareExtractor(bool isHD, const RotationExtractor::IndexSequenceMarker& indexSequence)
+{
 #ifdef ENABLE_REPLY
     m_fluxReplayData.clear();
 #endif
@@ -84,7 +87,8 @@ void BridgePLL::prepareExtractor(bool isHD, const RotationExtractor::IndexSequen
 #endif
 // Re-plays the data back into the rotation extractor
 void BridgePLL::rePlayData(const unsigned int maxBufferSize, RotationExtractor::MFMSample* buffer, RotationExtractor::IndexSequenceMarker& indexMarker,
-        std::function<bool(RotationExtractor::MFMSample* mfmData, const unsigned int dataLengthInBits)> onRotation) {
+        std::function<bool(RotationExtractor::MFMSample* mfmData, const unsigned int dataLengthInBits)> onRotation)
+{
 #ifdef ENABLE_REPLY
     if (!m_useReplay) return;
     m_useReplay = false;
@@ -99,18 +103,22 @@ void BridgePLL::rePlayData(const unsigned int maxBufferSize, RotationExtractor::
     m_extractor->reset(m_extractor->isHD());
     m_extractor->setIndexSequence(indexMarker);
 
-    for (const ReplayData& data : m_fluxReplayData) {
+    for (const ReplayData& data : m_fluxReplayData)
+{
 
         if (data.fluxTime>250) 
             submitFlux(data.fluxTime + (rand() % 100) - 50, data.isIndex);
         else submitFlux(data.fluxTime, data.isIndex);
 
         // Is it ready to extract?
-        if (canExtract()) {
+        if (canExtract())
+{
             unsigned int bits = 0;
             // Go!
-            if (extractRotation(buffer, bits, maxBufferSize)) {
-                if (!onRotation(buffer, bits)) {
+            if (extractRotation(buffer, bits, maxBufferSize))
+{
+                if (!onRotation(buffer, bits))
+{
                     // And if the callback says so we stop.                    
                     break;
                 }
@@ -125,9 +133,11 @@ void BridgePLL::rePlayData(const unsigned int maxBufferSize, RotationExtractor::
 #endif
 
 // Submit flux to the PLL
-void BridgePLL::submitFlux(uint32_t timeInNanoSeconds, bool isAtIndex) {
+void BridgePLL::submitFlux(uint32_t timeInNanoSeconds, bool isAtIndex)
+{
 #ifdef ENABLE_REPLY
-    if (m_useReplay) {
+    if (m_useReplay)
+{
         m_fluxReplayData.push_back({ (uint32_t)timeInNanoSeconds, isAtIndex });
     }
 #endif
@@ -143,11 +153,13 @@ void BridgePLL::submitFlux(uint32_t timeInNanoSeconds, bool isAtIndex) {
     const int clockedZeros = (m_nFluxSoFar - (m_clock / 2)) / m_clock;
     m_nFluxSoFar -= ((clockedZeros + 1) * m_clock);
     
-    if (m_enabled) {
+    if (m_enabled)
+{
         m_latency += ((clockedZeros + 1) * m_clock);
 
         // PLL: Adjust clock frequency according to phase mismatch.
-        if ((clockedZeros >= 1) && (clockedZeros <= 3)) {
+        if ((clockedZeros >= 1) && (clockedZeros <= 3))
+{
             // In sync: adjust base clock by 10% of phase mismatch.
             m_clock += (m_nFluxSoFar / (int)(clockedZeros + 1)) / 10;
         }
@@ -177,16 +189,19 @@ void BridgePLL::submitFlux(uint32_t timeInNanoSeconds, bool isAtIndex) {
 }
 
 // Add data to the Rotation Extractor
-void BridgePLL::addToExtractor(int numZeros, unsigned int pllTimeInNS, unsigned int realTimeInNS) {
+void BridgePLL::addToExtractor(int numZeros, unsigned int pllTimeInNS, unsigned int realTimeInNS)
+{
     if (numZeros < 0) numZeros = 0;
 
     // More than 3 zeros.  This is not normal MFM, but is allowed
-    if (numZeros >= 4) {
+    if (numZeros >= 4)
+{
         unsigned int realTimePerBitcell = realTimeInNS / (numZeros + 1);
         unsigned int pllTimePerBitcell = pllTimeInNS / (numZeros + 1);
 
         // Based on the rules we can't output a sequence this big and times must be accurate so we output as many 000's as possible
-        while (numZeros > 3) {
+        while (numZeros > 3)
+{
             RotationExtractor::MFMSequenceInfo sample;
             sample.mfm = RotationExtractor::MFMSequence::mfm000;
             sample.timeNS = realTimePerBitcell * 3;
