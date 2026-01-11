@@ -9,7 +9,12 @@
 CC = g++
 
 # define any compile-time flags -m32
+# Allow DEBUG=yes to enable debug build
+ifdef DEBUG
+CFLAGS = -Wall -std=c++14 -Wno-psabi -g -O0 -pthread
+else
 CFLAGS = -Wall -std=c++14 -Wno-psabi -O3 -pthread
+endif
 
 # define any directories containing header files other than /usr/include
 #
