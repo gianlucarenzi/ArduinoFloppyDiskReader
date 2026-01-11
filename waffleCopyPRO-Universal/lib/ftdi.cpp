@@ -1,3 +1,4 @@
+#include "debugmsg.h"
 /* ArduinoFloppyReader (and writer)
 *
 * Copyright (C) 2021-2024 Robert Smith (@RobSmithDev)
@@ -134,15 +135,18 @@ void* m_dll = nullptr;
 #endif
 
 
-void initFTDILibrary() {
+void initFTDILibrary()
+{
 	libraryLoadCounter++;
-	if (libraryLoadCounter == 1) {
+	if (libraryLoadCounter == 1)
+{
 #ifdef WIN32
 		m_dll = LoadLibrary(L"FTD2XX.DLL");
 #else
 		m_dll = dlopen("libftd2xx.so", RTLD_NOW);
 #endif
-		if (m_dll) {
+		if (m_dll)
+{
 			FT_Open = (_FT_Open)GETFUNC(m_dll, "FT_Open");
 			FT_OpenEx = (_FT_OpenEx)GETFUNC(m_dll, "FT_OpenEx");
 			FT_ListDevices = (_FT_ListDevices)GETFUNC(m_dll, "FT_ListDevices");
@@ -186,10 +190,13 @@ void initFTDILibrary() {
 }
 
 
-void freeFTDILibrary() {
-	if (libraryLoadCounter) {
+void freeFTDILibrary()
+{
+	if (libraryLoadCounter)
+{
 		libraryLoadCounter--;
-		if (libraryLoadCounter == 0) {
+		if (libraryLoadCounter == 0)
+{
 #ifdef WIN32
 			if (m_dll) FreeLibrary(m_dll);
 			m_dll = 0;
@@ -239,20 +246,24 @@ void freeFTDILibrary() {
 	}
 }
 
-FTDIInterface::FTDIInterface() {
+FTDIInterface::FTDIInterface()
+{
 	initFTDILibrary();
 }
 
-FTDIInterface::~FTDIInterface() {
+FTDIInterface::~FTDIInterface()
+{
 	FT_Close(); 
 
 	freeFTDILibrary();
 }
 
-FTDI::FT_STATUS FTDIInterface::FT_Open(int deviceNumber) {
+FTDI::FT_STATUS FTDIInterface::FT_Open(int deviceNumber)
+{
 	FT_Close(); 
 
-	if (::FT_Open) {
+	if (::FT_Open)
+{
 		FTDI::FT_STATUS status = ::FT_Open(deviceNumber, &m_handle);
 		if (status != FTDI::FT_STATUS::FT_OK) m_handle = 0;
 		return status;
@@ -260,8 +271,10 @@ FTDI::FT_STATUS FTDIInterface::FT_Open(int deviceNumber) {
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_OpenEx(LPVOID pArg1, DWORD Flags) { 
-	if (::FT_OpenEx) {
+FTDI::FT_STATUS FTDIInterface::FT_OpenEx(LPVOID pArg1, DWORD Flags)
+{
+	if (::FT_OpenEx)
+{
 		FTDI::FT_STATUS status = ::FT_OpenEx(pArg1, Flags, &m_handle);
 		if (status != FTDI::FT_STATUS::FT_OK) m_handle = 0;
 		return status;
@@ -269,13 +282,16 @@ FTDI::FT_STATUS FTDIInterface::FT_OpenEx(LPVOID pArg1, DWORD Flags) {
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_ListDevices(LPVOID pArg1, LPVOID pArg2, DWORD Flags) { 
+FTDI::FT_STATUS FTDIInterface::FT_ListDevices(LPVOID pArg1, LPVOID pArg2, DWORD Flags)
+{
 	if (::FT_ListDevices) return ::FT_ListDevices(pArg1, pArg2, Flags);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_Close() {
-	if (::FT_Close) {
+FTDI::FT_STATUS FTDIInterface::FT_Close()
+{
+	if (::FT_Close)
+{
 		FTDI::FT_STATUS ret;
 		if (m_handle) ret = ::FT_Close(m_handle); else ret = FTDI::FT_STATUS::FT_OK;
 		m_handle = 0;
@@ -284,172 +300,206 @@ FTDI::FT_STATUS FTDIInterface::FT_Close() {
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_Read(LPVOID lpBuffer, DWORD nBufferSize, LPDWORD lpBytesReturned) { 
+FTDI::FT_STATUS FTDIInterface::FT_Read(LPVOID lpBuffer, DWORD nBufferSize, LPDWORD lpBytesReturned)
+{
 	if ((::FT_Read) && (m_handle)) return ::FT_Read(m_handle, lpBuffer, nBufferSize, lpBytesReturned);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_Write(LPVOID lpBuffer, DWORD nBufferSize, LPDWORD lpBytesWritten) { 
+FTDI::FT_STATUS FTDIInterface::FT_Write(LPVOID lpBuffer, DWORD nBufferSize, LPDWORD lpBytesWritten)
+{
 	if ((::FT_Write) && (m_handle)) return ::FT_Write(m_handle, lpBuffer, nBufferSize, lpBytesWritten);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_IoCtl(DWORD dwIoControlCode, LPVOID lpInBuf, DWORD nInBufSize, LPVOID lpOutBuf, DWORD nOutBufSize, LPDWORD lpBytesReturned, LPOVERLAPPED lpOverlapped) { 
+FTDI::FT_STATUS FTDIInterface::FT_IoCtl(DWORD dwIoControlCode, LPVOID lpInBuf, DWORD nInBufSize, LPVOID lpOutBuf, DWORD nOutBufSize, LPDWORD lpBytesReturned, LPOVERLAPPED lpOverlapped)
+{
 	if ((::FT_IoCtl) && (m_handle)) return ::FT_IoCtl(m_handle, dwIoControlCode, lpInBuf, nInBufSize, lpOutBuf, nOutBufSize, lpBytesReturned, lpOverlapped);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_SetBaudRate(ULONG BaudRate) { 
+FTDI::FT_STATUS FTDIInterface::FT_SetBaudRate(ULONG BaudRate)
+{
 	if ((::FT_SetBaudRate) && (m_handle)) return ::FT_SetBaudRate(m_handle, BaudRate);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_SetDivisor(USHORT Divisor) { 
+FTDI::FT_STATUS FTDIInterface::FT_SetDivisor(USHORT Divisor)
+{
 	if ((::FT_SetDivisor) && (m_handle)) return ::FT_SetDivisor(m_handle, Divisor);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_SetDataCharacteristics(FT_BITS WordLength, FT_STOP_BITS StopBits, FT_PARITY Parity) {
+FTDI::FT_STATUS FTDIInterface::FT_SetDataCharacteristics(FT_BITS WordLength, FT_STOP_BITS StopBits, FT_PARITY Parity)
+{
 	if ((::FT_SetDataCharacteristics) && (m_handle)) return ::FT_SetDataCharacteristics(m_handle, (UCHAR)WordLength, (UCHAR)StopBits, (UCHAR)Parity);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_SetFlowControl(USHORT FlowControl, UCHAR XonChar, UCHAR XoffChar) { 
+FTDI::FT_STATUS FTDIInterface::FT_SetFlowControl(USHORT FlowControl, UCHAR XonChar, UCHAR XoffChar)
+{
 	if ((::FT_SetFlowControl) && (m_handle)) return ::FT_SetFlowControl(m_handle, FlowControl, XonChar, XoffChar);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_ResetDevice() { 
+FTDI::FT_STATUS FTDIInterface::FT_ResetDevice()
+{
 	if ((::FT_ResetDevice) && (m_handle)) return ::FT_ResetDevice(m_handle);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_SetDtr() { 
+FTDI::FT_STATUS FTDIInterface::FT_SetDtr()
+{
 	if ((::FT_SetDtr) && (m_handle)) return ::FT_SetDtr(m_handle);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_ClrDtr() { 
+FTDI::FT_STATUS FTDIInterface::FT_ClrDtr()
+{
 	if ((::FT_ClrDtr) && (m_handle)) return ::FT_ClrDtr(m_handle);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_SetRts() { 
+FTDI::FT_STATUS FTDIInterface::FT_SetRts()
+{
 	if ((::FT_SetRts) && (m_handle)) return ::FT_SetRts(m_handle);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_ClrRts() { 
+FTDI::FT_STATUS FTDIInterface::FT_ClrRts()
+{
 	if ((::FT_ClrRts) && (m_handle)) return ::FT_ClrRts(m_handle);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_GetModemStatus(ULONG* pModemStatus) { 
+FTDI::FT_STATUS FTDIInterface::FT_GetModemStatus(ULONG* pModemStatus)
+{
 	if ((::FT_GetModemStatus) && (m_handle)) return ::FT_GetModemStatus(m_handle, pModemStatus);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_SetChars(UCHAR EventChar, UCHAR EventCharEnabled, UCHAR ErrorChar, UCHAR ErrorCharEnabled) { 
+FTDI::FT_STATUS FTDIInterface::FT_SetChars(UCHAR EventChar, UCHAR EventCharEnabled, UCHAR ErrorChar, UCHAR ErrorCharEnabled)
+{
 	if ((::FT_SetChars) && (m_handle)) return ::FT_SetChars(m_handle, EventChar, EventCharEnabled, ErrorChar, ErrorCharEnabled);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_Purge(bool purgeRX, bool purgeTX) { 
+FTDI::FT_STATUS FTDIInterface::FT_Purge(bool purgeRX, bool purgeTX)
+{
 	if ((::FT_Purge) && (m_handle)) return ::FT_Purge(m_handle, (purgeRX ? FT_PURGE_RX : 0) | (purgeTX ? FT_PURGE_TX : 0));
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_SetTimeouts(ULONG ReadTimeout, ULONG WriteTimeout) { 
+FTDI::FT_STATUS FTDIInterface::FT_SetTimeouts(ULONG ReadTimeout, ULONG WriteTimeout)
+{
 	if ((::FT_SetTimeouts) && (m_handle)) return ::FT_SetTimeouts(m_handle, ReadTimeout, WriteTimeout);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_GetQueueStatus(DWORD* dwRxBytes) {
+FTDI::FT_STATUS FTDIInterface::FT_GetQueueStatus(DWORD* dwRxBytes)
+{
 	if ((::FT_GetQueueStatus) && (m_handle)) return ::FT_GetQueueStatus(m_handle, dwRxBytes);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_SetEventNotification(DWORD Mask, LPVOID Param) { 
+FTDI::FT_STATUS FTDIInterface::FT_SetEventNotification(DWORD Mask, LPVOID Param)
+{
 	if ((::FT_SetEventNotification) && (m_handle)) return ::FT_SetEventNotification(m_handle, Mask, Param);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_GetEventStatus(DWORD* dwEventDWord) {
+FTDI::FT_STATUS FTDIInterface::FT_GetEventStatus(DWORD* dwEventDWord)
+{
 	if ((::FT_GetEventStatus) && (m_handle)) return ::FT_GetEventStatus(m_handle, dwEventDWord);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_GetStatus(DWORD* dwRxBytes, DWORD* dwTxBytes, DWORD* dwEventDWord) { 
+FTDI::FT_STATUS FTDIInterface::FT_GetStatus(DWORD* dwRxBytes, DWORD* dwTxBytes, DWORD* dwEventDWord)
+{
 	if ((::FT_GetStatus) && (m_handle)) return ::FT_GetStatus(m_handle, dwRxBytes, dwTxBytes, dwEventDWord);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_SetBreakOn() { 
+FTDI::FT_STATUS FTDIInterface::FT_SetBreakOn()
+{
 	if ((::FT_SetBreakOn) && (m_handle)) return ::FT_SetBreakOn(m_handle);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_SetBreakOff() { 
+FTDI::FT_STATUS FTDIInterface::FT_SetBreakOff()
+{
 	if ((::FT_SetBreakOff) && (m_handle)) return ::FT_SetBreakOff(m_handle);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_SetWaitMask(DWORD Mask) { 
+FTDI::FT_STATUS FTDIInterface::FT_SetWaitMask(DWORD Mask)
+{
 	if ((::FT_SetWaitMask) && (m_handle)) return ::FT_SetWaitMask(m_handle, Mask);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_WaitOnMask(DWORD* Mask) { 
+FTDI::FT_STATUS FTDIInterface::FT_WaitOnMask(DWORD* Mask)
+{
 	if ((::FT_WaitOnMask) && (m_handle)) return ::FT_WaitOnMask(m_handle, Mask);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_CreateDeviceInfoList(LPDWORD lpdwNumDevs) {
+FTDI::FT_STATUS FTDIInterface::FT_CreateDeviceInfoList(LPDWORD lpdwNumDevs)
+{
 	if (::FT_CreateDeviceInfoList) return ::FT_CreateDeviceInfoList(lpdwNumDevs);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_GetDeviceInfoList(FT_DEVICE_LIST_INFO_NODE* pDest, LPDWORD lpdwNumDevs) {
+FTDI::FT_STATUS FTDIInterface::FT_GetDeviceInfoList(FT_DEVICE_LIST_INFO_NODE* pDest, LPDWORD lpdwNumDevs)
+{
 	if (::FT_GetDeviceInfoList) return ::FT_GetDeviceInfoList(pDest, lpdwNumDevs);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_GetComPortNumber(FT_HANDLE handle, LPLONG port) {
+FTDI::FT_STATUS FTDIInterface::FT_GetComPortNumber(FT_HANDLE handle, LPLONG port)
+{
 	if ((::FT_GetComPortNumber) && (handle)) return ::FT_GetComPortNumber(handle, port);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 }
 
-FTDI::FT_STATUS FTDIInterface::FT_GetDeviceInfoDetail(DWORD dwIndex, LPDWORD lpdwFlags, LPDWORD lpdwType, LPDWORD lpdwID, LPDWORD lpdwLocId, char* pcSerialNumber, char* pcDescription, FT_HANDLE* handle) {
+FTDI::FT_STATUS FTDIInterface::FT_GetDeviceInfoDetail(DWORD dwIndex, LPDWORD lpdwFlags, LPDWORD lpdwType, LPDWORD lpdwID, LPDWORD lpdwLocId, char* pcSerialNumber, char* pcDescription, FT_HANDLE* handle)
+{
 	if (::FT_GetDeviceInfoDetail) return ::FT_GetDeviceInfoDetail(dwIndex, lpdwFlags, lpdwType, lpdwID, lpdwLocId, pcSerialNumber, pcDescription, handle);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_GetDriverVersion(LPDWORD lpdwDriverVersion) {
+FTDI::FT_STATUS FTDIInterface::FT_GetDriverVersion(LPDWORD lpdwDriverVersion)
+{
 	if ((::FT_GetDriverVersion) && (m_handle)) return ::FT_GetDriverVersion(m_handle, lpdwDriverVersion);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_GetLibraryVersion(LPDWORD lpdwDLLVersion) {
+FTDI::FT_STATUS FTDIInterface::FT_GetLibraryVersion(LPDWORD lpdwDLLVersion)
+{
 	if ((::FT_GetLibraryVersion) && (m_handle)) return ::FT_GetLibraryVersion(lpdwDLLVersion);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_ResetPort() {
+FTDI::FT_STATUS FTDIInterface::FT_ResetPort()
+{
 	if ((::FT_ResetPort) && (m_handle)) return ::FT_ResetPort(m_handle);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_CyclePort() {
+FTDI::FT_STATUS FTDIInterface::FT_CyclePort()
+{
 	if ((::FT_CyclePort) && (m_handle)) return ::FT_CyclePort(m_handle);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 };
 
-FTDI::FT_STATUS FTDIInterface::FT_SetUSBParameters(DWORD dwInTransferSize, DWORD dwOutTransferSize) {
+FTDI::FT_STATUS FTDIInterface::FT_SetUSBParameters(DWORD dwInTransferSize, DWORD dwOutTransferSize)
+{
 	if ((::FT_SetUSBParameters) && (m_handle)) return ::FT_SetUSBParameters(m_handle, dwInTransferSize, dwOutTransferSize);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 }
 
-FTDI::FT_STATUS FTDIInterface::FT_SetLatencyTimer(UCHAR ucTimer) {
+FTDI::FT_STATUS FTDIInterface::FT_SetLatencyTimer(UCHAR ucTimer)
+{
 	if ((::FT_SetLatencyTimer) && (m_handle)) return ::FT_SetLatencyTimer(m_handle, ucTimer);
 	return FTDI::FT_STATUS::FT_DRIVER_NOT_AVAILABLE;
 }
