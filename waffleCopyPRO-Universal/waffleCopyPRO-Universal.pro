@@ -11,6 +11,7 @@ TARGET = waffleCopyPRO-Universal
 INCLUDEPATH += \
     inc \
     lib \
+    lib/capsimg \
     .
 
 
@@ -76,12 +77,15 @@ SOURCES += \
     src/mikmodplayer.cpp \
     src/adfwritermanager.cpp \
     src/debugmsg.cpp \
-    \
+
 
 
 DEFINES += __USE_GUI__
+DEFINES += CAPS_USER
 
 QMAKE_CXXFLAGS += -std=c++17 -Wall
+# Force-include debug header in all translation units so DebugMsg is available
+QMAKE_CXXFLAGS += -include $$PWD/inc/debugmsg.h
 
 win32 {
     CONFIG += moc_predefs
@@ -99,6 +103,7 @@ win32 {
 
 unix {
     QMAKE_CXXFLAGS += -Wextra
+    QMAKE_CXXFLAGS += -finstrument-functions
     LIBS += -ldl -lmikmod
 
     macx {
@@ -112,6 +117,21 @@ win32-msvc* {
     LIBS += -lAdvapi32
 }
 
+# Windows instrumentation: MinGW uses -finstrument-functions, MSVC uses /Gh
+win32 {
+    win32-g++ {
+        QMAKE_CXXFLAGS += -finstrument-functions
+        SOURCES += \
+            src/debug_instrument_win.cpp
+    }
+    win32-msvc* {
+        QMAKE_CXXFLAGS += /Gh
+        LIBS += -lDbghelp
+        SOURCES += \
+            src/debug_instrument_win.cpp
+    }
+}
+
 macx {
     ICON = WaffleUI/WaffleCopyPRO-icon.png
     QMAKE_APPLE_ARCHS = x86_64 arm64
@@ -119,3 +139,8 @@ macx {
     QMAKE_BUNDLE_DATA.fonts.path = Contents/Resources/fonts
     BUNDLE_DATA += QMAKE_BUNDLE_DATA.fonts
 }
+
+# capsimg integration: by default link the built capsimg library in lib/capsimg
+# To compile capsimg sources into the binary use: CONFIG += capsimg_static
+CONFIG += capsimg_static
+include(capsimg.pri)
