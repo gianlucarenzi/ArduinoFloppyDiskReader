@@ -68,3 +68,15 @@ CVS
 /waffleCopyPRO-Universal/moc_diagnosticthread.o
 /waffleCopyPRO-Universal/adfwritermanager.o
 /waffleCopyPRO-Universal/debugmsg.o
+# Build artifacts
+*.o
+*.so
+*.dll
+*.dylib
+capsimg.so
+capsimg.dll
+config.status
+config.log
+autom4te.cache/
+# FS build artifacts
+libcapsimage.so*
