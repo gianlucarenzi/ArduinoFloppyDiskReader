@@ -103,7 +103,6 @@ win32 {
 
 unix {
     QMAKE_CXXFLAGS += -Wextra
-    QMAKE_CXXFLAGS += -finstrument-functions
     LIBS += -ldl -lmikmod
 
     macx {
@@ -117,19 +116,9 @@ win32-msvc* {
     LIBS += -lAdvapi32
 }
 
-# Windows instrumentation: MinGW uses -finstrument-functions, MSVC uses /Gh
+# Instrumentation removed: no global -finstrument-functions or instrument sources
 win32 {
-    win32-g++ {
-        QMAKE_CXXFLAGS += -finstrument-functions
-        SOURCES += \
-            src/debug_instrument_win.cpp
-    }
-    win32-msvc* {
-        QMAKE_CXXFLAGS += /Gh
-        LIBS += -lDbghelp
-        SOURCES += \
-            src/debug_instrument_win.cpp
-    }
+    # instrumentation disabled in project
 }
 
 macx {
