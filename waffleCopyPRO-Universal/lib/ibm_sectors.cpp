@@ -1,3 +1,4 @@
+#include "debugmsg.h"
 /* Taken from DiskFlashback, Copyright (C) 2021-2024 Robert Smith (@RobSmithDev)
  * https://robsmithdev.co.uk/diskflashback
  *
@@ -69,7 +70,8 @@ namespace IBM {
 
 
 	// IAM Header data structore
-	typedef struct alignas(1) {
+	typedef struct alignas(1)
+{
 		unsigned char addressMark[4]; // should be 0xA1A1A1FE
 		unsigned char cylinder;
 		unsigned char head;
@@ -100,14 +102,17 @@ namespace IBM {
 
 
 	// Simple byte swap
-	inline uint16_t wordSwap(uint16_t w) {
+	inline uint16_t wordSwap(uint16_t w)
+{
 		return (w << 8) | (w >> 8);
 	}
 
 	// CRC16
-	uint16_t crc16(char* pData, int length, uint32_t wCrc = 0xFFFF) {
+	uint16_t crc16(char* pData, int length, uint32_t wCrc = 0xFFFF)
+{
 		uint8_t i;
-		while (length--) {
+		while (length--)
+{
 			wCrc ^= *(unsigned char*)pData++ << 8;
 			for (i = 0; i < 8; i++)
 				wCrc = wCrc & 0x8000 ? (wCrc << 1) ^ 0x1021 : wCrc << 1;
@@ -116,14 +121,17 @@ namespace IBM {
 	}
 
 	// Extract the data, properly aligned into the output
-	void extractMFMDecodeRaw(const unsigned char* inTrack, const uint32_t dataLengthInBits, const uint32_t bitPos, uint32_t outputBytes, uint8_t* output) {
+	void extractMFMDecodeRaw(const unsigned char* inTrack, const uint32_t dataLengthInBits, const uint32_t bitPos, uint32_t outputBytes, uint8_t* output)
+{
 
 		uint32_t realBitPos = bitPos + 1;  // the +1 skips past the clock bit
 
 		unsigned char* memOut = output;
 
-		while (outputBytes) {
-			for (uint32_t bit = 0; bit <= 7; bit++) {
+		while (outputBytes)
+{
+			for (uint32_t bit = 0; bit <= 7; bit++)
+{
 				*memOut <<= 1;
 				const uint32_t trackBytePos = realBitPos >> 3;
 				const uint32_t trackBitPos = 7 - (realBitPos & 7);
@@ -138,7 +146,8 @@ namespace IBM {
 
 	// Searches for sectors - you can re-call this and it will update decodedTrack rather than replace it
 	// nonstandardTimings is set to true if this uses non-standard timings like those used by Atari etc
-	void findSectors_IBM(const uint8_t* track, const uint32_t dataLengthInBits, const bool isHD, const uint32_t trackNumber, const uint32_t expectedNumSectors, DecodedTrack& decodedTrack, bool& nonstandardTimings) {
+	void findSectors_IBM(const uint8_t* track, const uint32_t dataLengthInBits, const bool isHD, const uint32_t trackNumber, const uint32_t expectedNumSectors, DecodedTrack& decodedTrack, bool& nonstandardTimings)
+{
 		const uint32_t cylinder = trackNumber / 2;
 		const bool upperSide = trackNumber & 1;
 
@@ -161,16 +170,19 @@ namespace IBM {
 		uint32_t numGaps = 0;
 
 		// run the entire track length with some space to wrap around
-		for (uint32_t bit = 0; bit < dataLengthInBits; bit++) {
+		for (uint32_t bit = 0; bit < dataLengthInBits; bit++)
+{
 			const uint32_t realBitPos = bit % dataLengthInBits;
 			const uint32_t trackBytePos = realBitPos >> 3;
 			const uint32_t trackBitPos = 7 - (realBitPos & 7);
 			decoded <<= 1ULL;   // shift off one bit to make room for the new bit
 			if (track[trackBytePos] & (1 << trackBitPos)) decoded |= 1;
 
-			if (decoded == MFM_SYNC_SECTOR_HEADER) {
+			if (decoded == MFM_SYNC_SECTOR_HEADER)
+{
 				// Grab sector header
-				if (sectorEndPoint) {
+				if (sectorEndPoint)
+{
 					uint32_t markerStart = bit + 1 - 64;
 					uint32_t bytesBetweenSectors = (markerStart - sectorEndPoint) / 16;
 					bytesBetweenSectors = std::max(0, (int32_t)bytesBetweenSectors - (12 * 2));   // these would be the SYNC AA or 55
@@ -184,7 +196,8 @@ namespace IBM {
 				uint16_t crc = crc16((char*)&sector.header, sizeof(sector.header) - 2);
 				sector.headerErrors = 0;
 				headerFound = true;
-				if (sector.header.sector < 1) {
+				if (sector.header.sector < 1)
+{
 					sector.header.sector = 1;
 					sector.headerErrors++;
 				}
@@ -197,8 +210,10 @@ namespace IBM {
 				lastSectorNumber = sector.header.sector;
 			}
 			else
-				if (decoded == MFM_SYNC_SECTOR_DATA) {
-					if (!headerFound) {
+				if (decoded == MFM_SYNC_SECTOR_DATA)
+{
+					if (!headerFound)
+{
 						// Sector header was missing. We'll "guess" one - not ideal!
 						lastSectorNumber++;
 						sector.header = {};
@@ -209,7 +224,8 @@ namespace IBM {
 						sector.headerErrors = 0xF0;
 						//headerFound = !beMoreStrict;
 					}
-					if (headerFound) {
+					if (headerFound)
+{
 						const uint32_t sectorDataSize = 1 << (7 + sector.header.length);
 						if (sector.data.data.size() != sectorDataSize) sector.data.data.resize(sectorDataSize);
 						uint32_t bitStart = bit + 1 - 64;
@@ -233,13 +249,15 @@ namespace IBM {
 
 						// See if this already exists 
 						auto it = decodedTrack.sectors.find(sector.header.sector - 1);
-						if (it == decodedTrack.sectors.end()) {
+						if (it == decodedTrack.sectors.end())
+{
 							if (sector.header.sector <= 22)
 								decodedTrack.sectors.insert(std::make_pair(sector.header.sector - 1, sec));
 						}
 						else {
 							// Does exist. Keep the better copy
-							if (it->second.numErrors > sec.numErrors) {
+							if (it->second.numErrors > sec.numErrors)
+{
 								it->second.data = sec.data;
 								it->second.numErrors = sec.numErrors;
 							}
@@ -253,7 +271,8 @@ namespace IBM {
 					}
 				}
 				else
-					if (decoded == MFM_SYNC_TRACK_HEADER) {
+					if (decoded == MFM_SYNC_TRACK_HEADER)
+{
 						// Reset here, not reqally required, but why not!
 						headerFound = false;
 						sector.headerErrors = 0xFFFF;
@@ -263,7 +282,8 @@ namespace IBM {
 		}
 
 		// Work out the average gap size
-		if (numGaps) {
+		if (numGaps)
+{
 			gapTotal /= numGaps;
 			nonstandardTimings = gapTotal < 70;  // less than is probably an Atari ST disk
 		}
@@ -273,12 +293,15 @@ namespace IBM {
 
 		// Add dummy sectors upto expectedSectors
 		decodedTrack.sectorsWithErrors = 0;
-		for (uint32_t sec = 0; sec < expectedSectors; sec++) {
+		for (uint32_t sec = 0; sec < expectedSectors; sec++)
+{
 			auto it = decodedTrack.sectors.find(sec);
 
 			// Does a sector with this number exist?
-			if (it == decodedTrack.sectors.end()) {
-				if (expectedNumSectors) {
+			if (it == decodedTrack.sectors.end())
+{
+				if (expectedNumSectors)
+{
 					// No. Create a dummy one - VERY NOT IDEAL!
 					DecodedSector tmp;
 					tmp.data.resize(sectorDataSize);
@@ -294,7 +317,8 @@ namespace IBM {
 	}
 
 	// Feed in Track 0, sector 0 and this will try to extract the number of sectors per track, or 0 on error
-	bool getTrackDetails_IBM(const uint8_t* sector, uint32_t& serialNumber, uint32_t& numHeads, uint32_t& totalSectors, uint32_t& sectorsPerTrack, uint32_t& bytesPerSector) {
+	bool getTrackDetails_IBM(const uint8_t* sector, uint32_t& serialNumber, uint32_t& numHeads, uint32_t& totalSectors, uint32_t& sectorsPerTrack, uint32_t& bytesPerSector)
+{
 		sectorsPerTrack = 0;
 		serialNumber = 0;
 		if (!sector) return false;
@@ -314,7 +338,8 @@ namespace IBM {
 
 
 	// Feed in Track 0, sector 0 and this will try to extract the number of sectors per track, or 0 on error
-	bool getTrackDetails_IBM(const DecodedTrack* decodedTrack, uint32_t& serialNumber, uint32_t& numHeads, uint32_t& totalSectors, uint32_t& sectorsPerTrack, uint32_t& bytesPerSector) {
+	bool getTrackDetails_IBM(const DecodedTrack* decodedTrack, uint32_t& serialNumber, uint32_t& numHeads, uint32_t& totalSectors, uint32_t& sectorsPerTrack, uint32_t& bytesPerSector)
+{
 		sectorsPerTrack = 0;
 		serialNumber = 0;
 
@@ -327,16 +352,20 @@ namespace IBM {
 
 
 	// Very nasty, I'm sure theres a better way than this
-	uint32_t encodeMFMdata(const uint8_t* input, uint8_t* output, const uint32_t inputSize, uint8_t& lastByte, uint8_t* memOverflow) {
+	uint32_t encodeMFMdata(const uint8_t* input, uint8_t* output, const uint32_t inputSize, uint8_t& lastByte, uint8_t* memOverflow)
+{
 
 		bool lastBit = lastByte & 1;
-		for (uint32_t b = 0; b < inputSize; b++) {
+		for (uint32_t b = 0; b < inputSize; b++)
+{
 			if (output >= memOverflow) return std::max(((int32_t)b) - 1, 0) << 1;
 
 			uint8_t byte = *input++;
-			for (uint32_t bit = 0; bit < 8; bit++) {
+			for (uint32_t bit = 0; bit < 8; bit++)
+{
 				*output <<= 2;
-				if (byte & 0x80) {
+				if (byte & 0x80)
+{
 					*output |= 1;
 					lastBit = true;
 				}
@@ -346,7 +375,8 @@ namespace IBM {
 				}
 				// Move to next bit
 				byte <<= 1;
-				if (bit == 3) {
+				if (bit == 3)
+{
 					output++;
 					if (output >= memOverflow) return b << 1;
 				}
@@ -359,7 +389,8 @@ namespace IBM {
 
 
 	// The fill is 0x4E, which endoded as MFM is
-	uint32_t gapFillMFM(uint8_t* mem, const uint32_t size, const uint8_t value, uint8_t& lastByte, uint8_t* memOverflow) {
+	uint32_t gapFillMFM(uint8_t* mem, const uint32_t size, const uint8_t value, uint8_t& lastByte, uint8_t* memOverflow)
+{
 		std::vector<uint8_t> data;
 		if (size < 1) return 0;
 		data.resize(size, value);
@@ -367,12 +398,14 @@ namespace IBM {
 	}
 
 	// The fill is 0x4E, which endoded as MFM is
-	uint32_t writeRawMFM(uint8_t* mem, const uint32_t size, const uint8_t value, uint8_t& lastByte, uint8_t* memOverflow) {
+	uint32_t writeRawMFM(uint8_t* mem, const uint32_t size, const uint8_t value, uint8_t& lastByte, uint8_t* memOverflow)
+{
 		if (size < 1) return 0;
 		if (mem >= memOverflow) return 0;
 		if ((lastByte & 1) && (value & 0x80)) *mem = value & 0x7F; else *mem = value;
 		mem++;
-		for (uint8_t i = 1; i < size; i++) {
+		for (uint8_t i = 1; i < size; i++)
+{
 			if (mem >= memOverflow) return i;
 			*mem = value;
 			mem++;
@@ -382,11 +415,14 @@ namespace IBM {
 	}
 
 	// The fill is 0x4E, which endoded as MFM is
-	uint32_t writeMarkerMFM(uint8_t* mem, const uint64_t value, uint8_t& lastByte, uint8_t* memOverflow) {
+	uint32_t writeMarkerMFM(uint8_t* mem, const uint64_t value, uint8_t& lastByte, uint8_t* memOverflow)
+{
 		uint64_t v = value;
-		for (uint32_t byte = 0; byte < 8; byte++) {
+		for (uint32_t byte = 0; byte < 8; byte++)
+{
 			if (mem >= memOverflow) return byte;
-			for (uint32_t bit = 0; bit < 8; bit++) {
+			for (uint32_t bit = 0; bit < 8; bit++)
+{
 				*mem <<= 1;
 				if (v & 0x8000000000000000ULL) *mem |= 1;
 				v <<= 1ULL;
@@ -402,7 +438,8 @@ namespace IBM {
 #pragma warning(disable: 4100)
 #endif
 	// Encode the track supplied into a raw MFM bit-stream
-	uint32_t encodeSectorsIntoMFM_IBM(const bool isHD, bool forceAtariTiming, DecodedTrack* decodedTrack, const uint32_t trackNumber, uint32_t mfmBufferSizeBytes, void* trackData) {
+	uint32_t encodeSectorsIntoMFM_IBM(const bool isHD, bool forceAtariTiming, DecodedTrack* decodedTrack, const uint32_t trackNumber, uint32_t mfmBufferSizeBytes, void* trackData)
+{
 		uint8_t lastByte = 0x55;
 		const uint32_t cylinder = trackNumber / 2;
 		const bool upperSide = trackNumber & 1;
@@ -416,14 +453,16 @@ namespace IBM {
 		if (decodedTrack->sectors.size() > 21) return 0;
 
 		// NOTE: ALL OF THE ATARI TIMINGS NEED CHECKING!
-		if (forceAtariTiming) {
+		if (forceAtariTiming)
+{
 			gap1Size = 60;
 			gap2Size = 22;
 			gap3Size = 40;
 			gap4bSize = 60;
 		}
 
-		switch (decodedTrack->sectors.size()) {
+		switch (decodedTrack->sectors.size())
+{
 		case 10: // double density atari
 			gap3Size = 40;
 			forceAtariTiming = true;
@@ -460,13 +499,15 @@ namespace IBM {
 		uint8_t* mem = (uint8_t*)trackData;
 		uint8_t* memOverflow = mem + mfmBufferSizeBytes;
 
-		if (!forceAtariTiming) {
+		if (!forceAtariTiming)
+{
 			mem += gapFillMFM(mem, gap4aSize, 0x4E, lastByte, memOverflow);
 			mem += writeRawMFM(mem, 24, 0xAA, lastByte, memOverflow);
 			mem += writeMarkerMFM(mem, MFM_SYNC_TRACK_HEADER, lastByte, memOverflow);
 		}
 		mem += gapFillMFM(mem, gap1Size, 0x4E, lastByte, memOverflow);
-		for (uint32_t sec = 0; sec < decodedTrack->sectors.size(); sec++) {
+		for (uint32_t sec = 0; sec < decodedTrack->sectors.size(); sec++)
+{
 			const DecodedSector& sector = decodedTrack->sectors[sec];
 
 			mem += writeRawMFM(mem, 24, 0xAA, lastByte, memOverflow);
