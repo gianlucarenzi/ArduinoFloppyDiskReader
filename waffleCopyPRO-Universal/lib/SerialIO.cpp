@@ -1,3 +1,4 @@
+#include "debugmsg.h"
 /* Serial/IO Library
 *
 * Copyright (C) 2021-2024 Robert Smith (@RobSmithDev)
@@ -81,18 +82,22 @@ DEFINE_GUID(GUID_DEVINTERFACE_COMPORT,0x86e0d1e0, 0x8089, 0x11d0, 0x9c, 0xe4, 0x
 using convert_t = std::codecvt_utf8<wchar_t>;
 static std::wstring_convert<convert_t, wchar_t> strconverter;
 
-void quickw2a(const std::wstring& wstr, std::string& str) {
+void quickw2a(const std::wstring& wstr, std::string& str)
+{
 	str = strconverter.to_bytes(wstr);
 }
-void quicka2w(const std::string& str, std::wstring& wstr) {
+void quicka2w(const std::string& str, std::wstring& wstr)
+{
 	wstr = strconverter.from_bytes(str);
 }
 
 // Constructor etc
-SerialIO::SerialIO() {
+SerialIO::SerialIO()
+{
 }
 
-SerialIO::~SerialIO() {
+SerialIO::~SerialIO()
+{
 #ifdef FTDI_D2XX_AVAILABLE
 	m_ftdi.FT_Close();
 #endif
@@ -114,11 +119,13 @@ bool SerialIO::isPortOpen() const {
 }
 
 // Purge any data left in the buffer
-void SerialIO::purgeBuffers() {
+void SerialIO::purgeBuffers()
+{
 	if (!isPortOpen()) return;
 
 #ifdef FTDI_D2XX_AVAILABLE
-	if (m_ftdi.isOpen()) {
+	if (m_ftdi.isOpen())
+{
 		m_ftdi.FT_Purge(true, true);
 		return;
 	}
@@ -132,11 +139,13 @@ void SerialIO::purgeBuffers() {
 }
 
 // Sets the status of the DTR line
-void SerialIO::setRTS(bool enableRTS) {
+void SerialIO::setRTS(bool enableRTS)
+{
 	if (!isPortOpen()) return;
 
 #ifdef FTDI_D2XX_AVAILABLE
-	if (m_ftdi.isOpen()) {
+	if (m_ftdi.isOpen())
+{
 		if (enableRTS) m_ftdi.FT_SetRts(); else m_ftdi.FT_ClrRts();
 		return;
 	}
@@ -151,11 +160,13 @@ void SerialIO::setRTS(bool enableRTS) {
 }
 
 // Sets the status of the DTR line
-void SerialIO::setDTR(bool enableDTR) {
+void SerialIO::setDTR(bool enableDTR)
+{
 	if (!isPortOpen()) return;
 
 #ifdef FTDI_D2XX_AVAILABLE
-	if (m_ftdi.isOpen()) {
+	if (m_ftdi.isOpen())
+{
 		if (enableDTR) m_ftdi.FT_SetDtr(); else m_ftdi.FT_ClrDtr();
 		return;
 	}
@@ -170,11 +181,13 @@ void SerialIO::setDTR(bool enableDTR) {
 }
 
 // Returns the status of the CTS pin
-bool SerialIO::getCTSStatus() {
+bool SerialIO::getCTSStatus()
+{
 	if (!isPortOpen()) return false;
 
 #ifdef FTDI_D2XX_AVAILABLE
-	if (m_ftdi.isOpen()) {
+	if (m_ftdi.isOpen())
+{
 		ULONG status;
 		if (m_ftdi.FT_GetModemStatus(&status) != FTDI::FT_STATUS::FT_OK) return false;
 		return (status & FT_MODEM_STATUS_CTS) != 0;
@@ -195,7 +208,8 @@ bool SerialIO::getCTSStatus() {
 }
 
 // Returns a list of serial ports discovered on the system
-void SerialIO::enumSerialPorts(std::vector<SerialPortInformation>& serialPorts) {
+void SerialIO::enumSerialPorts(std::vector<SerialPortInformation>& serialPorts)
+{
 	serialPorts.clear();
 
 #ifdef FTDI_D2XX_AVAILABLE
@@ -203,13 +217,17 @@ void SerialIO::enumSerialPorts(std::vector<SerialPortInformation>& serialPorts) 
 	DWORD numDevs;
 	FTDI::FTDIInterface ftdi;
 	FTDI::FT_STATUS status = ftdi.FT_CreateDeviceInfoList(&numDevs);
-	if ((status == FTDI::FT_STATUS::FT_OK) && (numDevs)) {
+	if ((status == FTDI::FT_STATUS::FT_OK) && (numDevs))
+{
 		FTDI::FT_DEVICE_LIST_INFO_NODE* devList = (FTDI::FT_DEVICE_LIST_INFO_NODE*)malloc(sizeof(FTDI::FT_DEVICE_LIST_INFO_NODE) * numDevs);
-		if (devList) {
+		if (devList)
+{
 
 			status = ftdi.FT_GetDeviceInfoList(devList, &numDevs);
-			if (status == FTDI::FT_STATUS::FT_OK) {
-				for (unsigned int index = 0; index < numDevs; index++) {
+			if (status == FTDI::FT_STATUS::FT_OK)
+{
+				for (unsigned int index = 0; index < numDevs; index++)
+{
 					SerialPortInformation info;
 					info.instanceID = std::to_wstring(devList[index].LocId);
 					info.pid = devList[index].ID & 0xFFFF;
@@ -256,8 +274,10 @@ void SerialIO::enumSerialPorts(std::vector<SerialPortInformation>& serialPorts) 
 	DWORD requiredSize = 8;
 	std::vector< GUID> tmp(8);
 	// Check 'PORTS' Guids
-	if (SetupDiClassGuidsFromNameA("Ports", (LPGUID)tmp.data(), requiredSize, &requiredSize)) {
-		if (requiredSize > 8) {
+	if (SetupDiClassGuidsFromNameA("Ports", (LPGUID)tmp.data(), requiredSize, &requiredSize))
+{
+		if (requiredSize > 8)
+{
 			tmp.resize(requiredSize);
 			if (!SetupDiClassGuidsFromNameA("Ports", (LPGUID)tmp.data(), requiredSize, &requiredSize)) requiredSize = 0;
 		}
@@ -269,8 +289,10 @@ void SerialIO::enumSerialPorts(std::vector<SerialPortInformation>& serialPorts) 
 	requiredSize = 8;
 	tmp.resize(8);
 	// Check 'MODEM' Guids
-	if (SetupDiClassGuidsFromNameA("Modem", (LPGUID)tmp.data(), requiredSize, &requiredSize)) {
-		if (requiredSize > 8) {
+	if (SetupDiClassGuidsFromNameA("Modem", (LPGUID)tmp.data(), requiredSize, &requiredSize))
+{
+		if (requiredSize > 8)
+{
 			tmp.resize(requiredSize);
 			if (!SetupDiClassGuidsFromNameA("Modem", (LPGUID)tmp.data(), requiredSize, &requiredSize)) requiredSize = 0;
 		}
@@ -280,7 +302,8 @@ void SerialIO::enumSerialPorts(std::vector<SerialPortInformation>& serialPorts) 
 				toSearch.push_back(tmp[c]);
 	}
 
-	for (GUID g : toSearch) {
+	for (GUID g : toSearch)
+{
 		// Query for hardware
 		HDEVINFO hDevInfoSet = SetupDiGetClassDevs(&g, nullptr, nullptr, DIGCF_PRESENT);
 		if (hDevInfoSet == INVALID_HANDLE_VALUE) return;
@@ -291,24 +314,29 @@ void SerialIO::enumSerialPorts(std::vector<SerialPortInformation>& serialPorts) 
 		devInfo.cbSize = sizeof(SP_DEVINFO_DATA);
 
 		// Enum devices
-		while (SetupDiEnumDeviceInfo(hDevInfoSet, devIndex, &devInfo)) {
+		while (SetupDiEnumDeviceInfo(hDevInfoSet, devIndex, &devInfo))
+{
 			HKEY key = SetupDiOpenDevRegKey(hDevInfoSet, &devInfo, DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_READ);
-			if (key != INVALID_HANDLE_VALUE) {
+			if (key != INVALID_HANDLE_VALUE)
+{
 
 				WCHAR name[128];
 				DWORD nameLength = 128;
 
 				// Get the COM Port Name
-				if (RegQueryValueExW(key, L"PortName", NULL, NULL, (LPBYTE)name, &nameLength) == ERROR_SUCCESS) {
+				if (RegQueryValueExW(key, L"PortName", NULL, NULL, (LPBYTE)name, &nameLength) == ERROR_SUCCESS)
+{
 					SerialPortInformation port;
 					port.portName = name;
 
 					// Check it starts with COM
-					if ((port.portName.length() >= 4) && (port.portName.substr(0, 3) == L"COM")) {
+					if ((port.portName.length() >= 4) && (port.portName.substr(0, 3) == L"COM"))
+{
 						// Get the hardware ID
 						nameLength = 128;
 						DWORD dwType;
-						if (SetupDiGetDeviceRegistryPropertyW(hDevInfoSet, &devInfo, SPDRP_HARDWAREID, &dwType, (LPBYTE)name, 128, &nameLength)) {
+						if (SetupDiGetDeviceRegistryPropertyW(hDevInfoSet, &devInfo, SPDRP_HARDWAREID, &dwType, (LPBYTE)name, 128, &nameLength))
+{
 							std::wstring deviceString = name;
 							int a = (int)deviceString.find(L"VID_");
 							if (a != std::wstring::npos) port.vid = wcstol(deviceString.substr(a + 4).c_str(), NULL, 16);
@@ -348,7 +376,8 @@ void SerialIO::enumSerialPorts(std::vector<SerialPortInformation>& serialPorts) 
 	dirent* entry;
 	struct stat statbuf{};
 
-	while ((entry = readdir(dir))) {
+	while ((entry = readdir(dir)))
+{
 #ifdef __APPLE__
 		std::string tmp = entry->d_name;
 		if (tmp.substr(0,7) != "tty.usb") continue;
@@ -367,7 +396,8 @@ void SerialIO::enumSerialPorts(std::vector<SerialPortInformation>& serialPorts) 
 		if (strstr(target, "virtual")) continue;
 		if (strstr(target, "bluetooth")) continue;
 
-		if (strstr(target, "usb")) {
+		if (strstr(target, "usb"))
+{
 			std::string name = "/dev/" + std::string(entry->d_name);
 
 			SerialPortInformation prt;
@@ -376,7 +406,8 @@ void SerialIO::enumSerialPorts(std::vector<SerialPortInformation>& serialPorts) 
 			std::string dirName = "/sys/class/tty/" + std::string(entry->d_name) + "/device/";
 			std::string subDir;
 
-			for (int i = 0; i < 5; i++) {
+			for (int i = 0; i < 5; i++)
+{
 				subDir += "../";
 				std::string vidPath = dirName + "/";
 				vidPath.append(subDir + "/idVendor");
@@ -403,7 +434,8 @@ void SerialIO::enumSerialPorts(std::vector<SerialPortInformation>& serialPorts) 
 				if (file == -1) continue;
 				fle = fdopen(file, "r");
 				char* p;
-				if ((p = fgets(target, sizeof(target), fle))) {
+				if ((p = fgets(target, sizeof(target), fle)))
+{
 					if (p[strlen(p) - 1] == '\n') p[strlen(p) - 1] = '\0';
 					quicka2w(target, prt.productName);
 				}
@@ -432,11 +464,13 @@ void SerialIO::enumSerialPorts(std::vector<SerialPortInformation>& serialPorts) 
 }
 
 // Attempt ot change the size of the buffers used by the OS
-void SerialIO::setBufferSizes(const unsigned int rxSize, const unsigned int txSize) {
+void SerialIO::setBufferSizes(const unsigned int rxSize, const unsigned int txSize)
+{
 	if (!isPortOpen()) return;
 
 #ifdef FTDI_D2XX_AVAILABLE
-	if (m_ftdi.isOpen()) {
+	if (m_ftdi.isOpen())
+{
 		// Larger than this size actually causes slowdowns.  This doesn't work the same as below.  Below is a buffer in Windows.  This is on the USB device I think
 		m_ftdi.FT_SetUSBParameters(rxSize < 256 ? rxSize : 256, txSize);
 		return;
@@ -449,15 +483,18 @@ void SerialIO::setBufferSizes(const unsigned int rxSize, const unsigned int txSi
 }
 
 // Open a port by name
-SerialIO::Response SerialIO::openPort(const std::wstring& portName) {
+SerialIO::Response SerialIO::openPort(const std::wstring& portName)
+{
 	closePort();
 
 #ifdef FTDI_D2XX_AVAILABLE
-	if (portName.length() > std::string(FTDI_PORT_PREFIX).length()) {
+	if (portName.length() > std::string(FTDI_PORT_PREFIX).length())
+{
 		std::wstring prefix;
 		quicka2w(FTDI_PORT_PREFIX, prefix);
 		// Is it FTDI?
-		if (portName.substr(0, prefix.length()) == prefix) {
+		if (portName.substr(0, prefix.length()) == prefix)
+{
 			std::vector<SerialPortInformation> serialPorts;
 			enumSerialPorts(serialPorts);
 
@@ -467,8 +504,10 @@ SerialIO::Response SerialIO::openPort(const std::wstring& portName) {
 			});
 
 			// was it found?
-			if (f != serialPorts.end()) {
-				switch (m_ftdi.FT_Open(f->ftdiIndex)) {
+			if (f != serialPorts.end())
+{
+				switch (m_ftdi.FT_Open(f->ftdiIndex))
+{
 					case FTDI::FT_STATUS::FT_OK: break;
 					case FTDI::FT_STATUS::FT_DEVICE_NOT_OPENED: return Response::rInUse;
 					case FTDI::FT_STATUS::FT_DEVICE_NOT_FOUND: return Response::rNotFound;
@@ -485,8 +524,10 @@ SerialIO::Response SerialIO::openPort(const std::wstring& portName) {
 #ifdef _WIN32
 	std::wstring path = L"\\\\.\\" + portName;
 	m_portHandle = CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, 0);
-	if (m_portHandle == INVALID_HANDLE_VALUE) {
-		switch (GetLastError()) {
+	if (m_portHandle == INVALID_HANDLE_VALUE)
+{
+		switch (GetLastError())
+{
 		case ERROR_FILE_NOT_FOUND:  return Response::rNotFound;
 		case ERROR_ACCESS_DENIED:   return Response::rInUse;
 		default: return Response::rUnknownError;
@@ -502,8 +543,10 @@ SerialIO::Response SerialIO::openPort(const std::wstring& portName) {
 #else
 	m_portHandle = open(apath.c_str(), O_RDWR | O_NOCTTY);
 #endif
-	if (m_portHandle == -1) {
-		switch (errno) {
+	if (m_portHandle == -1)
+{
+		switch (errno)
+{
 		case ENOENT: return Response::rNotFound;
 		case EBUSY: return Response::rInUse;
 		default: return Response::rUnknownError;
@@ -525,11 +568,13 @@ SerialIO::Response SerialIO::openPort(const std::wstring& portName) {
 }
 
 // Shuts the port down
-void SerialIO::closePort() {
+void SerialIO::closePort()
+{
 	if (!isPortOpen()) return;
 
 #ifdef FTDI_D2XX_AVAILABLE
-	if (m_ftdi.isOpen()) {
+	if (m_ftdi.isOpen())
+{
 		m_ftdi.FT_Close();
 		return;
 	}
@@ -546,11 +591,13 @@ void SerialIO::closePort() {
 }
 
 // Changes the configuration on the port
-SerialIO::Response SerialIO::configurePort(const Configuration& configuration) {
+SerialIO::Response SerialIO::configurePort(const Configuration& configuration)
+{
 	if (!isPortOpen()) return Response::rUnknownError;
 
 #ifdef FTDI_D2XX_AVAILABLE
-	if (m_ftdi.isOpen()) {
+	if (m_ftdi.isOpen())
+{
 		if (m_ftdi.FT_SetFlowControl(configuration.ctsFlowControl ? FT_FLOW_RTS_CTS : FT_FLOW_NONE, 0, 0) != FTDI::FT_STATUS::FT_OK) return SerialIO::Response::rUnknownError;
 		if (m_ftdi.FT_SetDataCharacteristics(FTDI::FT_BITS::_8, FTDI::FT_STOP_BITS::_1, FTDI::FT_PARITY::NONE) != FTDI::FT_STATUS::FT_OK) return SerialIO::Response::rUnknownError;
 		if (m_ftdi.FT_SetBaudRate(configuration.baudRate) != FTDI::FT_STATUS::FT_OK) return SerialIO::Response::rUnknownError;
@@ -662,7 +709,8 @@ SerialIO::Response SerialIO::configurePort(const Configuration& configuration) {
 #ifdef __APPLE__
 	if (ioctl(m_portHandle, IOSSIOSPEED, &baud) == -1) return Response::rUnknownError;
 #else
-	if (baud == 9600) {
+	if (baud == 9600)
+{
 		term.c_cflag &= ~CBAUD;
 		term.c_cflag |= B9600;
 	} else {
@@ -701,11 +749,13 @@ SerialIO::Response SerialIO::configurePort(const Configuration& configuration) {
 }
 
 // Check if we wrre quick enough reading the data
-bool SerialIO::checkForOverrun() {
+bool SerialIO::checkForOverrun()
+{
 	if (!isPortOpen()) return false;
 
 #ifdef FTDI_D2XX_AVAILABLE
-	if (m_ftdi.isOpen()) {
+	if (m_ftdi.isOpen())
+{
 		ULONG status;
 		if (m_ftdi.FT_GetModemStatus(&status) != FTDI::FT_STATUS::FT_OK) return false;
 		return (status & (FT_MODEM_STATUS_OE | FT_MODEM_STATUS_FE)) != 0;
@@ -724,11 +774,13 @@ bool SerialIO::checkForOverrun() {
 }
 
 // Returns the number of bytes waiting to be read
-unsigned int SerialIO::getBytesWaiting() {
+unsigned int SerialIO::getBytesWaiting()
+{
 	if (!isPortOpen()) return 0;
 
 #ifdef FTDI_D2XX_AVAILABLE
-	if (m_ftdi.isOpen()) {
+	if (m_ftdi.isOpen())
+{
 		DWORD queueSize = 0;
 		if (m_ftdi.FT_GetQueueStatus(&queueSize) != FTDI::FT_STATUS::FT_OK) return 0;
 		return queueSize;
@@ -750,12 +802,14 @@ unsigned int SerialIO::getBytesWaiting() {
 
 // Attempts to write some data to the port.  Returns how much it actually wrote.
 // If writeAll is not TRUE then it will write what it can until it times out
-unsigned int SerialIO::write(const void* data, unsigned int dataLength) {
+unsigned int SerialIO::write(const void* data, unsigned int dataLength)
+{
 	if ((data == nullptr) || (dataLength == 0)) return 0;
 	if (!isPortOpen()) return 0;
 
 #ifdef FTDI_D2XX_AVAILABLE
-	if (m_ftdi.isOpen()) {
+	if (m_ftdi.isOpen())
+{
 		m_ftdi.FT_SetTimeouts(m_readTimeout + (m_readTimeoutMultiplier * dataLength), m_writeTimeout + (m_writeTimeoutMultiplier * dataLength));
 
 		DWORD written = 0;
@@ -784,18 +838,21 @@ unsigned int SerialIO::write(const void* data, unsigned int dataLength) {
 	FD_SET(m_portHandle, &fds);
 
 	// Write with a timeout
-	while (written < dataLength) {
+	while (written < dataLength)
+{
 		if ((timeout.tv_sec < 1) && (timeout.tv_usec < 1)) break;
 
 		int result = select(m_portHandle + 1, NULL, &fds, NULL, &timeout);
-		if (result < 0) {
+		if (result < 0)
+{
 			if (errno == EINTR || errno == EAGAIN) continue; else return 0;
 		}
 		else if (result == 0) break;
 
 		result = ::write(m_portHandle, buffer, dataLength - written);
 
-		if (result < 0) {
+		if (result < 0)
+{
 			if (errno == EINTR || errno == EAGAIN) continue; else return 0;
 		}
 
@@ -810,12 +867,14 @@ unsigned int SerialIO::write(const void* data, unsigned int dataLength) {
 }
 
 // A very simple, uncluttered version of the below, mainly for linux
-unsigned int SerialIO::justRead(void* data, unsigned int dataLength) {
+unsigned int SerialIO::justRead(void* data, unsigned int dataLength)
+{
 	if ((data == nullptr) || (dataLength == 0)) return 0;
 	if (!isPortOpen()) return 0;
 
 #ifdef FTDI_D2XX_AVAILABLE
-	if (m_ftdi.isOpen()) {
+	if (m_ftdi.isOpen())
+{
 		m_ftdi.FT_SetTimeouts(m_readTimeout + (m_readTimeoutMultiplier * dataLength), m_writeTimeout + (m_writeTimeoutMultiplier * dataLength));
 
 		DWORD dataRead = 0;
@@ -844,12 +903,14 @@ unsigned int SerialIO::justRead(void* data, unsigned int dataLength) {
 
 // Attempts to read some data from the port.  Returns how much it actually read.
 // Returns how much it actually read
-unsigned int SerialIO::read(void* data, unsigned int dataLength) {
+unsigned int SerialIO::read(void* data, unsigned int dataLength)
+{
 	if ((data == nullptr) || (dataLength == 0)) return 0;
 	if (!isPortOpen()) return 0;
 
 #ifdef FTDI_D2XX_AVAILABLE
-	if (m_ftdi.isOpen()) {
+	if (m_ftdi.isOpen())
+{
 		m_ftdi.FT_SetTimeouts(m_readTimeout + (m_readTimeoutMultiplier * dataLength), m_writeTimeout + (m_writeTimeoutMultiplier * dataLength));
 
 		DWORD dataRead = 0;
@@ -876,20 +937,24 @@ unsigned int SerialIO::read(void* data, unsigned int dataLength) {
 	FD_ZERO(&fds);
 	FD_SET(m_portHandle, &fds);
 
-	while (read < dataLength) {
-		if ((timeout.tv_sec < 1) && (timeout.tv_usec < 1)) {
+	while (read < dataLength)
+{
+		if ((timeout.tv_sec < 1) && (timeout.tv_usec < 1))
+{
 			break;
 		}
 
 		int result = select(m_portHandle + 1, &fds, NULL, NULL, &timeout);
 
-		if (result < 0) {
+		if (result < 0)
+{
 			if (errno == EINTR || errno == EAGAIN) continue; else return 0;
 		}
 		else if (result == 0) break;
 		result = ::read(m_portHandle, buffer, dataLength - read);
 
-		if (result < 0) {
+		if (result < 0)
+{
 			if (errno == EINTR || errno == EAGAIN) continue; else return 0;
 		}
 		read += result;
@@ -905,7 +970,8 @@ unsigned int SerialIO::read(void* data, unsigned int dataLength) {
 }
 
 // Update timeouts
-void SerialIO::updateTimeouts() {
+void SerialIO::updateTimeouts()
+{
 	if (!isPortOpen()) return;
 
 #ifdef _WIN32
@@ -920,7 +986,8 @@ void SerialIO::updateTimeouts() {
 }
 
 // Sets the read timeouts. The actual timeout is calculated as waitTimetimeout + (multiplier * num bytes)
-void SerialIO::setReadTimeouts(unsigned int waitTimetimeout, unsigned int multiplier) {
+void SerialIO::setReadTimeouts(unsigned int waitTimetimeout, unsigned int multiplier)
+{
 	m_readTimeout = waitTimetimeout;
 	m_readTimeoutMultiplier = multiplier;
 
@@ -928,7 +995,8 @@ void SerialIO::setReadTimeouts(unsigned int waitTimetimeout, unsigned int multip
 }
 
 // Sets the write timeouts. The actual timeout is calculated as waitTimetimeout + (multiplier * num bytes)
-void SerialIO::setWriteTimeouts(unsigned int waitTimetimeout, unsigned int multiplier) {
+void SerialIO::setWriteTimeouts(unsigned int waitTimetimeout, unsigned int multiplier)
+{
 	m_writeTimeout = waitTimetimeout;
 	m_writeTimeoutMultiplier = multiplier;
 
