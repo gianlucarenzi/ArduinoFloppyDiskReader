@@ -15,11 +15,11 @@ typedef long IOREG;
 
 typedef unsigned char UBYTE;
 typedef unsigned short UWORD;
-typedef unsigned long UDWORD;
+typedef uint32_t UDWORD;
 typedef uint64_t UQUAD;
 typedef signed char SBYTE;
 typedef signed short SWORD;
-typedef signed long SDWORD;
+typedef int32_t SDWORD;
 typedef int64_t SQUAD;
 
 typedef UBYTE *PUBYTE;
