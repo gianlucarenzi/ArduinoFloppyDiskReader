@@ -48,7 +48,7 @@ jobs:
           qmake -tp vc waffleCopyPRO-Universal.pro
           msbuild waffleCopyPRO-Universal.vcxproj /p:Configuration=Release
 
-      - name: Deploy and Package
+      - name: Deploy and Package (prepare release)
         run: |
           $ROOT = "${{ github.workspace }}"
           $RELEASE_DIR = "waffleCopyPRO-Universal/release"
@@ -86,77 +86,62 @@ jobs:
           
           Copy-Item -Path "waffleCopyPRO-Universal/fonts" -Destination $RELEASE_DIR -Recurse
           Copy-Item -Path "waffleCopyPRO-Universal/WaffleUI" -Destination $RELEASE_DIR -Recurse
-          Push-Location $RELEASE_DIR
-          Compress-Archive -Path * -DestinationPath "../waffleCopyPRO-Universal-Windows.zip"
-          Pop-Location
-
-          # Create a simple PowerShell installer that installs the zip into Program Files and creates a Start Menu shortcut
-          $installer = @'
-          param()
-          $zip = Join-Path $PSScriptRoot "waffleCopyPRO-Universal-Windows.zip"
-          $dest = Join-Path $env:ProgramFiles "WaffleCopyPRO"
-          if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
-          Expand-Archive -Path $zip -DestinationPath $dest -Force
-          $WshShell = New-Object -ComObject WScript.Shell
-          $shortcutPath = Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\WaffleCopyPRO.lnk"
-          $shortcut = $WshShell.CreateShortcut($shortcutPath)
-          $shortcut.TargetPath = Join-Path $dest "waffleCopyPRO-Universal.exe"
-          $shortcut.WorkingDirectory = $dest
-          $shortcut.Save()
-          '@
-          Set-Content -Path "waffleCopyPRO-Universal/Install-WaffleCopyPRO.ps1" -Value $installer -Encoding UTF8
         shell: pwsh
 
-      - name: Create MSI (WiX)
+      - name: Create Inno Setup Installer
         shell: pwsh
         run: |
-          choco install wixtoolset --no-progress -y
+          choco install innosetup --no-progress -y
           $RELEASE_DIR = "${{ github.workspace }}\waffleCopyPRO-Universal\release"
-          $WIXBIN = Split-Path (Get-Command candle.exe).Source
-          # Harvest files into a wxs fragment
-          & "$WIXBIN\heat.exe" dir "$RELEASE_DIR" -cg APPFILES -dr INSTALLFOLDER -scom -sreg -sfrag -gg -srd -var var.ReleaseDir -out "$env:GITHUB_WORKSPACE\app.wxs"
-          # Create product.wxs with a generated UpgradeCode
-          $upgrade = [guid]::NewGuid().ToString()
-          $product = @"
-          <?xml version='1.0' encoding='UTF-8'?>
-          <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
-            <Product Id='*' Name='WaffleCopyPRO' Language='1033' Version='1.0.0.0' Manufacturer='Waffle' UpgradeCode='$upgrade'>
-              <Package InstallerVersion='500' Compressed='yes' InstallScope='perMachine' />
-              <MediaTemplate />
-              <Directory Id='TARGETDIR' Name='SourceDir'>
-                <Directory Id='ProgramFilesFolder'>
-                  <Directory Id='INSTALLFOLDER' Name='WaffleCopyPRO' />
-                </Directory>
-              </Directory>
-              <Feature Id='ProductFeature' Title='WaffleCopyPRO' Level='1'>
-                <ComponentGroupRef Id='APPFILES'/>
-              </Feature>
-            </Product>
-          </Wix>
-          "@
-          Set-Content -Path "$env:GITHUB_WORKSPACE\\waffleCopyPRO-Universal\\product.wxs" -Value $product -Encoding UTF8
-          # Compile and link with WiX
-          & "$WIXBIN\candle.exe" -dReleaseDir="$RELEASE_DIR" "$env:GITHUB_WORKSPACE\app.wxs" -out "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\app.wixobj"
-          & "$WIXBIN\candle.exe" -dReleaseDir="$RELEASE_DIR" "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\product.wxs" -out "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\product.wixobj"
-          & "$WIXBIN\light.exe" "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\app.wixobj" "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\product.wixobj" -out "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\waffleCopyPRO-Universal.msi"
+          $ISS = "${{ github.workspace }}\waffleCopyPRO-Universal\waffleCopyPRO-Universal.iss"
+          $OutBase = "waffleCopyPRO-Universal-Setup"
+          $appName = "WaffleCopyPRO"
+          $appExe = "waffleCopyPRO-Universal.exe"
+          $version = "1.0.0"
+          $issContent = @"
+[Setup]
+AppName={$appName}
+AppVersion={$version}
+DefaultDirName={pf}\{$appName}
+DefaultGroupName={$appName}
+DisableProgramGroupPage=no
+OutputBaseFilename={$OutBase}
+Compression=lzma
+SolidCompression=yes
+ArchitecturesInstallIn64BitMode=x64
+
+[Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "italian"; MessagesFile: "compiler:Languages\\Italian.isl"
+
+[Files]
+Source: "{$RELEASE_DIR}\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+
+[Icons]
+Name: "{group}\{$appName}"; Filename: "{app}\{$appExe}"
+Name: "{userdesktop}\{$appName}"; Filename: "{app}\{$appExe}"
+
+[Run]
+Filename: "{app}\{$appExe}"; Description: "Launch {$appName}"; Flags: nowait postinstall skipifdoesntexist
+"@
+
+          Set-Content -Path $ISS -Value $issContent -Encoding UTF8
+          & "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" $ISS
+          Move-Item -Path "${{ github.workspace }}\waffleCopyPRO-Universal\Output\${OutBase}.exe" -Destination "${{ github.workspace }}\waffleCopyPRO-Universal\${OutBase}.exe" -Force
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: waffleCopyPRO-Universal-Windows
           path: |
-            waffleCopyPRO-Universal/release/
-            waffleCopyPRO-Universal/waffleCopyPRO-Universal-Windows.zip
-            waffleCopyPRO-Universal/Install-WaffleCopyPRO.ps1
-            waffleCopyPRO-Universal/waffleCopyPRO-Universal.msi
+            waffleCopyPRO-Universal/waffleCopyPRO-Universal-Setup.exe
 
       - name: Create Release and Upload Asset
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            waffleCopyPRO-Universal/waffleCopyPRO-Universal-Windows.zip
-            waffleCopyPRO-Universal/waffleCopyPRO-Universal.msi
+            waffleCopyPRO-Universal/waffleCopyPRO-Universal-Setup.exe
           draft: false
           prerelease: false
 

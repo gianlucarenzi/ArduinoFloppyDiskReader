@@ -44,20 +44,8 @@ jobs:
         cp -R fonts waffleCopyPRO-Universal.app/Contents/Resources/
         cp -R WaffleUI waffleCopyPRO-Universal.app/Contents/Resources/
 
-        # Copy CAPS framework and any dylibs into the app bundle Frameworks
+        # Frameworks folder (no CAPSImage.framework copying; CAPS integrated statically)
         mkdir -p waffleCopyPRO-Universal.app/Contents/Frameworks
-        cp -R ../lib/capsapi/universal-macosx-capsimage/CAPSImage.framework waffleCopyPRO-Universal.app/Contents/Frameworks/ || true
-        cp -R ../lib/capsapi/*.dylib waffleCopyPRO-Universal.app/Contents/Frameworks/ || true
-
-        # Set install_name for dylibs and framework binary
-        for f in waffleCopyPRO-Universal.app/Contents/Frameworks/*.dylib; do
-          [ -f "$f" ] || continue
-          basename=$(basename "$f")
-          install_name_tool -id "@rpath/$basename" "$f" || true
-        done
-        if [ -f "waffleCopyPRO-Universal.app/Contents/Frameworks/CAPSImage.framework/Versions/Current/CAPSImage" ]; then
-          install_name_tool -id "@rpath/CAPSImage.framework/Versions/Current/CAPSImage" "waffleCopyPRO-Universal.app/Contents/Frameworks/CAPSImage.framework/Versions/Current/CAPSImage" || true
-        fi
 
         # Add rpath to executables so they find the Frameworks folder
         for exe in waffleCopyPRO-Universal.app/Contents/MacOS/*; do
