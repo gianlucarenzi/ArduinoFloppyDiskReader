@@ -116,6 +116,31 @@ jobs:
             }
           }
 
+          # Ensure critical MSVC runtime DLLs are present (for Wine x64)
+          $requiredDlls = @("msvcp140_1.dll","vcruntime140_1.dll")
+          foreach ($dll in $requiredDlls) {
+            $dest = Join-Path $RELEASE_DIR $dll
+            if (-not (Test-Path $dest)) {
+              Write-Host "Looking for $dll to copy into release..."
+              # Try VS Redist location
+              if ($MSVC_REDIST) {
+                $tryPath = Join-Path $MSVC_REDIST.FullName (Join-Path "x64\Microsoft.VC142.CRT" $dll)
+                if (Test-Path $tryPath) { Copy-Item $tryPath $RELEASE_DIR -Force -ErrorAction SilentlyContinue; continue }
+              }
+              # Try WinSxS
+              $found = Get-ChildItem "C:\Windows\WinSxS" -Filter $dll -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($found) { Copy-Item $found.FullName $RELEASE_DIR -Force -ErrorAction SilentlyContinue; continue }
+              # Try extracted vc_redist payload
+              if (Test-Path "$env:TEMP\vc_redist_extracted") {
+                $found = Get-ChildItem "$env:TEMP\vc_redist_extracted" -Filter $dll -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+                if ($found) { Copy-Item $found.FullName $RELEASE_DIR -Force -ErrorAction SilentlyContinue; continue }
+              }
+              Write-Host "Warning: $dll not found in known locations"
+            } else {
+              Write-Host "$dll already present in release"
+            }
+          }
+
           # Copy CAPS DLLs if provided in repo locations
           $CAPS_PATH1 = Join-Path $ROOT "waffleCopyPRO-Universal\lib\capsapi"
           if (Test-Path $CAPS_PATH1) {
@@ -124,6 +149,13 @@ jobs:
           $CAPS_PATH2 = Join-Path $ROOT "lib\capsapi"
           if (Test-Path $CAPS_PATH2) {
             Copy-Item -Path (Join-Path $CAPS_PATH2 "*.dll") -Destination $RELEASE_DIR -Force -ErrorAction SilentlyContinue
+          }
+
+          # List release contents and report hashes for key DLLs
+          Write-Host "Release directory contents:"; Get-ChildItem $RELEASE_DIR -Recurse | Select-Object FullName, Length | ForEach-Object { Write-Host "$_" }
+          foreach ($dll in $requiredDlls) {
+            $path = Join-Path $RELEASE_DIR $dll
+            if (Test-Path $path) { Write-Host "Found $dll ->"; Get-FileHash $path -Algorithm SHA256 | ForEach-Object { Write-Host $_.Hash } } else { Write-Host "$dll missing in release" }
           }
 
           Copy-Item -Path "waffleCopyPRO-Universal/fonts" -Destination $RELEASE_DIR -Recurse -Force -ErrorAction SilentlyContinue
