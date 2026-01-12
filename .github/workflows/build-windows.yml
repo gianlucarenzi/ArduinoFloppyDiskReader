@@ -10,20 +10,15 @@ permissions:
   contents: write
 
 jobs:
-  prepare:
+  build:
     runs-on: windows-2019
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Cache vcpkg installed
-        uses: actions/cache@v4
-        with:
-          path: vcpkg/installed
-          key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/vcpkg/**') }}
-          restore-keys: |
-            ${{ runner.os }}-vcpkg-
+      - name: Skip vcpkg cache
+        run: echo "vcpkg cache disabled"
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
@@ -45,36 +40,6 @@ jobs:
         shell: cmd
         run: |
           .\vcpkg\vcpkg install libmikmod:x64-windows
-
-      - name: Upload vcpkg-installed artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vcpkg-installed
-          path: vcpkg/installed
-
-  build:
-    runs-on: windows-2019
-    needs: prepare
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download vcpkg-installed
-        uses: actions/download-artifact@v4
-        with:
-          name: vcpkg-installed
-          path: vcpkg/installed
-
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v3
-        with:
-          version:      5.15.2
-          host:        windows
-          target:       desktop
-          arch:        win64_msvc2019_64
-          dir:          ${{ runner.temp }}
-          setup-python: false
 
       - name: Build Project
         shell: cmd
@@ -108,23 +73,6 @@ jobs:
           Copy-Item -Path "waffleCopyPRO-Universal/WaffleUI" -Destination $RELEASE_DIR -Recurse -ErrorAction SilentlyContinue
         shell: pwsh
 
-      - name: Upload release artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: waffle-release
-          path: waffleCopyPRO-Universal/release
-
-  package:
-    runs-on: windows-2019
-    needs: build
-
-    steps:
-      - name: Download release artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: waffle-release
-          path: waffleCopyPRO-Universal/release
-
       - name: Install Inno Setup
         shell: pwsh
         run: |
@@ -139,7 +87,7 @@ jobs:
           $appName = "WaffleCopyPRO"
           $appExe = "waffleCopyPRO-Universal.exe"
           $version = "1.0.0"
-                    $issContent = @"
+          $issContent = @"
           [Setup]
           AppName={$appName}
           AppVersion={$version}
