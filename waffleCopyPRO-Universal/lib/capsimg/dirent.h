@@ -6,7 +6,18 @@
    License: public-domain style (small compatibility shim)
 */
 
-#ifdef _WIN32
+#if !defined(_WIN32)
+  /* If not on Windows, forward to system dirent.h to avoid shadowing it. */
+  #if defined(__has_include_next)
+    #if __has_include_next(<dirent.h>)
+      #include_next <dirent.h>
+    #else
+      #include <dirent.h>
+    #endif
+  #else
+    #include <dirent.h>
+  #endif
+#else
 
 #include <io.h>
 #include <stdlib.h>
