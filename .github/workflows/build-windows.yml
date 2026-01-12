@@ -57,9 +57,11 @@ jobs:
           & "${{ env.Qt5_Dir }}\bin\windeployqt.exe" `
             --force `
             --no-translations `
-            --no-compiler-runtime `
             --dir $RELEASE_DIR `
             "$RELEASE_DIR\waffleCopyPRO-Universal.exe" || true
+
+          # List release dir for debugging missing-runtime issues
+          Get-ChildItem -Path $RELEASE_DIR -Recurse | Select-Object FullName -First 200
 
           $VCPKG_BIN = "$ROOT\vcpkg\installed\x64-windows\bin"
           if (Test-Path $VCPKG_BIN) {
