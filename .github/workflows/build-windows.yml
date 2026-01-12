@@ -66,6 +66,16 @@ jobs:
               Copy-Item "$VCPKG_BIN\*.dll" $RELEASE_DIR -Force -ErrorAction SilentlyContinue
           }
 
+          $MSVC_REDIST = Get-ChildItem `
+            "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Redist\MSVC" `
+            -Directory | Sort-Object Name -Descending | Select-Object -First 1
+          if ($MSVC_REDIST) {
+              $CRT_PATH = Join-Path $MSVC_REDIST.FullName "x64\Microsoft.VC142.CRT"
+              if (Test-Path $CRT_PATH) {
+                  Copy-Item "$CRT_PATH\*.dll" $RELEASE_DIR -Force
+              }
+          }
+          
           Copy-Item -Path "waffleCopyPRO-Universal/fonts" -Destination $RELEASE_DIR -Recurse -ErrorAction SilentlyContinue
           Copy-Item -Path "waffleCopyPRO-Universal/WaffleUI" -Destination $RELEASE_DIR -Recurse -ErrorAction SilentlyContinue
         shell: pwsh
