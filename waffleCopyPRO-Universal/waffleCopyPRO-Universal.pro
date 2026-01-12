@@ -133,8 +133,10 @@ macx {
 }
 
 # capsimg integration: by default link the built capsimg library in lib/capsimg
-# To compile capsimg sources into the binary use: CONFIG += capsimg_static
-CONFIG += capsimg_static
+# On Unix and macOS build capsimg from sources; on Windows link against the DLL
+unix|macx {
+    CONFIG += capsimg_static
+}
 contains(CONFIG, capsimg_static) {
     message("Including capsimg sources in build (capsimg_static)")
     DEFINES += CAPS_USER
