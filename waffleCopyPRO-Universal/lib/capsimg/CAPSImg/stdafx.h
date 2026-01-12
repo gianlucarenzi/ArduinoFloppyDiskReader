@@ -27,6 +27,14 @@
 //#include <direct.h>			//-- Linux changes
 #include <dirent.h>
 
+// Core definitions required on all platforms
+#include "CommonTypes.h"
+#include "BaseFile.h"
+#include "DiskFile.h"
+#include "MemoryFile.h"
+#include "CRC.h"
+#include "BitBuffer.h"
+
 #ifndef _WIN32
 //-- Linux changes
 #include <stddef.h>			// offsetof
@@ -35,7 +43,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <time.h>			// localtime
+#ifndef MAX_PATH
 #define MAX_PATH ( 260 )
+#endif
 #ifndef __cdecl
 #define __cdecl
 #endif
@@ -47,7 +57,9 @@ typedef const char *LPCTSTR;
 
 
 #define INTEL
+#ifndef MAX_FILENAMELEN
 #define MAX_FILENAMELEN (MAX_PATH*2)
+#endif
 
 // external definitions
 #include "CommonTypes.h"
@@ -107,7 +119,20 @@ typedef struct _SYSTEMTIME {
         WORD wSecond;
         WORD wMilliseconds;
 } SYSTEMTIME, *LPSYSTEMTIME;
-extern "C" void GetLocalTime(LPSYSTEMTIME lpSystemTime);
+
+static inline void GetLocalTime(LPSYSTEMTIME lpSystemTime) {
+    time_t t = time(NULL);
+    struct tm lt;
+    localtime_r(&t, &lt);
+    lpSystemTime->wYear = lt.tm_year + 1900;
+    lpSystemTime->wMonth = lt.tm_mon + 1;
+    lpSystemTime->wDayOfWeek = lt.tm_wday;
+    lpSystemTime->wDay = lt.tm_mday;
+    lpSystemTime->wHour = lt.tm_hour;
+    lpSystemTime->wMinute = lt.tm_min;
+    lpSystemTime->wSecond = lt.tm_sec;
+    lpSystemTime->wMilliseconds = 0;
+}
 #endif
 
 //-- Linux changes

@@ -11,6 +11,13 @@ typedef int16_t WORD;
 #ifndef DWORD
 typedef int32_t DWORD;
 #endif
+// Ensure MAX_PATH and MAX_FILENAMELEN defined on non-Windows
+#ifndef MAX_PATH
+#define MAX_PATH (260)
+#endif
+#ifndef MAX_FILENAMELEN
+#define MAX_FILENAMELEN (MAX_PATH*2)
+#endif
 //-- Linux changes
 
 typedef void *PVOID;
