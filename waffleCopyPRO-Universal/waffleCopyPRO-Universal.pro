@@ -164,7 +164,12 @@ contains(CONFIG, capsimg_static) {
         lib/capsimg/Core/BitBuffer.cpp \
         lib/capsimg/Core/BaseFile.cpp \
         lib/capsimg/Core/MemoryFile.cpp \
-        lib/capsimg/CAPSImg/stdafx.cpp
+        win32-msvc* { 
+            # When building with MSVC via qmake, do not add stdafx.cpp to SOURCES
+            # Visual Studio project handles precompiled header separately
+        } else {
+            lib/capsimg/CAPSImg/stdafx.cpp
+        }
 } else {
     # Not building sources: link against the compiled capsimg in lib/capsimg (relative to this project)
     unix:!macx { LIBS += $$PWD/lib/capsimg/capsimg.so }
