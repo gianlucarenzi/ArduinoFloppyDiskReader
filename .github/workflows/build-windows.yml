@@ -161,6 +161,16 @@ jobs:
           Copy-Item -Path "waffleCopyPRO-Universal/fonts" -Destination $RELEASE_DIR -Recurse -Force -ErrorAction SilentlyContinue
           Copy-Item -Path "waffleCopyPRO-Universal/WaffleUI" -Destination $RELEASE_DIR -Recurse -Force -ErrorAction SilentlyContinue
 
+          # Rename internal .zip files to include tag (if build from a tag)
+          $tag = ''
+          if ($env:GITHUB_REF -and $env:GITHUB_REF -match 'refs/tags/(v.+)') { $tag = $Matches[1] } elseif ($env:GITHUB_REF -and $env:GITHUB_REF -match 'refs/tags/(.+)') { $tag = $Matches[1] }
+          if ($tag) {
+            Get-ChildItem -Path $RELEASE_DIR -Filter '*.zip' -File | ForEach-Object {
+              $newName = $_.BaseName + "_$tag" + $_.Extension
+              Rename-Item -Path $_.FullName -NewName $newName -Force
+            }
+          }
+
           Push-Location $RELEASE_DIR
           Compress-Archive -Path * -DestinationPath "../waffleCopyPRO-Universal-Windows.zip" -Force
           Pop-Location
