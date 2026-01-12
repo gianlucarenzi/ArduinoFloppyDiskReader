@@ -1037,7 +1037,7 @@ void MainWindow::refreshSerialPorts()
     QString currentPortName = ui->serialPortComboBox->currentText();
     ui->serialPortComboBox->clear();
 
-    // Add all QSerialPortInfo ports
+    // Add all QSerialPortInfo ports (ONLY FTDI devices)
     QList<QString> addedPorts;
     for (const QSerialPortInfo &info : QSerialPortInfo::availablePorts()) {
         QString portName = info.portName();
@@ -1045,10 +1045,22 @@ void MainWindow::refreshSerialPorts()
         if (!portName.startsWith("/dev/"))
             portName.prepend("/dev/");
 #endif
-        // On Linux avoid listing legacy 16550 ttyS* devices; keep USB serials (ttyUSB*).
-#ifdef Q_OS_LINUX
-        if (portName.startsWith("/dev/ttyS")) continue;
-#endif
+        // Accept only FTDI devices: VID 0x0403 and known FTDI PIDs, or product/manufacturer/description containing "ftdi"
+        bool isFTDI = false;
+        const quint16 FTDI_VID = 0x0403;
+        static const QVector<quint16> FTDI_PIDS = { 0x6001, 0x6010, 0x6011, 0x6014 };
+        if (info.hasVendorIdentifier() && info.hasProductIdentifier()) {
+            if ((quint16)info.vendorIdentifier() == FTDI_VID && FTDI_PIDS.contains((quint16)info.productIdentifier())) isFTDI = true;
+        }
+        // Fallback by textual match
+        if (!isFTDI) {
+            QString desc = info.description().toLower();
+            QString manuf = info.manufacturer().toLower();
+            if (desc.contains("ftdi") || manuf.contains("ftdi") || info.portName().toLower().contains("ftdi")) isFTDI = true;
+        }
+
+        if (!isFTDI) continue;
+
         ui->serialPortComboBox->addItem(portName);
         addedPorts.append(portName);
     }
