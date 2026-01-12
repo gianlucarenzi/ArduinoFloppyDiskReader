@@ -161,27 +161,23 @@ jobs:
           Copy-Item -Path "waffleCopyPRO-Universal/fonts" -Destination $RELEASE_DIR -Recurse -Force -ErrorAction SilentlyContinue
           Copy-Item -Path "waffleCopyPRO-Universal/WaffleUI" -Destination $RELEASE_DIR -Recurse -Force -ErrorAction SilentlyContinue
 
-          # Rename internal .zip files to include tag (if build from a tag)
-          $tag = ''
-          if ($env:GITHUB_REF -and $env:GITHUB_REF -match 'refs/tags/(v.+)') { $tag = $Matches[1] } elseif ($env:GITHUB_REF -and $env:GITHUB_REF -match 'refs/tags/(.+)') { $tag = $Matches[1] }
-          if ($tag) {
-            Get-ChildItem -Path $RELEASE_DIR -Filter '*.zip' -File | ForEach-Object {
-              $newName = $_.BaseName + "_$tag" + $_.Extension
-              Rename-Item -Path $_.FullName -NewName $newName -Force
-            }
-          }
-
-          Push-Location $RELEASE_DIR
-          Compress-Archive -Path * -DestinationPath "../waffleCopyPRO-Universal-Windows.zip" -Force
-          Pop-Location
-
           # Create a simple PowerShell installer script in repo (optional)
           $installer = @'
           param()
-          $zip = Join-Path $PSScriptRoot "waffleCopyPRO-Universal-Windows.zip"
+          $src = $PSScriptRoot
           $dest = Join-Path $env:ProgramFiles "WaffleCopyPRO"
           if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
-          Expand-Archive -Path $zip -DestinationPath $dest -Force
+          # Copy all files from current folder into destination
+          Get-ChildItem -Path $src -Recurse | ForEach-Object {
+            $rel = $_.FullName.Substring($src.Length).TrimStart('\','/')
+            if ([string]::IsNullOrEmpty($rel)) { return }
+            $target = Join-Path $dest $rel
+            if ($_.PSIsContainer) {
+              if (-not (Test-Path $target)) { New-Item -ItemType Directory -Path $target -Force | Out-Null }
+            } else {
+              Copy-Item $_.FullName $target -Force -ErrorAction SilentlyContinue
+            }
+          }
           $WshShell = New-Object -ComObject WScript.Shell
           $shortcutPath = Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\WaffleCopyPRO.lnk"
           $shortcut = $WshShell.CreateShortcut($shortcutPath)
@@ -197,14 +193,14 @@ jobs:
         with:
           name: waffleCopyPRO-Universal-Windows
           path: |
-            waffleCopyPRO-Universal/waffleCopyPRO-Universal-Windows.zip
+            waffleCopyPRO-Universal/release
 
       - name: Create Release and Upload Asset
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            waffleCopyPRO-Universal/waffleCopyPRO-Universal-Windows.zip
+            waffleCopyPRO-Universal/release/**
           draft: false
           prerelease: false
 
