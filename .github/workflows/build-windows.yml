@@ -17,7 +17,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
@@ -31,8 +30,8 @@ jobs:
       - name: Install vcpkg
         shell: cmd
         run: |
-          if not exist vcpkg git clone --branch 2025.12.12 https://github.com/microsoft/vcpkg.git
-          if exist vcpkg ( .\vcpkg\bootstrap-vcpkg.bat )
+          git clone --branch 2025.12.12 https://github.com/microsoft/vcpkg.git
+          .\vcpkg\bootstrap-vcpkg.bat
 
       - name: Install libmikmod (vcpkg)
         shell: cmd
@@ -47,62 +46,31 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           cd waffleCopyPRO-Universal
           qmake -tp vc waffleCopyPRO-Universal.pro
-          msbuild waffleCopyPRO-Universal.vcxproj /p:Configuration=Release /p:Platform=x64
+          msbuild waffleCopyPRO-Universal.vcxproj /p:Configuration=Release
 
-      - name: Deploy and prepare release folder
+      - name: Deploy and Package
         run: |
           $ROOT = "${{ github.workspace }}"
           $RELEASE_DIR = "waffleCopyPRO-Universal/release"
-          New-Item -ItemType Directory -Path $RELEASE_DIR -Force -ErrorAction SilentlyContinue | Out-Null
           & "${{ env.Qt5_Dir }}\bin\windeployqt.exe" `
-            --force `
-            --no-translations `
-            --dir $RELEASE_DIR `
-            "$RELEASE_DIR\waffleCopyPRO-Universal.exe" || true
-
-          # List release dir for debugging missing-runtime issues
-          Get-ChildItem -Path $RELEASE_DIR -Recurse | Select-Object FullName -First 200
-
+          --force `
+          --no-translations `
+          --no-compiler-runtime `
+          --dir $RELEASE_DIR `
+          "$RELEASE_DIR\waffleCopyPRO-Universal.exe"
+          
           $VCPKG_BIN = "$ROOT\vcpkg\installed\x64-windows\bin"
           if (Test-Path $VCPKG_BIN) {
-              Copy-Item "$VCPKG_BIN\*.dll" $RELEASE_DIR -Force -ErrorAction SilentlyContinue
+              Copy-Item "$VCPKG_BIN\*.dll" $RELEASE_DIR -Force
           }
-
-          # Attempt to copy MSVC runtime from Visual Studio Redist (try multiple locations)
+          
           $MSVC_REDIST = Get-ChildItem `
-            "C:\Program Files (x86)\Microsoft Visual Studio\2019" -Recurse -Directory -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like '*Redist\\MSVC*' } | Sort-Object Name -Descending | Select-Object -First 1
+            "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Redist\MSVC" `
+            -Directory | Sort-Object Name -Descending | Select-Object -First 1
           if ($MSVC_REDIST) {
               $CRT_PATH = Join-Path $MSVC_REDIST.FullName "x64\Microsoft.VC142.CRT"
               if (Test-Path $CRT_PATH) {
-                  Copy-Item "$CRT_PATH\*.dll" $RELEASE_DIR -Force -ErrorAction SilentlyContinue
-              } else {
-                  # fallback: search for Microsoft.VC142.CRT dirs under VS installs
-                  $crtDirs = Get-ChildItem -Path 'C:\Program Files (x86)\Microsoft Visual Studio\2019' -Recurse -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'Microsoft.VC142.CRT' }
-                  foreach ($d in $crtDirs) {
-                      Copy-Item "$(Join-Path $d.FullName '*.dll')" $RELEASE_DIR -Force -ErrorAction SilentlyContinue
-                  }
-              }
-          } else {
-              # final fallback: try to find vcruntime140_1.dll under WinSxS and copy any matches
-              $possible = Get-ChildItem -Path 'C:\Windows\WinSxS' -Filter 'vcruntime140_1.dll' -Recurse -ErrorAction SilentlyContinue -Force
-              foreach ($p in $possible) {
-                  Copy-Item $p.FullName $RELEASE_DIR -Force -ErrorAction SilentlyContinue
-              }
-          }
-
-          # Ensure specific MSVC runtime DLLs are present in release for Wine or portable installs
-          $runtimeNames = @('msvcp140_1.dll','vcruntime140_1.dll','msvcp140.dll','vcruntime140.dll')
-          foreach ($name in $runtimeNames) {
-              $found = Get-ChildItem -Path 'C:\Program Files (x86)\Microsoft Visual Studio\2019' -Recurse -Filter $name -ErrorAction SilentlyContinue -Force | Select-Object -ExpandProperty FullName -ErrorAction SilentlyContinue
-              if (!$found) {
-                  $found = Get-ChildItem -Path 'C:\Windows\WinSxS' -Recurse -Filter $name -ErrorAction SilentlyContinue -Force | Select-Object -ExpandProperty FullName -ErrorAction SilentlyContinue
-              }
-              if (!$found) {
-                  $sys = Join-Path $env:SystemRoot $name
-                  if (Test-Path $sys) { $found = $sys }
-              }
-              foreach ($f in @($found)) {
-                  if ($f -and (Test-Path $f)) { Copy-Item $f $RELEASE_DIR -Force -ErrorAction SilentlyContinue }
+                  Copy-Item "$CRT_PATH\*.dll" $RELEASE_DIR -Force
               }
           }
 
@@ -115,70 +83,80 @@ jobs:
           if (Test-Path $CAPS_PATH2) {
             Copy-Item -Path (Join-Path $CAPS_PATH2 "*.dll") -Destination $RELEASE_DIR -Force -ErrorAction SilentlyContinue
           }
-                    
-          Copy-Item -Path "waffleCopyPRO-Universal/fonts" -Destination $RELEASE_DIR -Recurse -ErrorAction SilentlyContinue
-          Copy-Item -Path "waffleCopyPRO-Universal/WaffleUI" -Destination $RELEASE_DIR -Recurse -ErrorAction SilentlyContinue
-
+          
+          Copy-Item -Path "waffleCopyPRO-Universal/fonts" -Destination $RELEASE_DIR -Recurse
+          Copy-Item -Path "waffleCopyPRO-Universal/WaffleUI" -Destination $RELEASE_DIR -Recurse
           Push-Location $RELEASE_DIR
-          Compress-Archive -Path * -DestinationPath "../waffleCopyPRO-Universal-Windows.zip" -Force
+          Compress-Archive -Path * -DestinationPath "../waffleCopyPRO-Universal-Windows.zip"
           Pop-Location
+
+          # Create a simple PowerShell installer that installs the zip into Program Files and creates a Start Menu shortcut
+          $installer = @'
+          param()
+          $zip = Join-Path $PSScriptRoot "waffleCopyPRO-Universal-Windows.zip"
+          $dest = Join-Path $env:ProgramFiles "WaffleCopyPRO"
+          if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
+          Expand-Archive -Path $zip -DestinationPath $dest -Force
+          $WshShell = New-Object -ComObject WScript.Shell
+          $shortcutPath = Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\WaffleCopyPRO.lnk"
+          $shortcut = $WshShell.CreateShortcut($shortcutPath)
+          $shortcut.TargetPath = Join-Path $dest "waffleCopyPRO-Universal.exe"
+          $shortcut.WorkingDirectory = $dest
+          $shortcut.Save()
+          '@
+          Set-Content -Path "waffleCopyPRO-Universal/Install-WaffleCopyPRO.ps1" -Value $installer -Encoding UTF8
         shell: pwsh
 
-      - name: Install Inno Setup
+      - name: Create MSI (WiX)
         shell: pwsh
         run: |
-          choco install innosetup --no-progress -y
-
-      - name: Create Inno Setup Installer
-        shell: pwsh
-        run: |
+          choco install wixtoolset --no-progress -y
           $RELEASE_DIR = "${{ github.workspace }}\waffleCopyPRO-Universal\release"
-          $ISS = "${{ github.workspace }}\waffleCopyPRO-Universal\waffleCopyPRO-Universal.iss"
-          $OutBase = "waffleCopyPRO-Universal-Setup"
-          $appName = "WaffleCopyPRO"
-          $appExe = "waffleCopyPRO-Universal.exe"
-          $version = "1.0.0"
-          $issContent = @"
-          [Setup]
-          AppName=$appName
-          AppVersion=$version
-          DefaultDirName={pf}\$appName
-          DefaultGroupName=$appName
-          DisableProgramGroupPage=no
-          OutputBaseFilename=$OutBase
-          Compression=lzma
-          SolidCompression=yes
-          ArchitecturesInstallIn64BitMode=x64
-          
-          [Files]
-          Source: "$RELEASE_DIR\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
-          
-          [Icons]
-          Name: "{group}\$appName"; Filename: "{app}\$appExe"
-          Name: "{userdesktop}\$appName"; Filename: "{app}\$appExe"
-          
-          [Run]
-          Filename: "{app}\$appExe"; Description: "Launch $appName"; Flags: nowait postinstall skipifdoesntexist
+          $WIXBIN = Split-Path (Get-Command candle.exe).Source
+          # Harvest files into a wxs fragment
+          & "$WIXBIN\heat.exe" dir "$RELEASE_DIR" -cg APPFILES -dr INSTALLFOLDER -scom -sreg -sfrag -gg -srd -var var.ReleaseDir -out "$env:GITHUB_WORKSPACE\app.wxs"
+          # Create product.wxs with a generated UpgradeCode
+          $upgrade = [guid]::NewGuid().ToString()
+          $product = @"
+          <?xml version='1.0' encoding='UTF-8'?>
+          <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+            <Product Id='*' Name='WaffleCopyPRO' Language='1033' Version='1.0.0.0' Manufacturer='Waffle' UpgradeCode='$upgrade'>
+              <Package InstallerVersion='500' Compressed='yes' InstallScope='perMachine' />
+              <MediaTemplate />
+              <Directory Id='TARGETDIR' Name='SourceDir'>
+                <Directory Id='ProgramFilesFolder'>
+                  <Directory Id='INSTALLFOLDER' Name='WaffleCopyPRO' />
+                </Directory>
+              </Directory>
+              <Feature Id='ProductFeature' Title='WaffleCopyPRO' Level='1'>
+                <ComponentGroupRef Id='APPFILES'/>
+              </Feature>
+            </Product>
+          </Wix>
           "@
+          Set-Content -Path "$env:GITHUB_WORKSPACE\\waffleCopyPRO-Universal\\product.wxs" -Value $product -Encoding UTF8
+          # Compile and link with WiX
+          & "$WIXBIN\candle.exe" -dReleaseDir="$RELEASE_DIR" "$env:GITHUB_WORKSPACE\app.wxs" -out "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\app.wixobj"
+          & "$WIXBIN\candle.exe" -dReleaseDir="$RELEASE_DIR" "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\product.wxs" -out "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\product.wixobj"
+          & "$WIXBIN\light.exe" "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\app.wixobj" "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\product.wixobj" -out "$env:GITHUB_WORKSPACE\waffleCopyPRO-Universal\waffleCopyPRO-Universal.msi"
 
-          Set-Content -Path $ISS -Value $issContent -Encoding UTF8
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" $ISS
-          Move-Item -Path "${{ github.workspace }}\waffleCopyPRO-Universal\Output\${OutBase}.exe" -Destination "${{ github.workspace }}\waffleCopyPRO-Universal\${OutBase}.exe" -Force
-
-      - name: Upload installer artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: waffle-setup
+          name: waffleCopyPRO-Universal-Windows
           path: |
-            waffleCopyPRO-Universal/waffleCopyPRO-Universal-Setup.exe
-            waffleCopyPRO-Universal-Windows.zip
+            waffleCopyPRO-Universal/release/
+            waffleCopyPRO-Universal/waffleCopyPRO-Universal-Windows.zip
+            waffleCopyPRO-Universal/Install-WaffleCopyPRO.ps1
+            waffleCopyPRO-Universal/waffleCopyPRO-Universal.msi
 
       - name: Create Release and Upload Asset
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            waffleCopyPRO-Universal/waffleCopyPRO-Universal-Setup.exe
+            waffleCopyPRO-Universal/waffleCopyPRO-Universal-Windows.zip
+            waffleCopyPRO-Universal/waffleCopyPRO-Universal.msi
           draft: false
           prerelease: false
 
