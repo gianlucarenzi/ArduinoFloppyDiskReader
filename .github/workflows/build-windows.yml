@@ -128,7 +128,7 @@ jobs:
           "@
 
           Set-Content -Path $ISS -Value $issContent -Encoding UTF8
-          & "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" $ISS
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" $ISS
           Move-Item -Path "${{ github.workspace }}\waffleCopyPRO-Universal\Output\${OutBase}.exe" -Destination "${{ github.workspace }}\waffleCopyPRO-Universal\${OutBase}.exe" -Force
 
       - name: Upload installer artifact
