@@ -1098,6 +1098,7 @@ void MainWindow::refreshSerialPorts()
 #ifdef _WIN32
     // If no FTDI devices found, on Windows fall back to adding all serial ports (non-FTDI)
     if (addedPorts.isEmpty()) {
+        DebugMsg::print(__func__, QString("No FTDI devices found on Windows; falling back to listing all serial ports"));
         // Add QSerialPortInfo ports without FTDI filtering
         for (const QSerialPortInfo &info : QSerialPortInfo::availablePorts()) {
             QString portName = info.portName();
@@ -1124,6 +1125,7 @@ void MainWindow::refreshSerialPorts()
     // Remove duplicate entries (normalize names) - ensure unique list
     {
         QSet<QString> seen;
+        bool removedAny = false;
         for (int i = ui->serialPortComboBox->count()-1; i>=0; --i) {
             QString name = ui->serialPortComboBox->itemText(i);
 #ifdef _WIN32
@@ -1132,8 +1134,19 @@ void MainWindow::refreshSerialPorts()
             QString key = name;
             if (!key.startsWith("/dev/")) key.prepend("/dev/");
 #endif
-            if (seen.contains(key)) ui->serialPortComboBox->removeItem(i);
-            else seen.insert(key);
+            if (seen.contains(key))
+            {
+            	ui->serialPortComboBox->removeItem(i);
+            	removedAny = true;
+            }
+            else
+            {
+            	seen.insert(key);
+            }
+        }
+        if (removedAny)
+        {
+        	DebugMsg::print(__func__, QString("Removed duplicate serial port entries"));
         }
     }
 
