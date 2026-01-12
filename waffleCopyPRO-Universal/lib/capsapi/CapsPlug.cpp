@@ -104,7 +104,11 @@ SDWORD CapsInit()
 	cpr[12].proc = (void*)CAPSLockImageMemory;
 	cpr[13].proc = (void*)CAPSGetInfo;
 	// mark capi to indicate library available
-	capi = (void*)1;
+	#ifdef _WIN32
+		capi = (HMODULE)1;
+	#else
+		capi = (void*)1;
+	#endif
 	SDWORD res = cpr[0].proc ? CAPSHOOKN(cpr[0].proc)() : imgeUnsupported;
 	return res;
 #else
