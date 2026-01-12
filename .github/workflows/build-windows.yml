@@ -118,6 +118,10 @@ jobs:
                     
           Copy-Item -Path "waffleCopyPRO-Universal/fonts" -Destination $RELEASE_DIR -Recurse -ErrorAction SilentlyContinue
           Copy-Item -Path "waffleCopyPRO-Universal/WaffleUI" -Destination $RELEASE_DIR -Recurse -ErrorAction SilentlyContinue
+
+          Push-Location $RELEASE_DIR
+          Compress-Archive -Path * -DestinationPath "../waffleCopyPRO-Universal-Windows.zip" -Force
+          Pop-Location
         shell: pwsh
 
       - name: Install Inno Setup
@@ -167,6 +171,7 @@ jobs:
           name: waffle-setup
           path: |
             waffleCopyPRO-Universal/waffleCopyPRO-Universal-Setup.exe
+            waffleCopyPRO-Universal-Windows.zip
 
       - name: Create Release and Upload Asset
         if: startsWith(github.ref, 'refs/tags/v')
