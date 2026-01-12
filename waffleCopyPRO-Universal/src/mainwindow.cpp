@@ -1121,6 +1121,23 @@ void MainWindow::refreshSerialPorts()
     }
 #endif
 
+    // Remove duplicate entries (normalize names) - ensure unique list
+    {
+        QSet<QString> seen;
+        for (int i = ui->serialPortComboBox->count()-1; i>=0; --i) {
+            QString name = ui->serialPortComboBox->itemText(i);
+#ifdef _WIN32
+            QString key = name.toLower();
+#else
+            QString key = name;
+            if (!key.startsWith("/dev/")) key.prepend("/dev/");
+#endif
+            if (seen.contains(key)) ui->serialPortComboBox->removeItem(i);
+            else seen.insert(key);
+        }
+    }
+
+
     // Restore previous selection if still available
     if (!currentPortName.isEmpty()) {
         int index = ui->serialPortComboBox->findText(currentPortName);
