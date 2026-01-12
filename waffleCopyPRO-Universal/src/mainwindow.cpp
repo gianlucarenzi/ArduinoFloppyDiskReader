@@ -1095,6 +1095,32 @@ void MainWindow::refreshSerialPorts()
         addedPorts.append(portName);
     }
 
+#ifdef _WIN32
+    // If no FTDI devices found, on Windows fall back to adding all serial ports (non-FTDI)
+    if (addedPorts.isEmpty()) {
+        // Add QSerialPortInfo ports without FTDI filtering
+        for (const QSerialPortInfo &info : QSerialPortInfo::availablePorts()) {
+            QString portName = info.portName();
+#ifndef _WIN32
+            if (!portName.startsWith("/dev/"))
+                portName.prepend("/dev/");
+#endif
+            if (addedPorts.contains(portName)) continue;
+            ui->serialPortComboBox->addItem(portName);
+            addedPorts.append(portName);
+        }
+        // Add SerialIO ports without FTDI filtering
+        for (const auto &port : serialPorts) {
+            std::string portNameA;
+            quickw2a(port.portName, portNameA);
+            QString portName = QString::fromStdString(portNameA);
+            if (addedPorts.contains(portName)) continue;
+            ui->serialPortComboBox->addItem(portName);
+            addedPorts.append(portName);
+        }
+    }
+#endif
+
     // Restore previous selection if still available
     if (!currentPortName.isEmpty()) {
         int index = ui->serialPortComboBox->findText(currentPortName);
