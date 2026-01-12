@@ -83,8 +83,7 @@ SOURCES += \
 DEFINES += __USE_GUI__
 
 QMAKE_CXXFLAGS += -std=c++17 -Wall
-# Force-include debug header in all translation units so DebugMsg is available
-QMAKE_CXXFLAGS += -include $$PWD/inc/debugmsg.h
+# Force-include debug header for MSVC builds only (moved into win32-msvc* block)
 
 win32 {
     CONFIG += moc_predefs
