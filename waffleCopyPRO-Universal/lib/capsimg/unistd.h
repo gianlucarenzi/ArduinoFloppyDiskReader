@@ -1,9 +1,22 @@
 #ifndef _WIN32_UNISTD_H
 #define _WIN32_UNISTD_H
 
-/* Minimal unistd.h compatibility for MSVC/Windows */
+/* Minimal unistd.h compatibility for MSVC/Windows.
+   On non-Windows compilers, include the system unistd.h to avoid breaking Unix builds.
+*/
 
-#ifdef _WIN32
+#if !defined(_WIN32)
+  /* Prefer include_next when available to avoid including this file recursively. */
+  #if defined(__has_include_next)
+    #if __has_include_next(<unistd.h>)
+      #include_next <unistd.h>
+    #else
+      #include <unistd.h>
+    #endif
+  #else
+    #include <unistd.h>
+  #endif
+#else
 
 #include <windows.h>
 #include <io.h>
