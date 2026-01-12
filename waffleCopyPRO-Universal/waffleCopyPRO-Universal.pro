@@ -177,7 +177,6 @@ contains(CONFIG, capsimg_static) {
     # Not building sources: link against the compiled capsimg in lib/capsimg (relative to this project)
     unix:!macx { LIBS += $$PWD/lib/capsimg/capsimg.so }
     macx { LIBS += $$PWD/lib/capsimg/capsimg.so }
-    win32 { LIBS += $$PWD/lib/capsimg/capsimg.dll }
 
     # Header include for linking against the library
     INCLUDEPATH += $$PWD/lib/capsimg/LibIPF
