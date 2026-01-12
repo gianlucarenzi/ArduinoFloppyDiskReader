@@ -1072,10 +1072,27 @@ void MainWindow::refreshSerialPorts()
         std::string portNameA;
         quickw2a(port.portName, portNameA);
         QString portName = QString::fromStdString(portNameA);
-        if (!addedPorts.contains(portName)) {
-            ui->serialPortComboBox->addItem(portName);
-            addedPorts.append(portName);
+
+        if (addedPorts.contains(portName)) continue;
+
+        // Only add FTDI devices from SerialIO: require VID 0x0403 with known PIDs, or product name containing "ftdi"
+        bool isFTDI = false;
+        const unsigned int FTDI_VID = 0x0403;
+        const unsigned int FTDI_PIDS[] = { 0x6001, 0x6010, 0x6011, 0x6014 };
+        if (port.vid == FTDI_VID) {
+            for (unsigned int p : FTDI_PIDS) if (port.pid == p) { isFTDI = true; break; }
         }
+        if (!isFTDI && !port.productName.empty()) {
+            std::string prodA;
+            quickw2a(port.productName, prodA);
+            std::transform(prodA.begin(), prodA.end(), prodA.begin(), ::tolower);
+            if (prodA.find("ftdi") != std::string::npos) isFTDI = true;
+        }
+
+        if (!isFTDI) continue;
+
+        ui->serialPortComboBox->addItem(portName);
+        addedPorts.append(portName);
     }
 
     // Restore previous selection if still available
