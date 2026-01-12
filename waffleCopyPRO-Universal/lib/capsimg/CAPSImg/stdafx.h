@@ -27,6 +27,7 @@
 //#include <direct.h>			//-- Linux changes
 #include <dirent.h>
 
+#ifndef _WIN32
 //-- Linux changes
 #include <stddef.h>			// offsetof
 #include <string.h>
@@ -107,6 +108,8 @@ typedef struct _SYSTEMTIME {
         WORD wMilliseconds;
 } SYSTEMTIME, *LPSYSTEMTIME;
 extern "C" void GetLocalTime(LPSYSTEMTIME lpSystemTime);
+#endif
+
 //-- Linux changes
 
 
