@@ -81,7 +81,6 @@ SOURCES += \
 
 
 DEFINES += __USE_GUI__
-DEFINES += CAPS_USER
 
 QMAKE_CXXFLAGS += -std=c++17 -Wall
 # Force-include debug header in all translation units so DebugMsg is available

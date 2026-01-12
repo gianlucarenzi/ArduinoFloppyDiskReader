@@ -1,4 +1,6 @@
 #include "debugmsg.h"
+
+#ifndef _WIN32
 #include <QTextStream>
 #include <QString>
 #include <stdio.h>
@@ -22,3 +24,4 @@ void DebugMsg::print(const char* func, const QString& msg)
         QTextStream(stdout) << func << ": " << msg << endl;
     }
 }
+#endif // _WIN32
