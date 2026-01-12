@@ -132,4 +132,42 @@ macx {
 # capsimg integration: by default link the built capsimg library in lib/capsimg
 # To compile capsimg sources into the binary use: CONFIG += capsimg_static
 CONFIG += capsimg_static
-include(capsimg.pri)
+contains(CONFIG, capsimg_static) {
+    message("Including capsimg sources in build (capsimg_static)")
+    DEFINES += CAPS_USER
+    INCLUDEPATH += $$PWD/lib/capsimg
+    INCLUDEPATH += $$PWD/lib/capsimg/Core
+    INCLUDEPATH += $$PWD/lib/capsimg/LibIPF
+    INCLUDEPATH += $$PWD/lib/capsimg/Codec
+    INCLUDEPATH += $$PWD/lib/capsimg/Device
+    INCLUDEPATH += $$PWD/lib/capsimg/CAPSImg
+    SOURCES += \
+        lib/capsimg/CAPSImg/CAPSImg.cpp \
+        lib/capsimg/CAPSImg/StreamImage.cpp \
+        lib/capsimg/CAPSImg/CapsFormatMFM.cpp \
+        lib/capsimg/CAPSImg/DiskImageFactory.cpp \
+        lib/capsimg/CAPSImg/DiskImage.cpp \
+        lib/capsimg/CAPSImg/CapsImage.cpp \
+        lib/capsimg/CAPSImg/CapsFile.cpp \
+        lib/capsimg/CAPSImg/CapsImageStd.cpp \
+        lib/capsimg/CAPSImg/CapsAPI.cpp \
+        lib/capsimg/CAPSImg/CapsLoader.cpp \
+        lib/capsimg/CAPSImg/StreamCueImage.cpp \
+        lib/capsimg/Codec/CTRawCodec.cpp \
+        lib/capsimg/Codec/CTRawCodecDecompressor.cpp \
+        lib/capsimg/Codec/DiskEncoding.cpp \
+        lib/capsimg/Core/CRC.cpp \
+        lib/capsimg/Core/DiskFile.cpp \
+        lib/capsimg/Core/BitBuffer.cpp \
+        lib/capsimg/Core/BaseFile.cpp \
+        lib/capsimg/Core/MemoryFile.cpp \
+        lib/capsimg/CAPSImg/stdafx.cpp
+} else {
+    # Not building sources: link against the compiled capsimg in lib/capsimg (relative to this project)
+    unix:!macx { LIBS += $$PWD/lib/capsimg/capsimg.so }
+    macx { LIBS += $$PWD/lib/capsimg/capsimg.so }
+    win32 { LIBS += $$PWD/lib/capsimg/capsimg.dll }
+
+    # Header include for linking against the library
+    INCLUDEPATH += $$PWD/lib/capsimg/LibIPF
+}

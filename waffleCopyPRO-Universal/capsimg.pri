@@ -1,4 +1,4 @@
-# capsimg.pri
+# removed; merged into waffleCopyPRO-Universal.pro
 # Include this .pri in waffleCopyPRO-Universal.pro to optionally build capsimg sources
 # Usage:
 #  - To compile capsimg into the binary: add "CONFIG += capsimg_static" to your .pro
