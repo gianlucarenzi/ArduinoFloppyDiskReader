@@ -165,11 +165,11 @@ contains(CONFIG, capsimg_static) {
         lib/capsimg/Core/BaseFile.cpp \
         lib/capsimg/Core/MemoryFile.cpp
 
-    # PCH handling: add stdafx.cpp only when not using MSVC (Visual Studio handles PCH in its project)
-    win32-msvc* {
-        # omit stdafx.cpp for qmake-driven MSVC builds
-    } else {
+    # PCH handling: add stdafx.cpp only for MSVC builds (Visual Studio needs stdafx)
+    contains(QMAKE_SPEC, win32-msvc*) {
         SOURCES += lib/capsimg/CAPSImg/stdafx.cpp
+    } else {
+        # omit stdafx.cpp for non-MSVC toolchains
     }
 } else {
     # Not building sources: link against the compiled capsimg in lib/capsimg (relative to this project)
