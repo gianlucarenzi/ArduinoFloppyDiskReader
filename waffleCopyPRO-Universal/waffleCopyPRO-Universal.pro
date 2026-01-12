@@ -98,7 +98,10 @@ win32 {
     message("Using vcpkg from: $$VCPKG_ROOT")
 
     INCLUDEPATH += $$VCPKG_ROOT/installed/x64-windows/include
+    INCLUDEPATH += $$PWD/lib/capsimg/Compatibility
     LIBS += -L$$VCPKG_ROOT/installed/x64-windows/lib -lmikmod
+    HEADERS += \
+        lib/capsimg/Compatibility/dirent.h
 }
 
 unix {
