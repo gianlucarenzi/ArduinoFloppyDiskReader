@@ -82,9 +82,10 @@ jobs:
           VCPKG_ROOT: ${{ github.workspace }}\vcpkg
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          msbuild waffleCopyPRO-Universal\lib\capsimg\CAPSImg\CAPSImg.vcxproj /p:Configuration=Release /p:Platform=x64
           cd waffleCopyPRO-Universal
           qmake -tp vc waffleCopyPRO-Universal.pro
-          msbuild waffleCopyPRO-Universal.vcxproj /p:Configuration=Release
+          msbuild waffleCopyPRO-Universal.vcxproj /p:Configuration=Release /p:Platform=x64
 
       - name: Deploy and prepare release folder
         run: |
