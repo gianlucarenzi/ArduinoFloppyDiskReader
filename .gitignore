@@ -71,12 +71,6 @@ CVS
 # Build artifacts
 *.o
 *.so
-*.dll
-*.dylib
-capsimg.so
-capsimg.dll
 config.status
 config.log
 autom4te.cache/
-# FS build artifacts
-libcapsimage.so*
