@@ -106,25 +106,25 @@ jobs:
           $version = "1.0.0"
           $issContent = @"
           [Setup]
-          AppName={$appName}
-          AppVersion={$version}
-          DefaultDirName={pf}\{$appName}
-          DefaultGroupName={$appName}
+          AppName=$appName
+          AppVersion=$version
+          DefaultDirName={pf}\$appName
+          DefaultGroupName=$appName
           DisableProgramGroupPage=no
-          OutputBaseFilename={$OutBase}
+          OutputBaseFilename=$OutBase
           Compression=lzma
           SolidCompression=yes
           ArchitecturesInstallIn64BitMode=x64
           
           [Files]
-          Source: "{$RELEASE_DIR}\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+          Source: "$RELEASE_DIR\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
           
           [Icons]
-          Name: "{group}\{$appName}"; Filename: "{app}\{$appExe}"
-          Name: "{userdesktop}\{$appName}"; Filename: "{app}\{$appExe}"
+          Name: "{group}\$appName"; Filename: "{app}\$appExe"
+          Name: "{userdesktop}\$appName"; Filename: "{app}\$appExe"
           
           [Run]
-          Filename: "{app}\{$appExe}"; Description: "Launch {$appName}"; Flags: nowait postinstall skipifdoesntexist
+          Filename: "{app}\$appExe"; Description: "Launch $appName"; Flags: nowait postinstall skipifdoesntexist
           "@
 
           Set-Content -Path $ISS -Value $issContent -Encoding UTF8
