@@ -1045,6 +1045,10 @@ void MainWindow::refreshSerialPorts()
         if (!portName.startsWith("/dev/"))
             portName.prepend("/dev/");
 #endif
+        // On Linux avoid listing legacy 16550 ttyS* devices; keep USB serials (ttyUSB*).
+#ifdef Q_OS_LINUX
+        if (portName.startsWith("/dev/ttyS")) continue;
+#endif
         ui->serialPortComboBox->addItem(portName);
         addedPorts.append(portName);
     }
