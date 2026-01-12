@@ -78,6 +78,7 @@ DEFINE_GUID(GUID_DEVINTERFACE_COMPORT,0x86e0d1e0, 0x8089, 0x11d0, 0x9c, 0xe4, 0x
 #include <codecvt>
 #include <locale>
 #include <algorithm>
+#include <cwctype>
 
 using convert_t = std::codecvt_utf8<wchar_t>;
 static std::wstring_convert<convert_t, wchar_t> strconverter;
@@ -449,7 +450,24 @@ void SerialIO::enumSerialPorts(std::vector<SerialPortInformation>& serialPorts)
 				if ((p = fgets(target, sizeof(target), fle))) quicka2w(target, prt.instanceID);
 				fclose(fle);
 
-				serialPorts.push_back(prt);
+				// Filter for FTDI devices by VID/PID or by product name containing "FTDI"
+				bool isFTDI = false;
+				const int FTDI_VID = 0x0403;
+				switch (prt.pid) {
+					case 0x6001: // FT232R
+					case 0x6010: // FT2232
+					case 0x6011: // FT4232
+					case 0x6014: // FT232H
+						isFTDI = true; break;
+					default:
+						if (prt.vid == FTDI_VID) isFTDI = true;
+				}
+
+				std::wstring prodLower = prt.productName;
+				std::transform(prodLower.begin(), prodLower.end(), prodLower.begin(), ::towlower);
+				if (!isFTDI && (prodLower.find(L"ftdi") != std::wstring::npos)) isFTDI = true;
+
+				if (isFTDI) serialPorts.push_back(prt);
 				break;
 			}
 		}
