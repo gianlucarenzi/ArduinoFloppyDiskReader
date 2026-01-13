@@ -1,1 +1,12 @@
-/libcapsimage.so.5.1
+/CapsAPI.o
+/CapsFDCEmulator.o
+/CapsFile.o
+/CapsFormatMFM.o
+/CapsImage.o
+/CapsImageStd.o
+/CapsLoader.o
+/DiskImage.o
+/DiskImageFactory.o
+/StreamCueImage.o
+/StreamImage.o
+/stdafx.o
