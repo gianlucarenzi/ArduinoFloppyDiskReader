@@ -72,3 +72,9 @@ dist: $(LIBRARY)
 install:
 	install -d $(DESTDIR)$(libdir)
 	install $(LIBRARY) $(DESTDIR)$(libdir)/$(LIBRARY)
+
+# Explicitly build a Windows DLL when cross-compiling for mingw
+ifneq ($(filter %mingw%,$(CROSS_COMPILE)),)
+CAPSImg.dll: $(OBJECTS)
+	$(CXX) -shared -Wl,--out-implib,libcapsimage.a $(PICFLAGS) $^ $(LIBS) -o CAPSImg.dll
+endif
