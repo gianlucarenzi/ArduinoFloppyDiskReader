@@ -17,26 +17,35 @@ ifneq ($(filter %mingw%,$(CROSS_COMPILE)),)
   os := Windows
 endif
 
+# set TARGET_LIBRARY name per platform (Windows, macOS, Linux)
+ifneq ($(filter %mingw%,$(CROSS_COMPILE)),)
+TARGET_LIBRARY := CAPSImg.dll
+else ifeq ($(os),macOS)
+TARGET_LIBRARY := libcapsimage.dylib
+else
+TARGET_LIBRARY := libcapsimage.so
+endif
+
 all: build
 
 build:
 	make -C CAPSImg CROSS_COMPILE=$(CROSS_COMPILE)
-	# locate the built library in CAPSImg/ (supports various names)
-	LIBPATH=$$(ls CAPSImg/CAPSImg.dll CAPSImg/libcapsimage*.dylib CAPSImg/libcapsimage*.so* 2>/dev/null | head -n 1); \
-	if [ -z "$$LIBPATH" ]; then \
-		echo "ERROR: cannot find built capsimg library in CAPSImg/"; exit 1; \
-	fi; \
-	if [ "$(os)" = "Windows" ]; then \
-		cp "$$LIBPATH" capsimg.dll; \
-	elif [ "$(os)" = "macOS" ]; then \
-		cp "$$LIBPATH" capsimg.so; install_name_tool -id capsimg.so capsimg.so; \
+	@sh -c '\
+	if [ -f CAPSImg/CAPSImg.dll ]; then \
+		# copy the explicit DLL produced by CAPSImg build to the appropriate name; \
+		$(CROSS_COMPILE)strip CAPSImg/$(TARGET_LIBRARY) 2>/dev/null || true; \
+		cp CAPSImg/$(TARGET_LIBRARY) $(TARGET_LIBRARY); \
 	else \
-		cp "$$LIBPATH" capsimg.so; \
-	fi
+		LIBPATH=$$(ls CAPSImg/libcapsimage*.dylib CAPSImg/libcapsimage*.so* 2>/dev/null | head -n 1); \
+		if [ -z "$$LIBPATH" ]; then \
+			echo "ERROR: cannot find built capsimg library in CAPSImg/"; exit 1; \
+		fi; \
+		$(CROSS_COMPILE)strip "$$LIBPATH" 2>/dev/null || true; \
+		cp "$$LIBPATH" $(TARGET_LIBRARY); \
+		if [ "$(os)" = "macOS" ]; then install_name_tool -id $(TARGET_LIBRARY) $(TARGET_LIBRARY); fi; \
+	fi'
 
 clean:
 	make -C CAPSImg CROSS_COMPILE=$(CROSS_COMPILE) clean
-	rm -f capsimg.so capsimg.dll dist.fs
+	rm -f $(TARGET_LIBRARY) dist.fs
 
-distclean: clean
-	make -C CAPSImg CROSS_COMPILE=$(CROSS_COMPILE) distclean

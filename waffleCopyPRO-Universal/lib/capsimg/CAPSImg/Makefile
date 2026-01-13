@@ -25,14 +25,24 @@ PICFLAGS :=
 # When cross-compiling for Windows (mingw), define TARGET_WINDOWS and build a DLL
 CFLAGS += -DTARGET_WINDOWS
 CXXFLAGS += -DTARGET_WINDOWS
-LDFLAGS := -shared -Wl,--out-implib,libcapsimage.a
+TARGET_LIBRARY := CAPSImg.dll
+IMPLIB := libcapsimage.a
+LDFLAGS := -shared -Wl,--out-implib,$(IMPLIB)
 LIBS :=
-LIBRARY := CAPSImg.dll
 else
-LDFLAGS := -shared -Wl,-soname,libcapsimage.so.5 -Wl,--version-script,libcapsimage.map
+TARGET_LIBRARY := libcapsimage.so
+# set soname to TARGET_LIBRARY (no version number). If versioned soname desired, adjust SONAME variable.
+LDFLAGS := -shared -Wl,-soname,$(TARGET_LIBRARY) -Wl,--version-script,libcapsimage.map
 LIBS :=
-LIBRARY := libcapsimage.so.5.1
 endif
+
+# macOS override when building on Darwin hosts
+ifneq ($(findstring Darwin,$(shell uname -s)),)
+TARGET_LIBRARY := libcapsimage.dylib
+endif
+
+LIBRARY := $(TARGET_LIBRARY)
+
 
 OBJECTS		=  ../Codec/CTRawCodec.o ../Codec/CTRawCodecDecompressor.o ../Codec/DiskEncoding.o ../Core/BaseFile.o ../Core/BitBuffer.o ../Core/CRC.o ../Core/DiskFile.o ../Core/MemoryFile.o CapsAPI.o CapsFDCEmulator.o CapsFile.o CapsFormatMFM.o CapsImage.o CapsImageStd.o CapsLoader.o DiskImage.o DiskImageFactory.o stdafx.o StreamCueImage.o StreamImage.o
 
@@ -42,10 +52,12 @@ OBJECTS		=  ../Codec/CTRawCodec.o ../Codec/CTRawCodecDecompressor.o ../Codec/Dis
 all: $(LIBRARY)
 
 $(LIBRARY): $(OBJECTS)
-ifeq ($(filter %mingw%,$(CROSS_COMPILE)),)
-	$(CXX) $(LDFLAGS) $(PICFLAGS) $^ $(LIBS) -o $@
+ifneq ($(filter %mingw%,$(CROSS_COMPILE) $(CC) $(CXX)),)
+	$(CXX) $(LDFLAGS) $(PICFLAGS) $^ $(LIBS) -o $@; \
+	# If the linker produced a different artifact (e.g., libcapsimage.so), copy it to $(TARGET_LIBRARY)
+	if [ -f $@ ]; then :; else LIBFILE=$$(ls libcapsimage* 2>/dev/null | head -n1); if [ -n "$$LIBFILE" ]; then cp "$$LIBFILE" $(TARGET_LIBRARY); fi; fi
 else
-	$(CXX) -shared $(LDFLAGS) $(PICFLAGS) $^ $(LIBS) -o CAPSImg.dll
+	$(CXX) -shared $(LDFLAGS) $(PICFLAGS) $^ $(LIBS) -o $(TARGET_LIBRARY)
 endif
 
 capsimage.o: capsimage.c
@@ -75,7 +87,7 @@ install:
 	install $(LIBRARY) $(DESTDIR)$(libdir)/$(LIBRARY)
 
 # Explicitly build a Windows DLL when cross-compiling for mingw
-ifneq ($(filter %mingw%,$(CROSS_COMPILE)),)
-CAPSImg.dll: $(OBJECTS)
-	$(CXX) -shared -Wl,--out-implib,libcapsimage.a $(PICFLAGS) $^ $(LIBS) -o CAPSImg.dll
+ifneq ($(filter %mingw%,$(CROSS_COMPILE) $(CC) $(CXX)),)
+$(TARGET_LIBRARY): $(OBJECTS)
+	$(CXX) $(LDFLAGS) $(PICFLAGS) $^ $(LIBS) -o $(TARGET_LIBRARY)
 endif

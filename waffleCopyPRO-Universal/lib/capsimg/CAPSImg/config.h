@@ -23,7 +23,7 @@
 #define HAVE_STRING_H 1
 
 /* Define to 1 if `d_type' is a member of `struct dirent'. */
-#define HAVE_STRUCT_DIRENT_D_TYPE 1
+/* #undef HAVE_STRUCT_DIRENT_D_TYPE */
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #define HAVE_SYS_STAT_H 1
