@@ -22,14 +22,7 @@ PICFLAGS	= -fPIC
 # detect Windows cross-compilers (heuristic: prefer CROSS_COMPILE containing 'mingw', fallback to compiler names)
 ifneq ($(findstring mingw,$(CROSS_COMPILE)),)
 PICFLAGS :=
-# When cross-compiling for Windows (mingw), define TARGET_WINDOWS and build a DLL
-CFLAGS += -DTARGET_WINDOWS
-CXXFLAGS += -DTARGET_WINDOWS
-TARGET_LIBRARY := CAPSImg.dll
-IMPLIB := libcapsimage.a
-LDFLAGS := -shared -Wl,--out-implib,$(IMPLIB)
-LIBS :=
-else ifneq ($(findstring mingw,$(CC)$(CXX)),)
+LIBS := -lstdc++ -lc -lgcc -lmingwexelse ifneq ($(findstring mingw,$(CC)$(CXX)),)
 PICFLAGS :=
 CFLAGS += -DTARGET_WINDOWS
 CXXFLAGS += -DTARGET_WINDOWS
@@ -40,7 +33,7 @@ LIBS :=
 else
 TARGET_LIBRARY := libcapsimage.so
 # set soname to TARGET_LIBRARY (no version number). If versioned soname desired, adjust SONAME variable.
-LDFLAGS := -shared -Wl,-soname,$(TARGET_LIBRARY) -Wl,--version-script,libcapsimage.map
+LDFLAGS := -shared -Wl,-soname,$(TARGET_LIBRARY) -Wl,--version-script,linux-libcapsimage.map
 LIBS :=
 endif
 
@@ -79,9 +72,13 @@ capsimage.o: capsimage.c
 
 clean:
 	$(RM) $(LIBRARY) $(OBJECTS)
+	# Also remove any leftover platform artifacts that may have been produced by previous builds
+	-rm -f CAPSImg.dll libcapsimage* libcapsimage.* libcapsimage.so.* libcapsimage.a *.dll *.so* *.dylib 2>/dev/null || true
 
 distclean:
 	$(RM) $(LIBRARY) $(OBJECTS) Makefile config.status config.log config.cache config.h
+	# Ensure distclean also removes generated library artifacts
+	-rm -f CAPSImg.dll libcapsimage* libcapsimage.* libcapsimage.so.* libcapsimage.a *.dll *.so* *.dylib 2>/dev/null || true
 
 dist: $(LIBRARY)
 	$(RM) -r $(distdir)
