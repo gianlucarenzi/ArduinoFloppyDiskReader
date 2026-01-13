@@ -10,3 +10,8 @@
 /StreamCueImage.o
 /StreamImage.o
 /stdafx.o
+# Libraries
+/*.so
+/*.so.*
+/*.dll
+/*.dylib
