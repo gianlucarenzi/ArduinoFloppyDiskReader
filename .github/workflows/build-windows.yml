@@ -188,19 +188,25 @@ jobs:
           Set-Content -Path "waffleCopyPRO-Universal/Install-WaffleCopyPRO.ps1" -Value $installer -Encoding UTF8
         shell: pwsh
 
+      - name: Create ZIP archive
+        shell: pwsh
+        run: |
+          $zipPath = "${{ github.workspace }}\waffleCopyPRO-Universal-Windows.zip"
+          if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+          Compress-Archive -Path "waffleCopyPRO-Universal/release/*" -DestinationPath $zipPath -Force
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: waffleCopyPRO-Universal-Windows
-          path: |
-            waffleCopyPRO-Universal/release
+          path: waffleCopyPRO-Universal-Windows.zip
 
       - name: Create Release and Upload Asset
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            waffleCopyPRO-Universal/release/**
+            waffleCopyPRO-Universal-Windows.zip
           draft: false
           prerelease: false
 
