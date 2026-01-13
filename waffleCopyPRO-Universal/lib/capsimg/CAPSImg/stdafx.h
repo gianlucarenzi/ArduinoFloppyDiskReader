@@ -35,7 +35,7 @@
 #include "CRC.h"
 #include "BitBuffer.h"
 
-#ifndef _WIN32
+#if !defined(_WIN32) || defined(CAPSIMG_STANDALONE)
 //-- Linux changes
 #include <stddef.h>			// offsetof
 #include <string.h>
@@ -123,7 +123,13 @@ typedef struct _SYSTEMTIME {
 static inline void GetLocalTime(LPSYSTEMTIME lpSystemTime) {
     time_t t = time(NULL);
     struct tm lt;
+#if defined(_WIN32) || defined(__MINGW32__)
+    struct tm tmp;
+    localtime_s(&tmp, &t);
+    lt = tmp;
+#else
     localtime_r(&t, &lt);
+#endif
     lpSystemTime->wYear = lt.tm_year + 1900;
     lpSystemTime->wMonth = lt.tm_mon + 1;
     lpSystemTime->wDayOfWeek = lt.tm_wday;
@@ -133,6 +139,13 @@ static inline void GetLocalTime(LPSYSTEMTIME lpSystemTime) {
     lpSystemTime->wSecond = lt.tm_sec;
     lpSystemTime->wMilliseconds = 0;
 }
+#endif
+
+#ifdef CAPSIMG_STANDALONE
+// When building standalone (Makefile) ensure CODEC headers are available
+#include "CapsAPI.h"
+#include "CapsDefinitions.h"
+#include "CTRawCodec.h"
 #endif
 
 //-- Linux changes

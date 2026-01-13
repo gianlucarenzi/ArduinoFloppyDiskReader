@@ -12,10 +12,15 @@ else
   os := Linux
 endif
 
+# If CROSS_COMPILE suggests mingw, treat as Windows target so top-level copies DLL
+ifneq ($(filter %mingw%,$(CROSS_COMPILE)),)
+  os := Windows
+endif
+
 all: build
 
 build:
-	make -C CAPSImg
+	make -C CAPSImg CROSS_COMPILE=$(CROSS_COMPILE)
 	# locate the built library in CAPSImg/ (supports various names)
 	LIBPATH=$$(ls CAPSImg/CAPSImg.dll CAPSImg/libcapsimage*.dylib CAPSImg/libcapsimage*.so* 2>/dev/null | head -n 1); \
 	if [ -z "$$LIBPATH" ]; then \
@@ -30,8 +35,8 @@ build:
 	fi
 
 clean:
-	make -C CAPSImg clean
+	make -C CAPSImg CROSS_COMPILE=$(CROSS_COMPILE) clean
 	rm -f capsimg.so capsimg.dll dist.fs
 
 distclean: clean
-	make -C CAPSImg distclean
+	make -C CAPSImg CROSS_COMPILE=$(CROSS_COMPILE) distclean
