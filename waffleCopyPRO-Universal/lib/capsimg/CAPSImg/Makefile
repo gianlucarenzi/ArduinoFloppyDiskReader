@@ -8,8 +8,8 @@ CXX		= g++
 INSTALL		= /usr/bin/install -c
 TAR		= tar
 
-CFLAGS		= -Wall -Wno-sign-compare -Wno-missing-braces -Wno-parentheses -g  -O2 -fomit-frame-pointer  -I./../LibIPF -I./../Codec -I./../Core -I./../Device -I. -I../../../inc
-CXXFLAGS	= -Wall -Wno-sign-compare -Wno-missing-braces -Wno-parentheses -g  -O2 -fomit-frame-pointer  -fno-exceptions -fno-rtti -std=c++0x  -I./../LibIPF -I./../Codec -I./../Core -I./../Device -I. -I../../../inc
+CFLAGS		= -Wall -Wno-sign-compare -Wno-missing-braces -Wno-parentheses -g  -O2 -fomit-frame-pointer  -Iinc -I./../LibIPF -I./../Codec -I./../Core -I./../Device -I.
+CXXFLAGS	= -Wall -Wno-sign-compare -Wno-missing-braces -Wno-parentheses -g  -O2 -fomit-frame-pointer  -fno-exceptions -fno-rtti -std=c++17 -DCAPSIMG_STANDALONE -Iinc -I./../LibIPF -I./../Codec -I./../Core -I./../Device -I.
 PICFLAGS	= -fPIC
 LDFLAGS		=   -shared -Wl,-soname,libcapsimage.so.5 -Wl,--version-script,libcapsimage.map
 LIBS		= 

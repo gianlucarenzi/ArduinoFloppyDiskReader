@@ -11,7 +11,7 @@
 
 
 //-- Linux changes
-
+/**
 void GetLocalTime(LPSYSTEMTIME lpSystemTime)
 {
         time_t t = time(NULL);
@@ -27,7 +27,7 @@ void GetLocalTime(LPSYSTEMTIME lpSystemTime)
         // we don't have milliseconds in struct tm
         lpSystemTime->wMilliseconds = 0;
 }
-
+**/
 //-- Linux changes
 
 
