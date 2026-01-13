@@ -33,6 +33,12 @@ LDFLAGS := -shared -Wl,-soname,libcapsimage.so.5 -Wl,--version-script,libcapsima
 LIBS :=
 LIBRARY := libcapsimage.so.5.1
 endif
+
+# If CROSS_COMPILE indicates mingw, force LIBRARY name to CAPSImg.dll
+ifneq ($(filter %mingw%,$(CROSS_COMPILE)),)
+LIBRARY := CAPSImg.dll
+endif
+
 OBJECTS		=  ../Codec/CTRawCodec.o ../Codec/CTRawCodecDecompressor.o ../Codec/DiskEncoding.o ../Core/BaseFile.o ../Core/BitBuffer.o ../Core/CRC.o ../Core/DiskFile.o ../Core/MemoryFile.o CapsAPI.o CapsFDCEmulator.o CapsFile.o CapsFormatMFM.o CapsImage.o CapsImageStd.o CapsLoader.o DiskImage.o DiskImageFactory.o stdafx.o StreamCueImage.o StreamImage.o
 
 
