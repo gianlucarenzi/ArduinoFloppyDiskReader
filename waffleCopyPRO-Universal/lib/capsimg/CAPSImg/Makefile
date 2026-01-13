@@ -41,7 +41,11 @@ OBJECTS		=  ../Codec/CTRawCodec.o ../Codec/CTRawCodecDecompressor.o ../Codec/Dis
 all: $(LIBRARY)
 
 $(LIBRARY): $(OBJECTS)
+ifeq ($(filter %mingw%,$(CROSS_COMPILE)),)
 	$(CXX) $(LDFLAGS) $(PICFLAGS) $^ $(LIBS) -o $@
+else
+	$(CXX) -shared $(LDFLAGS) $(PICFLAGS) $^ $(LIBS) -o CAPSImg.dll
+endif
 
 capsimage.o: capsimage.c
 	$(CC) $(CFLAGS) -c $< -o $@
