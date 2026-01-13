@@ -142,11 +142,11 @@ jobs:
           }
 
           # Copy CAPS DLLs if provided in repo locations
-          $CAPS_PATH1 = Join-Path $ROOT "waffleCopyPRO-Universal\lib\capsapi"
+          $CAPS_PATH1 = Join-Path $ROOT "waffleCopyPRO-Universal\lib\capsimg"
           if (Test-Path $CAPS_PATH1) {
             Copy-Item -Path (Join-Path $CAPS_PATH1 "*.dll") -Destination $RELEASE_DIR -Force -ErrorAction SilentlyContinue
           }
-          $CAPS_PATH2 = Join-Path $ROOT "lib\capsapi"
+          $CAPS_PATH2 = Join-Path $ROOT "lib\capsimg"
           if (Test-Path $CAPS_PATH2) {
             Copy-Item -Path (Join-Path $CAPS_PATH2 "*.dll") -Destination $RELEASE_DIR -Force -ErrorAction SilentlyContinue
           }
