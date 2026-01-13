@@ -19,10 +19,18 @@ CFLAGS		= -Wall -Wno-sign-compare -Wno-missing-braces -Wno-parentheses -g  -O2 -
 CXXFLAGS	= -Wall -Wno-sign-compare -Wno-missing-braces -Wno-parentheses -g  -O2 -fomit-frame-pointer  -fno-exceptions -fno-rtti -std=c++17 -DCAPSIMG_STANDALONE -I./../inc -I./../LibIPF -I./../Codec -I./../Core -I./../Device -I.
 PICFLAGS	= -fPIC
 
-# detect Windows cross-compilers (heuristic: mingw in prefix or compiler name)
-ifneq ($(filter %mingw%,$(CROSS_COMPILE) $(CC) $(CXX)),)
+# detect Windows cross-compilers (heuristic: prefer CROSS_COMPILE containing 'mingw', fallback to compiler names)
+ifneq ($(findstring mingw,$(CROSS_COMPILE)),)
 PICFLAGS :=
 # When cross-compiling for Windows (mingw), define TARGET_WINDOWS and build a DLL
+CFLAGS += -DTARGET_WINDOWS
+CXXFLAGS += -DTARGET_WINDOWS
+TARGET_LIBRARY := CAPSImg.dll
+IMPLIB := libcapsimage.a
+LDFLAGS := -shared -Wl,--out-implib,$(IMPLIB)
+LIBS :=
+else ifneq ($(findstring mingw,$(CC)$(CXX)),)
+PICFLAGS :=
 CFLAGS += -DTARGET_WINDOWS
 CXXFLAGS += -DTARGET_WINDOWS
 TARGET_LIBRARY := CAPSImg.dll
@@ -52,10 +60,10 @@ OBJECTS		=  ../Codec/CTRawCodec.o ../Codec/CTRawCodecDecompressor.o ../Codec/Dis
 all: $(LIBRARY)
 
 $(LIBRARY): $(OBJECTS)
-ifneq ($(filter %mingw%,$(CROSS_COMPILE) $(CC) $(CXX)),)
-	$(CXX) $(LDFLAGS) $(PICFLAGS) $^ $(LIBS) -o $@; \
+ifneq ($(filter %mingw%,$(CROSS_COMPILE)),)
+	$(CXX) $(LDFLAGS) $(PICFLAGS) $^ $(LIBS) -o $(TARGET_LIBRARY); \
 	# If the linker produced a different artifact (e.g., libcapsimage.so), copy it to $(TARGET_LIBRARY)
-	if [ -f $@ ]; then :; else LIBFILE=$$(ls libcapsimage* 2>/dev/null | head -n1); if [ -n "$$LIBFILE" ]; then cp "$$LIBFILE" $(TARGET_LIBRARY); fi; fi
+	if [ -f $(TARGET_LIBRARY) ]; then :; else LIBFILE=$$(ls libcapsimage* 2>/dev/null | head -n1); if [ -n "$$LIBFILE" ]; then cp "$$LIBFILE" $(TARGET_LIBRARY); fi; fi
 else
 	$(CXX) -shared $(LDFLAGS) $(PICFLAGS) $^ $(LIBS) -o $(TARGET_LIBRARY)
 endif
@@ -87,7 +95,7 @@ install:
 	install $(LIBRARY) $(DESTDIR)$(libdir)/$(LIBRARY)
 
 # Explicitly build a Windows DLL when cross-compiling for mingw
-ifneq ($(filter %mingw%,$(CROSS_COMPILE) $(CC) $(CXX)),)
+ifneq ($(filter %mingw%,$(CROSS_COMPILE)),)
 $(TARGET_LIBRARY): $(OBJECTS)
 	$(CXX) $(LDFLAGS) $(PICFLAGS) $^ $(LIBS) -o $(TARGET_LIBRARY)
 endif

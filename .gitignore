@@ -69,8 +69,6 @@ CVS
 /waffleCopyPRO-Universal/adfwritermanager.o
 /waffleCopyPRO-Universal/debugmsg.o
 # Build artifacts
-*.o
-*.so
 config.status
 config.log
 autom4te.cache/
