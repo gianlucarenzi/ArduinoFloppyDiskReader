@@ -31,32 +31,43 @@ endif
 all: build
 
 build:
-	make -C CAPSImg CROSS_COMPILE=$(CROSS_COMPILE)
-	@sh -c '\
-	# Prefer explicit DLL files in CAPSImg/; otherwise try to detect a PE DLL among produced artifacts, fallback to libcapsimage* names. \
+	make -C CAPSImg CROSS_COMPILE=$(CROSS_COMPILE) all
+	# Copy produced DLLs and dylibs; for shared objects, copy only unversioned libcapsimage.so (create it from versioned if needed). \
 	if ls CAPSImg/*.dll >/dev/null 2>&1; then \
-		SRC=$$(ls CAPSImg/*.dll 2>/dev/null | head -n1); \
+		cp -f CAPSImg/*.dll .; \
+	fi; \
+	if ls CAPSImg/libcapsimage*.dylib >/dev/null 2>&1; then \
+		cp -f CAPSImg/libcapsimage*.dylib .; \
+	fi; \
+	# Remove any previously copied versioned shared objects to avoid leaving libcapsimage.so.* files in this directory
+	-rm -f libcapsimage.so.* 2>/dev/null || true; \
+	# Prefer unversioned .so; if missing, create libcapsimage.so from the first versioned file found in CAPSImg/ \
+	if [ -f CAPSImg/libcapsimage.so ]; then \
+		cp -f CAPSImg/libcapsimage.so .; \
+	elif ls CAPSImg/libcapsimage*.so* >/dev/null 2>&1; then \
+		SRC=$$(ls CAPSImg/libcapsimage*.so* 2>/dev/null | head -n1); \
+		cp -f "$$SRC" libcapsimage.so; \
+	fi; \
+	# Attempt to strip any copied binaries if a strip tool is available
+	for f in *.dll libcapsimage*.dylib libcapsimage.so; do [ -f "$$f" ] || continue; $(CROSS_COMPILE)strip "$$f" 2>/dev/null || true; done; \
+	# Choose a representative artifact to copy/rename to $(TARGET_LIBRARY)
+	if ls *.dll >/dev/null 2>&1; then \
+		SRC=$$(ls *.dll | head -n1); \
+	elif ls libcapsimage*.dylib >/dev/null 2>&1; then \
+		SRC=$$(ls libcapsimage*.dylib | head -n1); \
+	elif [ -f libcapsimage.so ]; then \
+		SRC=libcapsimage.so; \
 	else \
-		# look for any PE file in CAPSImg/ (linker may produce a PE file with a .so extension) \
-		SRC=$$(for f in CAPSImg/*; do [ -f "$$f" ] || continue; file "$$f" 2>/dev/null | grep -qi PE && { echo "$$f"; break; } done); \
-		if [ -z "$$SRC" ]; then \
-			SRC=$$(ls CAPSImg/libcapsimage*.dylib CAPSImg/libcapsimage*.so* 2>/dev/null | head -n1); \
-		fi; \
+		SRC=; \
 	fi; \
-	if [ -z "$$SRC" ]; then \
-		echo "ERROR: cannot find built capsimg library in CAPSImg/"; exit 1; \
-	fi; \
-	$(CROSS_COMPILE)strip "$$SRC" 2>/dev/null || true; \
-	case "$$SRC" in \
-		*.dll) DEST=CAPSImg.dll ;; \
-		*.dylib) DEST=libcapsimage.dylib ;; \
-		*.so*) DEST=libcapsimage.so ;; \
-		*) DEST=$(TARGET_LIBRARY) ;; \
-	esac; \
-	cp "$$SRC" "$$DEST"; \
-	if [ "$(os)" = "macOS" ]; then install_name_tool -id "$$DEST" "$$DEST"; fi; \
-	'
+	if [ -n "$$SRC" ]; then \
+		cp -f "$$SRC" "$(TARGET_LIBRARY)"; \
+		if [ "$(os)" = "macOS" ]; then install_name_tool -id "$(TARGET_LIBRARY)" "$(TARGET_LIBRARY)"; fi; \
+	fi
 clean:
 	make -C CAPSImg CROSS_COMPILE=$(CROSS_COMPILE) clean
-	rm -f $(TARGET_LIBRARY) dist.fs
+
+distclean:
+	make -C CAPSImg CROSS_COMPILE=$(CROSS_COMPILE) clean
+	-rm -f *.dll *.so *.dylib
 
