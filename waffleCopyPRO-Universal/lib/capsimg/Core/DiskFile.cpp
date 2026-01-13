@@ -360,17 +360,11 @@ int CDiskFile::FindFile(char *result, const char *filename, const char *filter)
 				while (pent = readdir(pdir))
 {
 					// skip any entry that is not a regular file
-#if defined _DIRENT_HAVE_D_TYPE || defined HAVE_STRUCT_DIRENT_D_TYPE
-if (pent->d_type != DT_REG)
-continue;
-#else
-/* fallback for platforms without d_type (mingw) */
 char fullpath[MAX_FILENAMELEN];
 snprintf(fullpath, sizeof(fullpath), "%s/%s", dirpath, pent->d_name);
 struct stat st;
 if (stat(fullpath, &st) != 0 || !S_ISREG(st.st_mode))
 continue;
-#endif
 					// check entry to match the filename pattern
 					char *fn = pent->d_name;
 					if (FileNameMatch(pattern, fn))
