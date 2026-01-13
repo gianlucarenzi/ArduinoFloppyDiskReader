@@ -1,0 +1,5 @@
+/BaseFile.o
+/BitBuffer.o
+/CRC.o
+/DiskFile.o
+/MemoryFile.o
