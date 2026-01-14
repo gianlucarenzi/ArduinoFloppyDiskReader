@@ -219,22 +219,22 @@ jobs:
 
           $issPath = Join-Path $buildDir "wcp.iss"
           $iss = @"
-[Setup]
-AppName=WaffleCopyPRO
-AppVersion=1.0
-DefaultDirName={pf}\WaffleCopyPRO
-DefaultGroupName=WaffleCopyPRO
-OutputBaseFilename=setup
-Compression=lzma2
-SolidCompression=yes
-SetupIconFile=app.ico
+          [Setup]
+          AppName=WaffleCopyPRO
+          AppVersion=1.0
+          DefaultDirName={pf}\WaffleCopyPRO
+          DefaultGroupName=WaffleCopyPRO
+          OutputBaseFilename=setup
+          Compression=lzma2
+          SolidCompression=yes
+          SetupIconFile=app.ico
 
-[Files]
-Source: "*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
+          [Files]
+          Source: "*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
 
-[Icons]
-Name: "{group}\WaffleCopyPRO"; Filename: "{app}\waffleCopyPRO-Universal.exe"
-"@
+          [Icons]
+          Name: "{group}\WaffleCopyPRO"; Filename: "{app}\waffleCopyPRO-Universal.exe"
+          "@
           Set-Content -Path $issPath -Value $iss -Encoding UTF8
 
           Push-Location $buildDir
