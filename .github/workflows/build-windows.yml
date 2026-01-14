@@ -195,6 +195,64 @@ jobs:
           if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
           Compress-Archive -Path "waffleCopyPRO-Universal/release/*" -DestinationPath $zipPath -Force
 
+      - name: Create Inno Setup installer
+        shell: pwsh
+        run: |
+          $workspace = "${{ github.workspace }}"
+          $zipPath = Join-Path $workspace "waffleCopyPRO-Universal-Windows.zip"
+          $buildDir = Join-Path $env:TEMP "wcp_inst_build"
+          if (Test-Path $buildDir) { Remove-Item $buildDir -Recurse -Force }
+          New-Item -ItemType Directory -Path $buildDir | Out-Null
+          Expand-Archive -Path $zipPath -DestinationPath $buildDir -Force
+
+          choco install innosetup -y --no-progress || true
+          $isccPaths = @("C:\Program Files (x86)\Inno Setup 6\ISCC.exe","C:\Program Files\Inno Setup 6\ISCC.exe")
+          $iscc = $isccPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) { Write-Host "ISCC.exe not found; installer build skipped"; exit 0 }
+
+          # copy icon if available
+          $iconCandidate = Join-Path $workspace "waffleCopyPRO-Universal\WaffleUI\Amiga.ico"
+          if (-not (Test-Path $iconCandidate)) {
+            $iconCandidate = Join-Path $workspace "waffleCopyPRO-Universal\WaffleUI\WaffleCopyPRO-icon.png"
+          }
+          if (Test-Path $iconCandidate) { Copy-Item $iconCandidate -Destination (Join-Path $buildDir "app.ico") -Force }
+
+          $issPath = Join-Path $buildDir "wcp.iss"
+          $iss = @"
+[Setup]
+AppName=WaffleCopyPRO
+AppVersion=1.0
+DefaultDirName={pf}\WaffleCopyPRO
+DefaultGroupName=WaffleCopyPRO
+OutputBaseFilename=setup
+Compression=lzma2
+SolidCompression=yes
+SetupIconFile=app.ico
+
+[Files]
+Source: "*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
+
+[Icons]
+Name: "{group}\WaffleCopyPRO"; Filename: "{app}\waffleCopyPRO-Universal.exe"
+"@
+          Set-Content -Path $issPath -Value $iss -Encoding UTF8
+
+          Push-Location $buildDir
+          & $iscc $issPath
+          Pop-Location
+
+          $foundSetup = Get-ChildItem $buildDir -Recurse -Filter setup.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($foundSetup) { Copy-Item $foundSetup.FullName (Join-Path $buildDir "setup.exe") -Force }
+
+          # Create final ZIP with installer included (overwrite original -Windows zip)
+          $finalZip = Join-Path $workspace "waffleCopyPRO-Universal-Windows.zip"
+          if (Test-Path $finalZip) { Remove-Item $finalZip -Force }
+          $finalDir = Join-Path $env:TEMP "wcp_final"
+          if (Test-Path $finalDir) { Remove-Item $finalDir -Recurse -Force }
+          New-Item -ItemType Directory -Path $finalDir | Out-Null
+          Copy-Item -Path (Join-Path $buildDir "*") -Destination $finalDir -Recurse -Force
+          Compress-Archive -Path (Join-Path $finalDir "*") -DestinationPath $finalZip -Force
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
