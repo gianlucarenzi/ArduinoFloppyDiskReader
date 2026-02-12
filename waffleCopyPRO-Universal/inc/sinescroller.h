@@ -1,5 +1,5 @@
-#ifndef SINESCROLLLABEL_H
-#define SINESCROLLLABEL_H
+#ifndef SINESCROLLER_H
+#define SINESCROLLER_H
 
 #include <QWidget>
 #include <QString>
@@ -7,7 +7,7 @@
 #include <QFont>
 #include <QColor>
 
-class SineScrollLabel : public QWidget {
+class SineScroller : public QWidget {
     Q_OBJECT
 
 public:
@@ -16,8 +16,8 @@ public:
         FineMode       // Each character follows sine wave
     };
 
-    explicit SineScrollLabel(QWidget* parent = nullptr);
-    ~SineScrollLabel();
+    explicit SineScroller(QWidget* parent = nullptr);
+    ~SineScroller();
 
     void setText(const QString& text);
     QString text() const { return m_fullText; }
@@ -52,4 +52,4 @@ private:
     void paintFineMode(QPainter& painter);
 };
 
-#endif // SINESCROLLLABEL_H
+#endif // SINESCROLLER_H

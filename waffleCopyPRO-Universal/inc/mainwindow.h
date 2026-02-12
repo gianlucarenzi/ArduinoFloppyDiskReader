@@ -3,7 +3,7 @@
 
 #include <QMainWindow>
 #include <clicklabel.h>
-#include <sinescrolllabel.h>
+#include <sinescroller.h>
 #include <QTimer>
 #include <QString>
 #include <QStringList>

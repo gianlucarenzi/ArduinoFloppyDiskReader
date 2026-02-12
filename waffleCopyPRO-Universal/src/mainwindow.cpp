@@ -399,10 +399,10 @@ void MainWindow::stopClicked(void)
 
 void MainWindow::toggleScrollMode(void)
 {
-    if (ui->scrollText->scrollMode() == SineScrollLabel::CoarseMode) {
-        ui->scrollText->setScrollMode(SineScrollLabel::FineMode);
+    if (ui->scrollText->scrollMode() == SineScroller::CoarseMode) {
+        ui->scrollText->setScrollMode(SineScroller::FineMode);
     } else {
-        ui->scrollText->setScrollMode(SineScrollLabel::CoarseMode);
+        ui->scrollText->setScrollMode(SineScroller::CoarseMode);
     }
 }
 

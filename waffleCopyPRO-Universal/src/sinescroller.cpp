@@ -1,13 +1,13 @@
-#include "sinescrolllabel.h"
+#include "sinescroller.h"
 #include <QPainter>
 #include <QPaintEvent>
 #include <QFontMetrics>
 #include <cmath>
 
-const int SineScrollLabel::SINE_TABLE[] = { 0, -1, -2, -3, -4, -4, -4, -3, -2, -1, 0, 1, 2, 3, 4 };
-const int SineScrollLabel::SINE_TABLE_SIZE = sizeof(SINE_TABLE) / sizeof(SINE_TABLE[0]);
+const int SineScroller::SINE_TABLE[] = { 0, -1, -2, -3, -4, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5 };
+const int SineScroller::SINE_TABLE_SIZE = sizeof(SINE_TABLE) / sizeof(SINE_TABLE[0]);
 
-SineScrollLabel::SineScrollLabel(QWidget* parent)
+SineScroller::SineScroller(QWidget* parent)
     : QWidget(parent)
     , m_scrollPosition(0)
     , m_scrollMode(CoarseMode)
@@ -18,7 +18,7 @@ SineScrollLabel::SineScrollLabel(QWidget* parent)
 {
     m_scrollTimer->setInterval(60);
     m_scrollTimer->setSingleShot(false);
-    connect(m_scrollTimer, &QTimer::timeout, this, &SineScrollLabel::doScroll);
+    connect(m_scrollTimer, &QTimer::timeout, this, &SineScroller::doScroll);
     
     setAutoFillBackground(true);
     QPalette pal = palette();
@@ -26,7 +26,7 @@ SineScrollLabel::SineScrollLabel(QWidget* parent)
     setPalette(pal);
 }
 
-SineScrollLabel::~SineScrollLabel()
+SineScroller::~SineScroller()
 {
     if (m_scrollTimer) {
         m_scrollTimer->stop();
@@ -34,41 +34,41 @@ SineScrollLabel::~SineScrollLabel()
     }
 }
 
-void SineScrollLabel::setText(const QString& text)
+void SineScroller::setText(const QString& text)
 {
     m_fullText = text;
     m_scrollPosition = 0;
     update();
 }
 
-void SineScrollLabel::setScrollMode(ScrollMode mode)
+void SineScroller::setScrollMode(ScrollMode mode)
 {
     m_scrollMode = mode;
     update();
 }
 
-void SineScrollLabel::setTextColor(const QColor& color)
+void SineScroller::setTextColor(const QColor& color)
 {
     m_textColor = color;
     update();
 }
 
-void SineScrollLabel::setInterval(int msec)
+void SineScroller::setInterval(int msec)
 {
     m_scrollTimer->setInterval(msec);
 }
 
-void SineScrollLabel::startScroll()
+void SineScroller::startScroll()
 {
     m_scrollTimer->start();
 }
 
-void SineScrollLabel::stopScroll()
+void SineScroller::stopScroll()
 {
     m_scrollTimer->stop();
 }
 
-void SineScrollLabel::doScroll()
+void SineScroller::doScroll()
 {
     m_scrollPosition++;
     if (m_scrollPosition >= m_fullText.length()) {
@@ -83,7 +83,7 @@ void SineScrollLabel::doScroll()
     update();
 }
 
-void SineScrollLabel::paintEvent(QPaintEvent* event)
+void SineScroller::paintEvent(QPaintEvent* event)
 {
     Q_UNUSED(event);
     
@@ -98,7 +98,7 @@ void SineScrollLabel::paintEvent(QPaintEvent* event)
     }
 }
 
-void SineScrollLabel::paintCoarseMode(QPainter& painter)
+void SineScroller::paintCoarseMode(QPainter& painter)
 {
     if (m_fullText.isEmpty()) return;
     
@@ -115,7 +115,7 @@ void SineScrollLabel::paintCoarseMode(QPainter& painter)
     painter.drawText(0, baseY + yOffset, visibleText);
 }
 
-void SineScrollLabel::paintFineMode(QPainter& painter)
+void SineScroller::paintFineMode(QPainter& painter)
 {
     if (m_fullText.isEmpty()) return;
     
@@ -130,7 +130,7 @@ void SineScrollLabel::paintFineMode(QPainter& painter)
     int x = 0;
     
     // Calculate sine wave parameters for smooth character animation
-    const double sineAmplitude = 4.0;   // Further reduced amplitude to fit in 24px area
+    const double sineAmplitude = 5;   // Further reduced amplitude to fit in 32px area
     const double sineFrequency = 0.15;  // How many cycles per character (wavelength)
     const double waveSpeed = 0.2;       // Speed at which the wave travels
     

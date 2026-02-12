@@ -42,19 +42,19 @@
       <x>0</x>
       <y>0</y>
       <width>1024</width>
-      <height>594</height>
+      <height>602</height>
      </rect>
     </property>
     <property name="minimumSize">
      <size>
       <width>1024</width>
-      <height>594</height>
+      <height>602</height>
      </size>
     </property>
     <property name="maximumSize">
      <size>
       <width>1024</width>
-      <height>594</height>
+      <height>602</height>
      </size>
     </property>
     <property name="frameShape">
@@ -261,13 +261,13 @@ background-color: rgb(61, 56, 70);</string>
      <string>...</string>
     </property>
    </widget>
-   <widget class="SineScrollLabel" name="scrollText" native="true">
+   <widget class="SineScroller" name="scrollText" native="true">
     <property name="geometry">
      <rect>
       <x>30</x>
       <y>550</y>
       <width>960</width>
-      <height>24</height>
+      <height>32</height>
      </rect>
     </property>
    </widget>
@@ -733,9 +733,9 @@ color: rgb(248, 228, 92);</string>
    <header>clicklabel.h</header>
   </customwidget>
   <customwidget>
-   <class>SineScrollLabel</class>
+   <class>SineScroller</class>
    <extends>QWidget</extends>
-   <header>sinescrolllabel.h</header>
+   <header>sinescroller.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
