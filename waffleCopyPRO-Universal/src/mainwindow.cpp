@@ -1,5 +1,6 @@
 #include "adfwritermanager.h"
 #include "inc/debugmsg.h"
+#include "inc/waffleconfig.h"
 #include <clicklabel.h>
 #include <QFileDialog>
 #include <QWidget>
@@ -94,14 +95,18 @@ MainWindow::MainWindow(QWidget *parent)
     stext += empty;
     QString sctext;
     // The following QString should be localized
-    sctext = tr(" --- WAFFLE COPY PROFESSIONAL --- The essential USB floppy drive solution for the real Amiga user."
+    sctext = tr(" --- WAFFLE COPY PROFESSIONAL v%1 --- The essential USB floppy drive solution for the real Amiga user."
     "  It allows you to write from ADF, SCP and IPF files, and read floppy disks as ADF or SCP format and, thanks to "
     "a specific version of an Amiga Emulator Software, like WinUAE (by Toni Wilen) or AmiBerry (by MiDWaN), it works "
     "like a real Amiga disk drive allowing you to directly read and write your floppies through an emulator! "
     "Sometime you may need a special USB cable (Y-Type) with the possibility of double powering if the USB port of the "
     "PC is not powerful enough. Original Concept by Rob Smith, modified version by Gianluca Renzi, "
-    "Waffle is a product by RetroBit Lab and RetroGiovedi.");
+    "Waffle is a product by RetroBit Lab and RetroGiovedi.").arg(WAFFLE_VERSION);
     stext += sctext;
+    stext += empty;
+    stext += tr(" --- CREDITS --- IPF support powered by CAPS image library. Copyright (C) Software Preservation Society. "
+    "Music playback powered by libmikmod. Copyright (C) 1998-2004 Miodrag Vallat and others. "
+    "Music: \"Stardust Memories\" by Jester/Sanity (C) 1992 Volker Tripp.");
     stext += empty;
     ui->scrollText->setText(stext);
     ui->scrollText->setInterval(60);
