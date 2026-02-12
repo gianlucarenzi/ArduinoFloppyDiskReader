@@ -74,6 +74,7 @@ MainWindow::MainWindow(QWidget *parent)
     // Connection when click actions
     connect(ui->startWrite, SIGNAL(emitClick()), SLOT(checkStartWrite()));
     connect(ui->startRead, SIGNAL(emitClick()), SLOT(checkStartRead()));
+    connect(ui->rightLogo, SIGNAL(emitClick()), SLOT(toggleScrollMode()));
     // Prepare all squares for tracks
     prepareTracks();
     prepareTracksPosition();
@@ -86,7 +87,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(amigaBridge, SIGNAL(finished()), SLOT(doneWork()));
     connect(amigaBridge, SIGNAL(QtDrawBridgeSignal(int)), this, SLOT(manageQtDrawBridgeSignal(int)));
 
-    ui->scrollText->setStyleSheet("color: rgb(255,255,255)");
+    ui->scrollText->setTextColor(QColor(255, 255, 255));
     QString empty = "                                                ";
     stext += empty;
     stext += empty;
@@ -103,11 +104,8 @@ MainWindow::MainWindow(QWidget *parent)
     stext += sctext;
     stext += empty;
     ui->scrollText->setText(stext);
-    scrollTimer = new QTimer();
-    scrollTimer->setInterval(60);
-    scrollTimer->setSingleShot(false);
-    scrollTimer->start();
-    connect(scrollTimer, SIGNAL(timeout()), this, SLOT(doScroll()));
+    ui->scrollText->setInterval(60);
+    ui->scrollText->startScroll();
 
     serialPortRefreshTimer = new QTimer(this);
     serialPortRefreshTimer->setInterval(3000); // Refresh every 3 seconds
@@ -222,6 +220,40 @@ MainWindow::MainWindow(QWidget *parent)
     diagnosticTimeoutTimer = new QTimer(this);
     diagnosticTimeoutTimer->setSingleShot(true); // Ensures it fires only once
     connect(diagnosticTimeoutTimer, &QTimer::timeout, this, &MainWindow::onDiagnosticTimeout);
+
+    // Apply Amiga font to all widgets
+    applyAmigaFontToWidgets();
+}
+
+void MainWindow::applyAmigaFontToWidgets()
+{
+    ui->preCompSelection->setFont(this->font());
+    ui->eraseBeforeWrite->setFont(this->font());
+    ui->numTracks->setFont(this->font());
+    ui->startRead->setFont(this->font());
+    ui->startWrite->setFont(this->font());
+    ui->stopButton->setFont(this->font());
+    ui->portSelection->setFont(this->font());
+    // ui->version is set in UI file
+    ui->showError->setFont(this->font());
+    ui->copyCompleted->setFont(this->font());
+    ui->copyError->setFont(this->font());
+    ui->scrollText->setFont(this->font());
+    ui->errorDialog->setFont(this->font());
+    ui->retryButton->setFont(this->font());
+    ui->cancelButton->setFont(this->font());
+    ui->skipButton->setFont(this->font());
+    ui->errorMessage->setFont(this->font());
+    ui->hdModeSelection->setFont(this->font());
+    ui->skipReadError->setFont(this->font());
+    ui->skipWriteError->setFont(this->font());
+    ui->diagnosticButton->setFont(this->font());
+    
+    // Slightly larger font for diagnostic text
+    QFont diagnosticFont = ui->diagnosticTest->font();
+    diagnosticFont.setFamily(this->font().family());
+    diagnosticFont.setPointSize(this->font().pointSize() + 1);
+    ui->diagnosticTest->setFont(diagnosticFont);
 }
 
 // Slot implementation for diagnostic timeout
@@ -365,55 +397,12 @@ void MainWindow::stopClicked(void)
     ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice(); // Close port on stop
 }
 
-void MainWindow::doScroll(void)
+void MainWindow::toggleScrollMode(void)
 {
-#define ArraySize(a) (sizeof(a) / sizeof(a[0]))
-
-    int sinetab[] = { 0, -1, -3, -5, -7, -9, -11, -13, -12, -10, -8, -6, -4, -2, 0 };
-    static int p = 0;
-    static int ypos = ui->scrollText->pos().y();
-    static unsigned int slt = 0;
-    int i = stext.length();
-    QString textToScroll;
-    textToScroll = stext.mid(p); // From p to the end of string
-    ui->scrollText->setText(textToScroll);
-    p++;
-    if (p >= i)
-        p = 0;
-    int y = ypos + sinetab[ slt ];
-    //DebugMsg::print(__func__, "Y: " + QString::number(y));
-    ui->scrollText->setGeometry(ui->scrollText->pos().x(), y,
-                                ui->scrollText->width(), ui->scrollText->height());
-    slt++;
-    if (slt >= ArraySize(sinetab))
-        slt = 0;
-    // One time - setFont() attribute on the widgets
-    if (doRefresh) {
-        ui->preCompSelection->setFont(this->font());
-        ui->eraseBeforeWrite->setFont(this->font());
-        ui->numTracks->setFont(this->font());
-        ui->startRead->setFont(this->font());
-        ui->startWrite->setFont(this->font());
-        ui->stopButton->setFont(this->font());
-        ui->portSelection->setFont(this->font());
-        ui->version->setFont(this->font());
-        ui->showError->setFont(this->font());
-        ui->copyCompleted->setFont(this->font());
-        ui->copyError->setFont(this->font());
-        ui->scrollText->setFont(this->font());
-        ui->errorDialog->setFont(this->font());
-        ui->retryButton->setFont(this->font());
-        ui->cancelButton->setFont(this->font());
-        ui->skipButton->setFont(this->font());
-        ui->errorMessage->setFont(this->font());
-        ui->hdModeSelection->setFont(this->font());
-        ui->skipReadError->setFont(this->font());
-        ui->skipWriteError->setFont(this->font());
-		QFont diagnosticFont = ui->diagnosticTest->font();
-		diagnosticFont.setPointSize(diagnosticFont.pointSize() + 1);
-		ui->diagnosticTest->setFont(diagnosticFont);
-        ui->diagnosticButton->setFont(this->font());
-        doRefresh = ! doRefresh;
+    if (ui->scrollText->scrollMode() == SineScrollLabel::CoarseMode) {
+        ui->scrollText->setScrollMode(SineScrollLabel::FineMode);
+    } else {
+        ui->scrollText->setScrollMode(SineScrollLabel::CoarseMode);
     }
 }
 

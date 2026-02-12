@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <clicklabel.h>
+#include <sinescrolllabel.h>
 #include <QTimer>
 #include <QString>
 #include <QStringList>
@@ -44,7 +45,6 @@ private:
     QLabel *lowerTrack[MAX_TRACKS];
     void prepareTracks(void);
     void prepareTracksPosition(void);
-    QTimer *scrollTimer;
     QTimer *serialPortRefreshTimer;
     QtDrawBridge *amigaBridge;
     DiagnosticThread *diagnosticThread;
@@ -87,6 +87,8 @@ private:
     QPoint m_diagnosticMousePressPos;
     QTimer *diagnosticTimeoutTimer;
 
+private:
+    void applyAmigaFontToWidgets();
 
 private slots:
     void onDiagnosticTimeout();
@@ -95,7 +97,7 @@ private slots:
     void on_fileReadADF_clicked();
     void on_fileSaveADF_clicked();
     void doneWork();
-    void doScroll();
+    void toggleScrollMode();
     void stopClicked(void);
     void done(void);
     void togglePreComp(void);

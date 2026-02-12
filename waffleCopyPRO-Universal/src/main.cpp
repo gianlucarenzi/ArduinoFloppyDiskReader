@@ -65,6 +65,8 @@ int main(int argc, char *argv[])
     {
         QString family = QFontDatabase::applicationFontFamilies(id).at(0);
         QFont amigaTopaz(family);
+        amigaTopaz.setPointSize(9); // Smaller size for Amiga Topaz font
+        a.setFont(amigaTopaz); // Set font globally for the entire application
         w.setFont(amigaTopaz);
     }
     w.show();

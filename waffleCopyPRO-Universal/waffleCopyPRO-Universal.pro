@@ -35,6 +35,7 @@ HEADERS += \
     inc/mikmodplayer.h \
     inc/adfwritermanager.h \
     inc/debugmsg.h \
+    inc/sinescrolllabel.h \
     lib/ADFWriter.h \
     lib/ArduinoInterface.h \
     lib/RotationExtractor.h \
@@ -77,6 +78,7 @@ SOURCES += \
     src/mikmodplayer.cpp \
     src/adfwritermanager.cpp \
     src/debugmsg.cpp \
+    src/sinescrolllabel.cpp \
 
 
 

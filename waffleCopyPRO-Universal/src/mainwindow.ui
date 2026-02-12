@@ -67,7 +67,7 @@
      <pixmap>WaffleUI/main.png</pixmap>
     </property>
    </widget>
-   <widget class="QLabel" name="rightLogo">
+   <widget class="ClickLabel" name="rightLogo">
     <property name="geometry">
      <rect>
       <x>870</x>
@@ -261,7 +261,7 @@ background-color: rgb(61, 56, 70);</string>
      <string>...</string>
     </property>
    </widget>
-   <widget class="QLabel" name="scrollText">
+   <widget class="SineScrollLabel" name="scrollText" native="true">
     <property name="geometry">
      <rect>
       <x>30</x>
@@ -269,15 +269,6 @@ background-color: rgb(61, 56, 70);</string>
       <width>960</width>
       <height>24</height>
      </rect>
-    </property>
-    <property name="frameShape">
-     <enum>QFrame::NoFrame</enum>
-    </property>
-    <property name="textFormat">
-     <enum>Qt::PlainText</enum>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
     </property>
    </widget>
    <widget class="QLabel" name="portSelection">
@@ -542,6 +533,11 @@ background-color: rgb(61, 56, 70);</string>
       <height>17</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>TopazPlus a500a1000a2000</family>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: rgb(248, 228, 92);</string>
     </property>
@@ -735,6 +731,11 @@ color: rgb(248, 228, 92);</string>
    <class>ClickLabel</class>
    <extends>QLabel</extends>
    <header>clicklabel.h</header>
+  </customwidget>
+  <customwidget>
+   <class>SineScrollLabel</class>
+   <extends>QWidget</extends>
+   <header>sinescrolllabel.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
