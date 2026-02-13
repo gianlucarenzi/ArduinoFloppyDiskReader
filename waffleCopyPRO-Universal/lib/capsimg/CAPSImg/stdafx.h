@@ -40,42 +40,6 @@
 #include "CRC.h"
 #include "BitBuffer.h"
 
-#if !defined(_WIN32) || defined(CAPSIMG_STANDALONE)
-//-- Linux changes
-#include <stddef.h>			// offsetof
-#include <string.h>
-#include <ctype.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <time.h>			// localtime
-#ifndef MAX_PATH
-#define MAX_PATH ( 260 )
-#endif
-#ifndef __cdecl
-#define __cdecl
-#endif
-#define _lrotl(x,n) (((x) << (n)) | ((x) >> (sizeof(x)*8-(n))))
-#define _lrotr(x,n) (((x) >> (n)) | ((x) << (sizeof(x)*8-(n))))
-typedef const char *LPCSTR;
-typedef const char *LPCTSTR;
-//-- Linux changes
-
-
-#define INTEL
-#ifndef MAX_FILENAMELEN
-#define MAX_FILENAMELEN (MAX_PATH*2)
-#endif
-
-// external definitions
-#include "CommonTypes.h"
-
-// Core components
-#include "BaseFile.h"
-#include "DiskFile.h"
-#include "MemoryFile.h"
-#include "CRC.h"
-#include "BitBuffer.h"
-
 // IPF library public definitions
 #include "CapsLibAll.h"
 
@@ -101,6 +65,32 @@ typedef const char *LPCTSTR;
 #include "CapsCore.h"
 #include "CapsFDCEmulator.h"
 #include "CapsFormatMFM.h"
+
+#if !defined(_WIN32) || defined(CAPSIMG_STANDALONE)
+//-- Linux changes
+#include <stddef.h>			// offsetof
+#include <string.h>
+#include <ctype.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <time.h>			// localtime
+#ifndef MAX_PATH
+#define MAX_PATH ( 260 )
+#endif
+#ifndef __cdecl
+#define __cdecl
+#endif
+#define _lrotl(x,n) (((x) << (n)) | ((x) >> (sizeof(x)*8-(n))))
+#define _lrotr(x,n) (((x) >> (n)) | ((x) << (sizeof(x)*8-(n))))
+typedef const char *LPCSTR;
+typedef const char *LPCTSTR;
+//-- Linux changes
+
+
+#define INTEL
+#ifndef MAX_FILENAMELEN
+#define MAX_FILENAMELEN (MAX_PATH*2)
+#endif
 
 
 //-- Linux/Unix compatibility macros
