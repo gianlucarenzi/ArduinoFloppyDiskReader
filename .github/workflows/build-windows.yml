@@ -205,6 +205,12 @@ jobs:
           New-Item -ItemType Directory -Path $buildDir | Out-Null
           Expand-Archive -Path $zipPath -DestinationPath $buildDir -Force
 
+          # Read version from waffleconfig.h
+          $configFile = Join-Path $workspace "waffleCopyPRO-Universal\inc\waffleconfig.h"
+          $versionLine = Get-Content $configFile | Select-String 'WAFFLE_VERSION\s+"([^"]+)"'
+          $appVersion = if ($versionLine) { $versionLine.Matches.Groups[1].Value } else { "2.5.17" }
+          Write-Host "Detected version: $appVersion"
+
           choco install innosetup -y --no-progress || true
           $isccPaths = @("C:\Program Files (x86)\Inno Setup 6\ISCC.exe","C:\Program Files\Inno Setup 6\ISCC.exe")
           $iscc = $isccPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
@@ -221,19 +227,24 @@ jobs:
           $iss = @"
           [Setup]
           AppName=WaffleCopyPRO
-          AppVersion=1.0
+          AppVersion=$appVersion
           DefaultDirName={pf}\WaffleCopyPRO
           DefaultGroupName=WaffleCopyPRO
           OutputBaseFilename=setup
           Compression=lzma2
           SolidCompression=yes
-          SetupIconFile=app.ico
+          SetupIconFile=WaffleUI\Amiga.ico
+          UninstallDisplayIcon={app}\WaffleUI\Amiga.ico
 
           [Files]
           Source: "*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
 
           [Icons]
-          Name: "{group}\WaffleCopyPRO"; Filename: "{app}\waffleCopyPRO-Universal.exe"
+          Name: "{group}\WaffleCopyPRO"; Filename: "{app}\waffleCopyPRO-Universal.exe"; IconFilename: "{app}\WaffleUI\Amiga.ico"
+          Name: "{commondesktop}\WaffleCopyPRO"; Filename: "{app}\waffleCopyPRO-Universal.exe"; IconFilename: "{app}\WaffleUI\Amiga.ico"; Tasks: desktopicon
+
+          [Tasks]
+          Name: "desktopicon"; Description: "Create a &desktop icon"; GroupDescription: "Additional icons:"
           "@
           Set-Content -Path $issPath -Value $iss -Encoding UTF8
 
