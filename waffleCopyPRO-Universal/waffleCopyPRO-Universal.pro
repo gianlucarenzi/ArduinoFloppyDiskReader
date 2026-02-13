@@ -117,6 +117,8 @@ unix {
 
 win32-msvc* {
     LIBS += -lAdvapi32
+    # MSVC has __assume as intrinsic, define CAPS_USER to enable static linking
+    DEFINES += CAPS_USER
 }
 
 # Instrumentation removed: no global -finstrument-functions or instrument sources

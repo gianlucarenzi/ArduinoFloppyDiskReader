@@ -1,15 +1,20 @@
 #ifndef COMMONTYPES_H
 #define COMMONTYPES_H
 
-//-- Linux changes
+//-- Windows/MSVC compatibility: use native Windows types when available
+#if defined(_WIN32) && !defined(CAPS_USER)
+// When building as DLL on Windows, include Windows headers for native types
+#include <windows.h>
+#else
+// On other platforms or when building statically (CAPS_USER), define our own types
 #ifndef BYTE
-typedef int8_t BYTE;
+typedef uint8_t BYTE;
 #endif
 #ifndef WORD
-typedef int16_t WORD;
+typedef uint16_t WORD;
 #endif
 #ifndef DWORD
-typedef int32_t DWORD;
+typedef uint32_t DWORD;
 #endif
 // Ensure MAX_PATH and MAX_FILENAMELEN defined on non-Windows
 #ifndef MAX_PATH
@@ -18,7 +23,8 @@ typedef int32_t DWORD;
 #ifndef MAX_FILENAMELEN
 #define MAX_FILENAMELEN (MAX_PATH*2)
 #endif
-//-- Linux changes
+#endif
+//-- Windows/MSVC compatibility
 
 typedef void *PVOID;
 typedef char *PCHAR;
@@ -109,15 +115,26 @@ enum {
 #define DF_30 (1UL<<DB_30)
 #define DF_31 (1UL<<DB_31)
 
+// __declspec is only needed for DLL builds on Windows
+#if defined(_WIN32) && !defined(CAPS_USER)
 #define DllImport __declspec(dllimport)
 #define DllExport __declspec(dllexport)
-
 #define Naked __declspec(naked)
+#else
+// For static linking or non-Windows, these are empty
+#define DllImport
+#define DllExport
+#define Naked
+#endif
 
 #ifdef _DEBUG
 #define NODEFAULT   assert(0)
 #else
+#ifdef _MSC_VER
 #define NODEFAULT   __assume(0)
+#else
+#define NODEFAULT   __builtin_unreachable()
+#endif
 #endif
 
 #endif

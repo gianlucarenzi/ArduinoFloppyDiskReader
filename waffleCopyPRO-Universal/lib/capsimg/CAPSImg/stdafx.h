@@ -5,27 +5,32 @@
 
 #pragma once
 
-// OS compatiblity
-//#include "targetver.h"		//-- Linux changes
-
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
-
-// Windows specific
-//#include <windows.h>			//-- Linux changes
-
-// detect memory leaks in debug builds
-#define _CRTDBG_MAP_ALLOC
-
 // standard C/C++ includes
 #include <stdlib.h>
-//#include <crtdbg.h>			//-- Linux changes
 #include <stdint.h>
 #include <stdio.h>
 #include <assert.h>
 #include <vector>
-//#include <io.h>			//-- Linux changes
-//#include <direct.h>			//-- Linux changes
+
+// Windows/MSVC specific includes
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+// Don't include windows.h here if CAPS_USER is defined (static linking)
+// CommonTypes.h will handle it appropriately
+#ifdef _MSC_VER
+#include <io.h>
+#include <direct.h>
+#ifndef CAPS_USER
+#include <crtdbg.h>
+#define _CRTDBG_MAP_ALLOC
+#endif
+#endif
+// Use compatibility dirent.h on Windows
 #include <dirent.h>
+#else
+// Unix/Linux includes
+#include <dirent.h>
+#endif
 
 // Core definitions required on all platforms
 #include "CommonTypes.h"
@@ -98,7 +103,7 @@ typedef const char *LPCTSTR;
 #include "CapsFormatMFM.h"
 
 
-//-- Linux changes
+//-- Linux/Unix compatibility macros
 #define _access access
 #ifndef __MINGW32__
 #define _mkdir(x) mkdir(x,0)
@@ -106,8 +111,12 @@ typedef const char *LPCTSTR;
 #define _mkdir(x) mkdir(x)
 #endif
 #define d_namlen d_reclen
+#ifndef _MSC_VER
 #define __assume(cond) do { if (!(cond)) __builtin_unreachable(); } while (0)
+#endif
+#ifndef min
 #define min(x, y) (((x) < (y)) ? (x) : (y))
+#endif
 
 typedef struct _SYSTEMTIME {
         WORD wYear;
@@ -123,11 +132,16 @@ typedef struct _SYSTEMTIME {
 static inline void GetLocalTime(LPSYSTEMTIME lpSystemTime) {
     time_t t = time(NULL);
     struct tm lt;
-#if defined(_WIN32) || defined(__MINGW32__)
+#if defined(_MSC_VER)
+    // MSVC uses localtime_s with different parameter order
+    localtime_s(&lt, &t);
+#elif defined(_WIN32) || defined(__MINGW32__)
+    // MinGW uses localtime_s with swapped parameters
     struct tm tmp;
     localtime_s(&tmp, &t);
     lt = tmp;
 #else
+    // POSIX uses localtime_r
     localtime_r(&t, &lt);
 #endif
     lpSystemTime->wYear = lt.tm_year + 1900;
