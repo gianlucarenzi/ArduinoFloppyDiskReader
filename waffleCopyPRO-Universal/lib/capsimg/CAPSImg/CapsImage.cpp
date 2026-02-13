@@ -1,5 +1,5 @@
-#include "debugmsg.h"
 #include "stdafx.h"
+#include "debugmsg.h"
 
 // true if the fxb tables are initialized
 int CCapsImage::fb_init = 0;

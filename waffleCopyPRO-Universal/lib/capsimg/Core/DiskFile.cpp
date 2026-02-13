@@ -1,6 +1,6 @@
-#include "debugmsg.h"
 #include "config.h"
 #include "stdafx.h"
+#include "debugmsg.h"
 
 CDiskFile::CDiskFile()
 {
