@@ -247,7 +247,7 @@ jobs:
           # Create final ZIP with installer included (overwrite original -Windows zip)
           $finalZip = Join-Path $workspace "waffleCopyPRO-Universal-Windows.zip"
           if (Test-Path $finalZip) { Remove-Item $finalZip -Force }
-          $finalDir = Join-Path $env:TEMP "wcp_final"
+          $finalDir = Join-Path $workspace "wcp_final"
           if (Test-Path $finalDir) { Remove-Item $finalDir -Recurse -Force }
           New-Item -ItemType Directory -Path $finalDir | Out-Null
           Copy-Item -Path (Join-Path $buildDir "*") -Destination $finalDir -Recurse -Force
@@ -257,7 +257,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: waffleCopyPRO-Universal-Windows
-          path: waffleCopyPRO-Universal-Windows.zip
+          path: wcp_final/
 
       - name: Create Release and Upload Asset
         if: startsWith(github.ref, 'refs/tags/v')
