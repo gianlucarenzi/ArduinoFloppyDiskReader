@@ -54,14 +54,6 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    // Platform-specific font size for diagnostic widget
-    // macOS: keep default (11pt), Windows/Linux: smaller (10pt)
-#if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
-    QFont diagnosticFont = ui->diagnosticTest->font();
-    diagnosticFont.setPointSize(10);
-    ui->diagnosticTest->setFont(diagnosticFont);
-#endif
-
     // Create WaffleFolder if not exists
     QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
     QDir homeDir(homePath);
@@ -254,10 +246,14 @@ void MainWindow::applyAmigaFontToWidgets()
     ui->skipWriteError->setFont(this->font());
     ui->diagnosticButton->setFont(this->font());
     
-    // Slightly larger font for diagnostic text
-    QFont diagnosticFont = ui->diagnosticTest->font();
-    diagnosticFont.setFamily(this->font().family());
+    // Platform-specific font size for diagnostic text
+    // macOS: Amiga font + 2pt, Windows/Linux: Amiga font + 1pt
+    QFont diagnosticFont = this->font();
+#if defined(Q_OS_MACOS)
+    diagnosticFont.setPointSize(this->font().pointSize() + 2);
+#else
     diagnosticFont.setPointSize(this->font().pointSize() + 1);
+#endif
     ui->diagnosticTest->setFont(diagnosticFont);
 }
 
