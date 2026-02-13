@@ -9,4 +9,8 @@
 #endif
 #endif
 
+#ifndef _WIN32
+#define __cdecl
+#endif
+
 #endif // COMPILERDEFS_H

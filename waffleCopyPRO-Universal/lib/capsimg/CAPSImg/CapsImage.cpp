@@ -254,7 +254,7 @@ void CCapsImage::ConvertDumpInfo(PCAPSWH wh)
 	PDISKTRACKINFO pti = di.pdt;
 
 	// use the number of revolutions that could be stored by pti at most or the number of revolutions sampled if less
-	int maxrev = min(CAPS_MTRS, wh->trkcnt);
+	int maxrev = std::min(CAPS_MTRS, wh->trkcnt);
 	pti->rawtrackcnt = maxrev;
 
 	// save the total size of all tracks decoded; don't have to recalculate later
@@ -380,7 +380,7 @@ int CCapsImage::UpdateDump()
 	int rawsize = pti->rawtimecnt;
 
 	// the amount of timing to be copied track size or real size - whichever is shorter
-	int tsize = min(rawsize, pti->timecnt);
+	int tsize = std::min(rawsize, pti->timecnt);
 
 	// copy the timing
 	memcpy(pti->timebuf, pti->rawtimebuf, tsize*sizeof(UDWORD));

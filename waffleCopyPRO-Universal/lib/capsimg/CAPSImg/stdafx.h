@@ -44,32 +44,6 @@ typedef const char *LPCTSTR;
 #include "CRC.h"
 #include "BitBuffer.h"
 
-// IPF library public definitions
-#include "CapsLibAll.h"
-
-// CODECs
-#include "DiskEncoding.h"
-#include "CapsDefinitions.h"
-#include "CTRawCodec.h"
-
-// file support
-#include "CapsFile.h"
-#include "DiskImage.h"
-#include "CapsLoader.h"
-#include "CapsImageStd.h"
-#include "CapsImage.h"
-#include "StreamImage.h"
-#include "StreamCueImage.h"
-#include "DiskImageFactory.h"
-
-// Device access
-#include "C2Comm.h"
-
-// system
-#include "CapsCore.h"
-#include "CapsFDCEmulator.h"
-#include "CapsFormatMFM.h"
-
 #if !defined(_WIN32) || defined(CAPSIMG_STANDALONE)
 //-- Linux changes
 #include <stddef.h>			// offsetof
@@ -108,9 +82,7 @@ typedef const char *LPCTSTR;
 #ifndef _MSC_VER
 #define __assume(cond) do { if (!(cond)) __builtin_unreachable(); } while (0)
 #endif
-#ifndef min
-#define min(x, y) (((x) < (y)) ? (x) : (y))
-#endif
+
 
 typedef struct _SYSTEMTIME {
         WORD wYear;
@@ -148,6 +120,33 @@ static inline void GetLocalTime(LPSYSTEMTIME lpSystemTime) {
     lpSystemTime->wMilliseconds = 0;
 }
 #endif
+
+// IPF library public definitions
+#include "CapsLibAll.h"
+
+// CODECs
+#include "DiskEncoding.h"
+#include "CapsDefinitions.h"
+#include "CTRawCodec.h"
+
+// file support
+#include "CapsFile.h"
+#include "DiskImage.h"
+#include "CapsLoader.h"
+#include "CapsImageStd.h"
+#include "CapsImage.h"
+#include "StreamImage.h"
+#include "StreamCueImage.h"
+#include "DiskImageFactory.h"
+
+// Device access
+#include "C2Comm.h"
+
+// system
+#include "CapsCore.h"
+#include "CapsFDCEmulator.h"
+#include "CapsFormatMFM.h"
+
 
 #ifdef CAPSIMG_STANDALONE
 // When building standalone (Makefile) ensure CODEC headers are available

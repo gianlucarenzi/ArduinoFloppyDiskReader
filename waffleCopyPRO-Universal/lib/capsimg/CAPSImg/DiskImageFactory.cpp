@@ -161,7 +161,7 @@ int CDiskImageFactory::IsKFStreamCue(PCAPSFILE pcf)
 	// buffer allowed, with room for terminating 0
 	int bufmax = sizeof(buf)-1;
 
-	int readsize = min(frem, bufmax);
+	int readsize = std::min(frem, bufmax);
 
 	// read from the beginning of the file, stop on error
 	if (file.Read(buf, readsize) != readsize)

@@ -105,7 +105,7 @@ win32 {
 }
 
 unix {
-    QMAKE_CXXFLAGS += -Wextra
+    QMAKE_CXXFLAGS += -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-unused-variable -Wno-sign-compare -Wno-ignored-qualifiers -Wno-deprecated-declarations -Wno-implicit-fallthrough -Wno-parentheses
     LIBS += -ldl -lmikmod
 
     macx {
@@ -119,6 +119,7 @@ win32-msvc* {
     LIBS += -lAdvapi32
     # MSVC has __assume as intrinsic, define CAPS_USER to enable static linking
     DEFINES += CAPS_USER
+    QMAKE_CXXFLAGS += /wd4100 /wd4101 /wd4244 /wd4996
 }
 
 # Instrumentation removed: no global -finstrument-functions or instrument sources
@@ -142,12 +143,25 @@ unix|macx|win32 {
 contains(CONFIG, capsimg_static) {
     message("Including capsimg sources in build (capsimg_static)")
     DEFINES += CAPS_USER
-    INCLUDEPATH += $$PWD/lib/capsimg
-    INCLUDEPATH += $$PWD/lib/capsimg/Core
-    INCLUDEPATH += $$PWD/lib/capsimg/LibIPF
-    INCLUDEPATH += $$PWD/lib/capsimg/Codec
-    INCLUDEPATH += $$PWD/lib/capsimg/Device
-    INCLUDEPATH += $$PWD/lib/capsimg/CAPSImg
+
+    # Treat capsimg as a system library to suppress warnings
+    unix|macx {
+        QMAKE_CXXFLAGS += -isystem $$PWD/lib/capsimg
+        QMAKE_CXXFLAGS += -isystem $$PWD/lib/capsimg/Core
+        QMAKE_CXXFLAGS += -isystem $$PWD/lib/capsimg/LibIPF
+        QMAKE_CXXFLAGS += -isystem $$PWD/lib/capsimg/Codec
+        QMAKE_CXXFLAGS += -isystem $$PWD/lib/capsimg/Device
+        QMAKE_CXXFLAGS += -isystem $$PWD/lib/capsimg/CAPSImg
+    }
+    win32-msvc* {
+        QMAKE_CXXFLAGS += /external:I $$PWD/lib/capsimg
+        QMAKE_CXXFLAGS += /external:I $$PWD/lib/capsimg/Core
+        QMAKE_CXXFLAGS += /external:I $$PWD/lib/capsimg/LibIPF
+        QMAKE_CXXFLAGS += /external:I $$PWD/lib/capsimg/Codec
+        QMAKE_CXXFLAGS += /external:I $$PWD/lib/capsimg/Device
+        QMAKE_CXXFLAGS += /external:I $$PWD/lib/capsimg/CAPSImg
+    }
+
     SOURCES += \
         lib/capsimg/CAPSImg/CAPSImg.cpp \
         lib/capsimg/CAPSImg/StreamImage.cpp \
