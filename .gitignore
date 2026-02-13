@@ -70,6 +70,7 @@ CVS
 /waffleCopyPRO-Universal/debugmsg.o
 /waffleCopyPRO-Universal/moc_sinescroller.cpp
 /waffleCopyPRO-Universal/moc_sinescroller.o
+/waffleCopyPRO-Universal/sinescroller.o
 # Build artifacts
 config.status
 config.log
