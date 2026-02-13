@@ -135,8 +135,8 @@ macx {
 }
 
 # capsimg integration: by default link the built capsimg library in lib/capsimg
-# On Unix and macOS build capsimg from sources; on Windows link against the DLL
-unix|macx {
+# Build capsimg from sources on all platforms
+unix|macx|win32 {
     CONFIG += capsimg_static
 }
 contains(CONFIG, capsimg_static) {
