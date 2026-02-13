@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <assert.h>
 #include <vector>
+#include <algorithm>
+#include <time.h>
 
 // Windows/MSVC specific includes
 #if defined(_WIN32)
@@ -20,13 +22,47 @@
 #ifdef _MSC_VER
 #include <io.h>
 #include <direct.h>
+#include <sys/stat.h>
 #ifndef CAPS_USER
 #include <crtdbg.h>
 #define _CRTDBG_MAP_ALLOC
 #else
-// When CAPS_USER is defined, we need these typedefs that would normally come from windows.h
+// When CAPS_USER is defined, we need these typedefs and definitions that would normally come from windows.h
 typedef const char *LPCSTR;
 typedef const char *LPCTSTR;
+typedef unsigned short WORD;
+
+// Define S_ISREG macro for Windows
+#ifndef S_ISREG
+#define S_ISREG(m) (((m) & _S_IFMT) == _S_IFREG)
+#endif
+
+// Define SYSTEMTIME structure
+typedef struct _SYSTEMTIME {
+    WORD wYear;
+    WORD wMonth;
+    WORD wDayOfWeek;
+    WORD wDay;
+    WORD wHour;
+    WORD wMinute;
+    WORD wSecond;
+    WORD wMilliseconds;
+} SYSTEMTIME, *LPSYSTEMTIME;
+
+// Define GetLocalTime function
+static inline void GetLocalTime(LPSYSTEMTIME lpSystemTime) {
+    time_t t = time(NULL);
+    struct tm lt;
+    localtime_s(&lt, &t);
+    lpSystemTime->wYear = lt.tm_year + 1900;
+    lpSystemTime->wMonth = lt.tm_mon + 1;
+    lpSystemTime->wDayOfWeek = lt.tm_wday;
+    lpSystemTime->wDay = lt.tm_mday;
+    lpSystemTime->wHour = lt.tm_hour;
+    lpSystemTime->wMinute = lt.tm_min;
+    lpSystemTime->wSecond = lt.tm_sec;
+    lpSystemTime->wMilliseconds = 0;
+}
 #endif
 #endif
 // Use compatibility dirent.h on Windows
