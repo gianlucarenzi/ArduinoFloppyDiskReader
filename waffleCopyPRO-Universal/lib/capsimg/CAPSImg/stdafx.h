@@ -23,6 +23,10 @@
 #ifndef CAPS_USER
 #include <crtdbg.h>
 #define _CRTDBG_MAP_ALLOC
+#else
+// When CAPS_USER is defined, we need these typedefs that would normally come from windows.h
+typedef const char *LPCSTR;
+typedef const char *LPCTSTR;
 #endif
 #endif
 // Use compatibility dirent.h on Windows
