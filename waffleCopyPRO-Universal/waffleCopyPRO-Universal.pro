@@ -22,6 +22,27 @@ INCLUDEPATH += \
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+# Translations
+TRANSLATIONS += \
+    translations/wafflecopy_en.ts \
+    translations/wafflecopy_it.ts \
+    translations/wafflecopy_de.ts \
+    translations/wafflecopy_es.ts \
+    translations/wafflecopy_pt.ts \
+    translations/wafflecopy_fr.ts \
+    translations/wafflecopy_pl.ts \
+    translations/wafflecopy_el.ts \
+    translations/wafflecopy_hu.ts \
+    translations/wafflecopy_ru.ts \
+    translations/wafflecopy_uk.ts \
+    translations/wafflecopy_ja.ts \
+    translations/wafflecopy_zh_CN.ts \
+    translations/wafflecopy_ro.ts \
+    translations/wafflecopy_sr.ts \
+    translations/wafflecopy_cs.ts
+
+RESOURCES += translations.qrc
+
 # Input
 HEADERS += \
     inc/clicklabel.h \

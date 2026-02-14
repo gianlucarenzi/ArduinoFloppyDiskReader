@@ -27,6 +27,12 @@
 #include <QScrollBar>
 #include "mikmodplayer.h"
 #include "vumeterwidget.h"
+#include <QMenuBar>
+#include <QMenu>
+#include <QMessageBox>
+#include <QApplication>
+#include <QTranslator>
+#include <QInputDialog>
 
 extern void set_user_input(char data);
 
@@ -53,6 +59,10 @@ MainWindow::MainWindow(QWidget *parent)
   m_musicPaused(false)
 {
     ui->setupUi(this);
+
+    // Load language from settings
+    QString savedLanguage = settings.value("LANGUAGE", "en").toString();
+    loadLanguage(savedLanguage);
 
     // Create WaffleFolder if not exists
     QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
@@ -220,6 +230,26 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Apply Amiga font to all widgets
     applyAmigaFontToWidgets();
+
+    // Create menu bar at the end, after all widgets are setup
+    QMenuBar *menuBar = this->menuBar();
+    menuBar->setFont(this->font());
+    menuBar->setNativeMenuBar(false); // Force Qt menu bar instead of native (important for Linux/Windows)
+
+    // Menu File
+    QMenu *fileMenu = menuBar->addMenu(tr("File"));
+    fileMenu->setFont(this->font());
+    QAction *langAction = fileMenu->addAction(tr("Language Settings"));
+    connect(langAction, &QAction::triggered, this, &MainWindow::onLanguageSettings);
+    fileMenu->addSeparator();
+    QAction *quitAction = fileMenu->addAction(tr("Quit"));
+    connect(quitAction, &QAction::triggered, qApp, &QApplication::quit);
+
+    // Menu Help
+    QMenu *helpMenu = menuBar->addMenu(tr("Help"));
+    helpMenu->setFont(this->font());
+    QAction *aboutAction = helpMenu->addAction(tr("About"));
+    connect(aboutAction, &QAction::triggered, this, &MainWindow::onAbout);
 }
 
 void MainWindow::applyAmigaFontToWidgets()
@@ -779,41 +809,41 @@ void MainWindow::manageQtDrawBridgeSignal(int sig)
     {
     case 0: toShow = false; break; // No error
         // Responses from openPort
-    case 1: ui->copyError->setText("Port In Use"); break;
-    case 2: ui->copyError->setText("Port Not Found"); break;
-    case 3: ui->copyError->setText("Port Error"); break;
-    case 4: ui->copyError->setText("Access Denied"); break;
-    case 5: ui->copyError->setText("Comport Config Error"); break;
-    case 6: ui->copyError->setText("BaudRate Not Supported"); break;
-    case 7: ui->copyError->setText("Error Reading Version"); break;
-    case 8: ui->copyError->setText("Error Malformed Version"); break;
-    case 9: ui->copyError->setText("Old Firmware"); break;
+    case 1: ui->copyError->setText(tr("Port In Use")); break;
+    case 2: ui->copyError->setText(tr("Port Not Found")); break;
+    case 3: ui->copyError->setText(tr("Port Error")); break;
+    case 4: ui->copyError->setText(tr("Access Denied")); break;
+    case 5: ui->copyError->setText(tr("Comport Config Error")); break;
+    case 6: ui->copyError->setText(tr("BaudRate Not Supported")); break;
+    case 7: ui->copyError->setText(tr("Error Reading Version")); break;
+    case 8: ui->copyError->setText(tr("Error Malformed Version")); break;
+    case 9: ui->copyError->setText(tr("Old Firmware")); break;
         // Responses from commands
-    case 10: ui->copyError->setText("Send Failed"); break;
-    case 11: ui->copyError->setText("Send Parameter Failed"); break;
-    case 12: ui->copyError->setText("Read Response Failed or No Disk in Drive"); break;
-    case 13: ui->copyError->setText("Write Timeout"); break;
-    case 14: ui->copyError->setText("Serial Overrun"); break;
-    case 15: ui->copyError->setText("Framing Error"); break;
-    case 16: ui->copyError->setText("Error"); break;
+    case 10: ui->copyError->setText(tr("Send Failed")); break;
+    case 11: ui->copyError->setText(tr("Send Parameter Failed")); break;
+    case 12: ui->copyError->setText(tr("Read Response Failed or No Disk in Drive")); break;
+    case 13: ui->copyError->setText(tr("Write Timeout")); break;
+    case 14: ui->copyError->setText(tr("Serial Overrun")); break;
+    case 15: ui->copyError->setText(tr("Framing Error")); break;
+    case 16: ui->copyError->setText(tr("Error")); break;
 
         // Response from selectTrack
-    case 17: ui->copyError->setText("Track Range Error"); break;
-    case 18: ui->copyError->setText("Select Track Error"); break;
-    case 19: ui->copyError->setText("Write Protected"); break;
-    case 20: ui->copyError->setText("Status Error"); break;
-    case 21: ui->copyError->setText("Send Data Failed"); break;
-    case 22: ui->copyError->setText("Track Write Response Error"); break;
+    case 17: ui->copyError->setText(tr("Track Range Error")); break;
+    case 18: ui->copyError->setText(tr("Select Track Error")); break;
+    case 19: ui->copyError->setText(tr("Write Protected")); break;
+    case 20: ui->copyError->setText(tr("Status Error")); break;
+    case 21: ui->copyError->setText(tr("Send Data Failed")); break;
+    case 22: ui->copyError->setText(tr("Track Write Response Error")); break;
 
         // Returned if there is no disk in the drive
-    case 23: ui->copyError->setText("No Disk In Drive"); break;
+    case 23: ui->copyError->setText(tr("No Disk In Drive")); break;
 
-    case 24: ui->copyError->setText("Diagnostic Not Available"); break;
-    case 25: ui->copyError->setText("USB Serial Bad"); break;
-    case 26: ui->copyError->setText("CTS Failure"); break;
-    case 27: ui->copyError->setText("Rewind Failure"); break;
-    case 28: ui->copyError->setText("Media Type Mismatch or No Disk in Drive"); break;
-    default: ui->copyError->setText("Unknown Error"); break;
+    case 24: ui->copyError->setText(tr("Diagnostic Not Available")); break;
+    case 25: ui->copyError->setText(tr("USB Serial Bad")); break;
+    case 26: ui->copyError->setText(tr("CTS Failure")); break;
+    case 27: ui->copyError->setText(tr("Rewind Failure")); break;
+    case 28: ui->copyError->setText(tr("Media Type Mismatch or No Disk in Drive")); break;
+    default: ui->copyError->setText(tr("Unknown Error")); break;
     }
 
     if (toShow) {
@@ -1261,5 +1291,134 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
     }
     // Pass all other events to the parent class
     return QMainWindow::eventFilter(obj, event);
+}
+
+void MainWindow::onLanguageSettings()
+{
+    QStringList languages;
+    languages << "English" << "Italiano" << "Deutsch" << "Español" 
+              << "Português" << "Français" << "Polski" << "Ελληνικά" 
+              << "Magyar" << "Русский" << "Українська" << "日本語" << "简体中文"
+              << "Română" << "Српски/Hrvatski" << "Čeština";
+    
+    QStringList codes;
+    codes << "en" << "it" << "de" << "es" << "pt" << "fr" << "pl" << "el" << "hu" << "ru" << "uk" << "ja" << "zh_CN" << "ro" << "sr" << "cs";
+    
+    QString currentLang = settings.value("LANGUAGE", "en").toString();
+    int currentIndex = codes.indexOf(currentLang);
+    if (currentIndex < 0) currentIndex = 0;
+    
+    bool ok;
+    QString selectedLang = QInputDialog::getItem(this, tr("Language Settings"),
+                                                  tr("Select language:"),
+                                                  languages, currentIndex, false, &ok);
+    
+    if (ok && !selectedLang.isEmpty()) {
+        int index = languages.indexOf(selectedLang);
+        if (index >= 0) {
+            QString langCode = codes[index];
+            changeLanguage(langCode);
+        }
+    }
+}
+
+void MainWindow::loadLanguage(const QString &language)
+{
+    qApp->removeTranslator(&m_translator);
+    
+    // Try loading from resources first, then from file system
+    QString qmFile = ":/translations/wafflecopy_" + language + ".qm";
+    if (QFile::exists(qmFile)) {
+        if (m_translator.load(qmFile)) {
+            qApp->installTranslator(&m_translator);
+        }
+    } else {
+        // Fallback: try loading .ts file directly (Qt can load .ts files too)
+        QString tsFile = "translations/wafflecopy_" + language + ".ts";
+        if (QFile::exists(tsFile)) {
+            if (m_translator.load(tsFile)) {
+                qApp->installTranslator(&m_translator);
+            }
+        }
+    }
+    
+    // Retranslate UI to apply the loaded language
+    ui->retranslateUi(this);
+    
+    // For languages with non-Latin scripts (Greek, Russian, Ukrainian),
+    // reduce font size slightly to prevent clipping when fallback fonts are used
+    QFont currentFont = this->font();
+    if (language == "el" || language == "ru" || language == "uk") {
+        // Reduce by 1 point for Cyrillic and Greek
+        currentFont.setPointSize(currentFont.pointSize() > 8 ? currentFont.pointSize() - 1 : 8);
+        qApp->setFont(currentFont);
+        this->setFont(currentFont);
+    }
+    
+    // Reapply Amiga font to all widgets after retranslation
+    applyAmigaFontToWidgets();
+}
+
+void MainWindow::changeLanguage(const QString &language)
+{
+    settings.setValue("LANGUAGE", language);
+    
+    qApp->removeTranslator(&m_translator);
+    
+    // Try loading from resources first, then from file system  
+    QString qmFile = ":/translations/wafflecopy_" + language + ".qm";
+    if (QFile::exists(qmFile)) {
+        if (m_translator.load(qmFile)) {
+            qApp->installTranslator(&m_translator);
+        }
+    } else {
+        // Fallback: try loading .ts file directly
+        QString tsFile = "translations/wafflecopy_" + language + ".ts";
+        if (QFile::exists(tsFile)) {
+            m_translator.load(tsFile);
+            qApp->installTranslator(&m_translator);
+        }
+    }
+    
+    // Retranslate UI
+    ui->retranslateUi(this);
+    
+    // For languages with non-Latin scripts (Greek, Russian, Ukrainian, Japanese, Chinese),
+    // reduce font size slightly to prevent clipping when fallback fonts are used
+    QFont currentFont = this->font();
+    if (language == "el" || language == "ru" || language == "uk" || language == "ja" || language == "zh_CN") {
+        // Reduce by 1 point for Cyrillic, Greek and CJK
+        currentFont.setPointSize(currentFont.pointSize() > 8 ? currentFont.pointSize() - 1 : 8);
+        qApp->setFont(currentFont);
+        this->setFont(currentFont);
+    } else {
+        // Restore original font size for Latin scripts
+        QFont originalFont = this->font();
+        originalFont.setPointSize(9); // Original Topaz size
+        qApp->setFont(originalFont);
+        this->setFont(originalFont);
+    }
+    
+    // Reapply Topaz font to all widgets after retranslation
+    // This prevents font changes and clipping issues
+    applyAmigaFontToWidgets();
+    
+    QMessageBox::information(this, tr("Language Changed"),
+        tr("Language has been changed. The application will now close. Please restart it."));
+    
+    // Close the application so user can restart with new language
+    qApp->quit();
+}
+
+void MainWindow::onAbout()
+{
+    QMessageBox::about(this, tr("About Waffle Copy Pro"),
+        tr("<h3>Waffle Copy Professional v%1</h3>"
+           "<p>The essential USB floppy drive solution for the real Amiga user.</p>"
+           "<p><b>Original Concept:</b> Rob Smith<br>"
+           "<b>Modified version by:</b> Gianluca Renzi<br>"
+           "<b>Product by:</b> RetroBit Lab and RetroGiovedi</p>"
+           "<p>IPF support powered by CAPS image library.<br>"
+           "Music playback powered by libmikmod.</p>").arg(WAFFLE_VERSION));
 }
 

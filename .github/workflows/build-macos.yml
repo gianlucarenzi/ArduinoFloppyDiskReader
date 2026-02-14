@@ -43,6 +43,7 @@ jobs:
         echo "Copying resource folders to Contents/Resources..."
         cp -R fonts waffleCopyPRO-Universal.app/Contents/Resources/
         cp -R WaffleUI waffleCopyPRO-Universal.app/Contents/Resources/
+        cp -R translations waffleCopyPRO-Universal.app/Contents/Resources/
 
         # Frameworks folder (no CAPSImage.framework copying; CAPS integrated statically)
         mkdir -p waffleCopyPRO-Universal.app/Contents/Frameworks

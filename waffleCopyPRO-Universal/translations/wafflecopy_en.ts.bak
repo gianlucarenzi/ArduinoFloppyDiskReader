@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="en_US">
+<context>
+    <name>MainWindow</name>
+    <message>
+        <source>File</source>
+        <translation>File</translation>
+    </message>
+    <message>
+        <source>Language Settings</source>
+        <translation>Language Settings</translation>
+    </message>
+    <message>
+        <source>Quit</source>
+        <translation>Quit</translation>
+    </message>
+    <message>
+        <source>Help</source>
+        <translation>Help</translation>
+    </message>
+    <message>
+        <source>About</source>
+        <translation>About</translation>
+    </message>
+    <message>
+        <source>Select language:</source>
+        <translation>Select language:</translation>
+    </message>
+    <message>
+        <source>Language Changed</source>
+        <translation>Language Changed</translation>
+    </message>
+    <message>
+        <source>Language has been changed. Please restart the application for all changes to take effect.</source>
+        <translation>Language has been changed. Please restart the application for all changes to take effect.</translation>
+    </message>
+    <message>
+        <source>About Waffle Copy Pro</source>
+        <translation>About Waffle Copy Pro</translation>
+    </message>
+    <message>
+        <source>WAFFLE-Copy-Professional</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>START WRITE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>START READ</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>select file name to read from Waffle</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>select file image to write to Waffle</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>WAFFLE DRIVE USB PORT</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>STOP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AMIGA DISK COPY COMPLETED</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AMIGA DISK COPY ERROR</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PCW</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Erase Before Writing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Version</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disk Error!</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Retry</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Skip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Abort</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Run Diagnostics</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> --- WAFFLE COPY PROFESSIONAL v%1 --- The essential USB floppy drive solution for the real Amiga user.  It allows you to write from ADF, SCP and IPF files, and read floppy disks as ADF or SCP format and, thanks to a specific version of an Amiga Emulator Software, like WinUAE (by Toni Wilen) or AmiBerry (by MiDWaN), it works like a real Amiga disk drive allowing you to directly read and write your floppies through an emulator! Sometime you may need a special USB cable (Y-Type) with the possibility of double powering if the USB port of the PC is not powerful enough. Original Concept by Rob Smith, modified version by Gianluca Renzi, Waffle is a product by RetroBit Lab and RetroGiovedi.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> --- CREDITS --- IPF support powered by CAPS image library. Copyright (C) Software Preservation Society. Music playback powered by libmikmod. Copyright (C) 1998-2004 Miodrag Vallat and others. Music: &quot;Stardust Memories&quot; by Jester/Sanity (C) 1992 Volker Tripp.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>OPERATION TERMINATED BY USER</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>ERROR: No serial port selected!
+
+Please select a serial port from the dropdown menu.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>NEED VALID IMAGE FILENAME FIRST TO WRITE TO FLOPPY</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select Disk Image File</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disk Images (*.adf *.scp *.ima *.img *.st *.ipf);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st);;IPF Files (*.ipf)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Write Disk Image File to be written on hard disk</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disk Images (*.adf *.scp *.ima *.img *.st);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>=== Waffle Copy Pro - Diagnostic Test ===
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Starting diagnostic on port: %1
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>
+=== ALL TESTS PASSED ===</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>
+=== SOME TESTS FAILED ===</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>
+Click anywhere on this window to close.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;h3&gt;Waffle Copy Professional v%1&lt;/h3&gt;&lt;p&gt;The essential USB floppy drive solution for the real Amiga user.&lt;/p&gt;&lt;p&gt;&lt;b&gt;Original Concept:&lt;/b&gt; Rob Smith&lt;br&gt;&lt;b&gt;Modified version by:&lt;/b&gt; Gianluca Renzi&lt;br&gt;&lt;b&gt;Product by:&lt;/b&gt; RetroBit Lab and RetroGiovedi&lt;/p&gt;&lt;p&gt;IPF support powered by CAPS image library.&lt;br&gt;Music playback powered by libmikmod.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+</TS>

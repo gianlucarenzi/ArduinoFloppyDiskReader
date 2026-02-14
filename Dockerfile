@@ -49,6 +49,7 @@ RUN linuxdeploy --appdir AppDir --executable ./waffleCopyPRO-Universal --desktop
 # Manually copy resources
 RUN cp -r ./fonts AppDir/usr/bin/
 RUN cp -r ./WaffleUI AppDir/usr/bin/
+RUN cp -r ./translations AppDir/usr/bin/
 
 # Create custom AppRun
 RUN echo '#!/bin/bash' > AppDir/AppRun && \

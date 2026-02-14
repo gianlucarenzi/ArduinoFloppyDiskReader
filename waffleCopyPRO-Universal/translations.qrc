@@ -1,0 +1,21 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+<qresource prefix="/">
+    <file>translations/wafflecopy_en.qm</file>
+    <file>translations/wafflecopy_it.qm</file>
+    <file>translations/wafflecopy_de.qm</file>
+    <file>translations/wafflecopy_es.qm</file>
+    <file>translations/wafflecopy_pt.qm</file>
+    <file>translations/wafflecopy_fr.qm</file>
+    <file>translations/wafflecopy_pl.qm</file>
+    <file>translations/wafflecopy_el.qm</file>
+    <file>translations/wafflecopy_hu.qm</file>
+    <file>translations/wafflecopy_ru.qm</file>
+    <file>translations/wafflecopy_uk.qm</file>
+    <file>translations/wafflecopy_ja.qm</file>
+    <file>translations/wafflecopy_zh_CN.qm</file>
+    <file>translations/wafflecopy_ro.qm</file>
+    <file>translations/wafflecopy_sr.qm</file>
+    <file>translations/wafflecopy_cs.qm</file>
+</qresource>
+</RCC>

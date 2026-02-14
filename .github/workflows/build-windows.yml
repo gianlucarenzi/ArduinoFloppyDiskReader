@@ -160,6 +160,7 @@ jobs:
 
           Copy-Item -Path "waffleCopyPRO-Universal/fonts" -Destination $RELEASE_DIR -Recurse -Force -ErrorAction SilentlyContinue
           Copy-Item -Path "waffleCopyPRO-Universal/WaffleUI" -Destination $RELEASE_DIR -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item -Path "waffleCopyPRO-Universal/translations" -Destination $RELEASE_DIR -Recurse -Force -ErrorAction SilentlyContinue
 
           # Create a simple PowerShell installer script in repo (optional)
           $installer = @'

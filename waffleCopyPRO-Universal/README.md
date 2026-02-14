@@ -25,6 +25,7 @@ WaffleCopyPRO-Universal is a powerful, cross-platform floppy disk imaging and wr
 
 *   **Universal Compatibility**: Works seamlessly with WAFFLE, or other various floppy drive interfaces, including DrawBridge and Arduino-based solutions.
 *   **Multi-platform Support**: Natively supported on Linux, macOS (x86_64 and Apple Silicon), and Windows.
+*   **Multi-language Support**: Available in 16 languages - English, Italian, German, Spanish, Portuguese, French, Polish, Greek, Hungarian, Russian, Ukrainian, Japanese, Simplified Chinese, Romanian, Serbian/Croatian, and Czech. Language can be changed via the menu bar (File → Language).
 *   **Intuitive GUI**: A user-friendly graphical interface built with Qt, allowing for easy operation.
 *   **Open Source**: Fully open-source, enabling community contributions, customizations, and extensions.
 *   **Advanced Imaging**: Supports various Amiga disk formats for accurate preservation and restoration.
@@ -172,9 +173,23 @@ Upon launching WaffleCopyPRO-Universal, you will be presented with the main appl
 
 ![WaffleCopyPRO-Universal Startup Screen](WaffleUI/waffle-startup.png)
 
+*   **Menu Bar**: At the top, you'll find the menu bar with:
+    *   **File**: Contains "Language" (to change the application language) and "Quit" options
+    *   **Help**: Contains "About" information
 *   **Serial Port Selection**: Typically found at the top, allowing you to select the serial (COM) port your floppy controller is connected to.
 *   **Disk Operations Tabs**: Separate tabs or buttons for "Read Disk", "Write Disk", "Format Disk", "Diagnostics", etc.
 *   **Status Area**: Displays current operation status, progress, and any messages.
+
+#### Changing Language
+
+To change the application language:
+1.  Click on **File** → **Language** in the menu bar
+2.  Select your preferred language from the list
+3.  Click **OK** on the confirmation dialog
+4.  The application will close automatically
+5.  Restart the application to use the new language
+
+All interface elements, error messages, and diagnostic information will be displayed in your selected language.
 
 ### Reading a Floppy Disk
 
@@ -206,7 +221,7 @@ Upon launching WaffleCopyPRO-Universal, you will be presented with the main appl
 
 *   **Diagnostics**: Use the "Diagnostics" section to test your hardware connection and identify potential issues.
     *Textual indication: Accessing the "Diagnostics" section (often a dedicated tab or menu item) will reveal options for testing the connection to your floppy controller, performing various hardware checks, and viewing real-time data from the device.*
-*   **Settings**: While there isn't a dedicated "Settings tab" in the main interface, application settings for various parameters like rotational speed, track count, or specific hardware interface options are managed internally using Qt's `QSettings` class. `QSettings` provides a platform-independent way to store and retrieve application settings, typically saved in configuration files (e.g., INI files on Windows, plist files on macOS, or XDG configuration files on Linux) or the system registry. These settings can often be configured through menu options, dialogs, or modified directly if you understand the configuration file format.
+*   **Settings**: Application settings are managed internally using Qt's `QSettings` class. `QSettings` provides a platform-independent way to store and retrieve application settings, typically saved in configuration files (e.g., INI files on Windows, plist files on macOS, or XDG configuration files on Linux) or the system registry. The language preference is automatically saved and restored when you restart the application. Other settings for various parameters like rotational speed, track count, or specific hardware interface options can be configured through menu options or dialogs.
 
 ## How It Works: A Glimpse into the Code
 

@@ -21,6 +21,7 @@
 #include "mikmodplayer.h"
 #include "vumeterwidget.h"
 #include <QLineEdit>
+#include <QTranslator>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -86,9 +87,12 @@ private:
     bool m_musicPaused;
     QPoint m_diagnosticMousePressPos;
     QTimer *diagnosticTimeoutTimer;
+    QTranslator m_translator;
 
 private:
     void applyAmigaFontToWidgets();
+    void loadLanguage(const QString &language);
+    void changeLanguage(const QString &language);
 
 private slots:
     void onDiagnosticTimeout();
@@ -127,6 +131,9 @@ private slots:
     void handleSongFinished();
     void updateVuMeter();
     void toggleMusic();
+    // Menu actions
+    void onLanguageSettings();
+    void onAbout();
 
 protected:
     void resizeEvent(QResizeEvent *event);

@@ -74,6 +74,7 @@ private:
     // Helper methods
     void transitionToError();                                // Transition to error state
     bool checkInterruption();                                // Check if user requested interruption
+    QString translateError(const QString &error);            // Translate known error messages
 };
 
 #endif // DIAGNOSTICTHREAD_H
