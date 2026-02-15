@@ -26,6 +26,8 @@ WaffleCopyPRO-Universal is a powerful, cross-platform floppy disk imaging and wr
 *   **Universal Compatibility**: Works seamlessly with WAFFLE, or other various floppy drive interfaces, including DrawBridge and Arduino-based solutions.
 *   **Multi-platform Support**: Natively supported on Linux, macOS (x86_64 and Apple Silicon), and Windows.
 *   **Multi-language Support**: Available in 16 languages - English, Italian, German, Spanish, Portuguese, French, Polish, Greek, Hungarian, Russian, Ukrainian, Japanese, Simplified Chinese, Romanian, Serbian/Croatian, and Czech. Language can be changed via the menu bar (File → Language).
+*   **Responsive UI**: Dynamic interface that adapts to different screen sizes and high DPI displays, ensuring optimal readability on all devices.
+*   **High DPI Support**: Full support for high-resolution displays with automatic scaling to maintain crisp graphics.
 *   **Intuitive GUI**: A user-friendly graphical interface built with Qt, allowing for easy operation.
 *   **Open Source**: Fully open-source, enabling community contributions, customizations, and extensions.
 *   **Advanced Imaging**: Supports various Amiga disk formats for accurate preservation and restoration.
@@ -190,6 +192,18 @@ To change the application language:
 5.  Restart the application to use the new language
 
 All interface elements, error messages, and diagnostic information will be displayed in your selected language.
+
+#### Responsive Interface and High DPI Support
+
+WaffleCopyPRO-Universal features a responsive interface that automatically adapts to different screen sizes and DPI settings:
+
+*   **Resizable Window**: The application window can be resized to fit your screen. All UI elements will scale proportionally to maintain readability and usability.
+*   **High DPI Displays**: On high-resolution displays (4K, Retina, etc.), the interface automatically scales to provide crisp, readable text and graphics.
+*   **Minimum Size**: The window has a minimum size of 1024x610 pixels to ensure all controls remain accessible.
+*   **Adaptive Layout**: When you resize the window, all buttons, labels, input fields, and progress indicators adjust their size and position to maintain the original design proportions.
+*   **Scaled Graphics**: Background images and logos scale smoothly to match the window size without pixelation.
+
+To take advantage of these features on a high DPI display, simply launch the application normally - the scaling happens automatically. If you have a large monitor, you can maximize the window or manually resize it to your preferred size for improved readability.
 
 ### Reading a Floppy Disk
 
