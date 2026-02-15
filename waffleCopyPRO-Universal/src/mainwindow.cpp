@@ -1153,6 +1153,24 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     // Reposition track indicators with scaling
     prepareTracksPosition();
     
+    // Update VU meter position if visible
+    if (vuMeter && vuMeter->isVisible()) {
+        int channels = player->getNumChannels();
+        int vuMeterWidth = 0;
+        if (channels > 0) {
+            int barWidth = static_cast<int>(24 * scale);
+            int barSpacing = static_cast<int>(2 * scale);
+            vuMeterWidth = channels * barWidth + (channels + 1) * barSpacing;
+        } else {
+            vuMeterWidth = static_cast<int>(100 * scale);
+        }
+        
+        int vuMeterHeight = static_cast<int>(vuMeter->height() * scale);
+        int x = (event->size().width() - vuMeterWidth) / 2;
+        int y = event->size().height() - vuMeterHeight - static_cast<int>(5 * scale);
+        vuMeter->setGeometry(x, y, vuMeterWidth, vuMeterHeight);
+    }
+    
     // Call base class implementation at the end
     QMainWindow::resizeEvent(event);
 }
