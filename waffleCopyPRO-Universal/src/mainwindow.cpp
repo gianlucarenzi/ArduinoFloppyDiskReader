@@ -446,6 +446,14 @@ void MainWindow::prepareTracks(void)
     }
 }
 
+// Helper function to check if a style string represents the initial black background
+static bool isInitialTrackStyle(const QString& styleSheet)
+{
+    return styleSheet.isEmpty() || 
+           styleSheet.contains("rgb(0,0,0)", Qt::CaseInsensitive) || 
+           styleSheet.contains("rgb(0, 0, 0)", Qt::CaseInsensitive);
+}
+
 void MainWindow::prepareTracksPosition(void)
 {
     // Calculate scale factors
@@ -483,7 +491,7 @@ void MainWindow::prepareTracksPosition(void)
         );
         
         // Only reset style if it's the initial setup (empty or black background)
-        if (currentStyle.isEmpty() || currentStyle.contains("rgb(0,0,0)") || currentStyle.contains("rgb(0, 0, 0)")) {
+        if (isInitialTrackStyle(currentStyle)) {
             upperTrack[counter]->setStyleSheet("background-color: rgb(0,0,0)");
             upperTrack[counter]->hide();
         } else {
@@ -519,7 +527,7 @@ void MainWindow::prepareTracksPosition(void)
         );
         
         // Only reset style if it's the initial setup (empty or black background)
-        if (currentStyle.isEmpty() || currentStyle.contains("rgb(0,0,0)") || currentStyle.contains("rgb(0, 0, 0)")) {
+        if (isInitialTrackStyle(currentStyle)) {
             lowerTrack[counter]->setStyleSheet("background-color: rgb(0,0,0)");
             lowerTrack[counter]->hide();
         } else {
