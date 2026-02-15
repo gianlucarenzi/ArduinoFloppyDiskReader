@@ -448,6 +448,17 @@ void MainWindow::prepareTracks(void)
 
 void MainWindow::prepareTracksPosition(void)
 {
+    // Base size (original design size)
+    const double baseWidth = 1024.0;
+    const double baseHeight = 610.0;
+    
+    // Calculate scale factors
+    double scaleX = this->width() / baseWidth;
+    double scaleY = this->height() / baseHeight;
+    
+    // Use the minimum scale to maintain aspect ratio
+    double scale = qMin(scaleX, scaleY);
+    
     int counter = 0;
     int j;
     // lut upper side track
@@ -465,7 +476,12 @@ void MainWindow::prepareTracksPosition(void)
     for (j = 0; j < MAX_TRACKS; j++)
     {
        upperTrack[counter]->hide();
-       upperTrack[counter]->setGeometry(ut[j][0], ut[j][1], 16, 16);
+       upperTrack[counter]->setGeometry(
+           static_cast<int>(ut[j][0] * scale),
+           static_cast<int>(ut[j][1] * scale),
+           static_cast<int>(16 * scale),
+           static_cast<int>(16 * scale)
+       );
        // All blacks
        upperTrack[counter]->setStyleSheet("background-color: rgb(0,0,0)");
        counter++;
@@ -486,7 +502,12 @@ void MainWindow::prepareTracksPosition(void)
     for (j = 0; j < MAX_TRACKS; j++)
     {
        lowerTrack[counter]->hide();
-       lowerTrack[counter]->setGeometry(lt[j][0], lt[j][1], 16, 16);
+       lowerTrack[counter]->setGeometry(
+           static_cast<int>(lt[j][0] * scale),
+           static_cast<int>(lt[j][1] * scale),
+           static_cast<int>(16 * scale),
+           static_cast<int>(16 * scale)
+       );
        // All blacks
        lowerTrack[counter]->setStyleSheet("background-color: rgb(0,0,0)");
        counter++;
@@ -1047,8 +1068,88 @@ void MainWindow::onDiagnosticComplete(bool success)
 
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
-    ui->busy->resize(event->size());
     QMainWindow::resizeEvent(event);
+    
+    // Base size (original design size)
+    const double baseWidth = 1024.0;
+    const double baseHeight = 610.0;
+    
+    // Calculate scale factors
+    double scaleX = event->size().width() / baseWidth;
+    double scaleY = event->size().height() / baseHeight;
+    
+    // Use the minimum scale to maintain aspect ratio
+    double scale = qMin(scaleX, scaleY);
+    
+    // Apply scaling to busy overlay
+    ui->busy->resize(event->size());
+    
+    // Scale the background to fill the window
+    ui->background->setGeometry(0, 0, event->size().width(), event->size().height());
+    
+    // Helper lambda to scale widget geometry
+    auto scaleWidget = [scale](QWidget* widget, int baseX, int baseY, int baseW, int baseH) {
+        if (widget) {
+            widget->setGeometry(
+                static_cast<int>(baseX * scale),
+                static_cast<int>(baseY * scale),
+                static_cast<int>(baseW * scale),
+                static_cast<int>(baseH * scale)
+            );
+        }
+    };
+    
+    // Scale main UI elements
+    scaleWidget(ui->leftLogo, 20, 30, 131, 121);
+    scaleWidget(ui->modPlayerButton, 20, 30, 131, 121);
+    scaleWidget(ui->mainTitle, 179, 30, 681, 131);
+    scaleWidget(ui->rightLogo, 870, 23, 131, 131);
+    scaleWidget(ui->version, 890, 149, 111, 17);
+    
+    // Scale input fields and buttons
+    scaleWidget(ui->getADFFileName, 20, 178, 281, 27);
+    scaleWidget(ui->fileReadADF, 310, 178, 29, 26);
+    scaleWidget(ui->startWrite, 130, 310, 91, 31);
+    scaleWidget(ui->setADFFileName, 20, 350, 281, 27);
+    scaleWidget(ui->fileSaveADF, 310, 350, 29, 26);
+    scaleWidget(ui->startRead, 130, 460, 91, 31);
+    
+    // Scale checkboxes
+    scaleWidget(ui->eraseBeforeWrite, 20, 280, 151, 25);
+    scaleWidget(ui->preCompSelection, 180, 280, 51, 25);
+    scaleWidget(ui->skipWriteError, 236, 280, 150, 25);
+    scaleWidget(ui->numTracks, 30, 450, 91, 25);
+    scaleWidget(ui->skipReadError, 240, 450, 150, 25);
+    
+    // Scale serial port controls
+    scaleWidget(ui->portSelection, 30, 520, 161, 20);
+    scaleWidget(ui->serialPortComboBox, 200, 520, 200, 21);
+    scaleWidget(ui->stopButton, 475, 520, 82, 27);
+    scaleWidget(ui->hdModeSelection, 600, 520, 221, 25);
+    scaleWidget(ui->diagnosticButton, 834, 515, 131, 31);
+    
+    // Scale status/error elements
+    scaleWidget(ui->copyCompleted, 330, 40, 311, 41);
+    scaleWidget(ui->copyError, 330, 40, 311, 41);
+    scaleWidget(ui->showError, 230, 240, 601, 41);
+    scaleWidget(ui->errorDialog, 270, 10, 512, 128);
+    scaleWidget(ui->diagnosticTest, 205, 99, 650, 364);
+    
+    // Scale scroller
+    scaleWidget(ui->scrollText, 30, 550, 960, 32);
+    
+    // Scale font sizes proportionally
+    QFont currentFont = this->font();
+    int baseFontSize = 9; // Base font size
+    int scaledFontSize = qMax(static_cast<int>(baseFontSize * scale), 6); // Minimum 6pt
+    
+    if (currentFont.pointSize() > 0) {
+        currentFont.setPointSize(scaledFontSize);
+        QApplication::setFont(currentFont);
+    }
+    
+    // Reposition track indicators with scaling
+    prepareTracksPosition();
 }
 
 void MainWindow::refreshSerialPorts()

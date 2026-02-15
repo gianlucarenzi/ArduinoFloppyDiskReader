@@ -39,6 +39,11 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName("RetroGiovedi");
     QCoreApplication::setApplicationName("waffleCopyPRO-Universal");
     QSettings::setDefaultFormat(QSettings::IniFormat);
+    
+    // Enable high DPI scaling
+    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+    
     QApplication a(argc, argv);
 #ifdef __APPLE__
     // On macOS, when running from a bundle, the working directory is the user's home dir.
