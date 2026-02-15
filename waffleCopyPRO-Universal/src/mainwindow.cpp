@@ -471,16 +471,26 @@ void MainWindow::prepareTracksPosition(void)
     };
     for (j = 0; j < MAX_TRACKS; j++)
     {
-       upperTrack[counter]->hide();
-       upperTrack[counter]->setGeometry(
-           static_cast<int>(ut[j][0] * scale),
-           static_cast<int>(ut[j][1] * scale),
-           static_cast<int>(16 * scale),
-           static_cast<int>(16 * scale)
-       );
-       // All blacks
-       upperTrack[counter]->setStyleSheet("background-color: rgb(0,0,0)");
-       counter++;
+        // Preserve the current visibility and style state during resize
+        bool isVisible = upperTrack[counter]->isVisible();
+        QString currentStyle = upperTrack[counter]->styleSheet();
+        
+        upperTrack[counter]->setGeometry(
+            static_cast<int>(ut[j][0] * scale),
+            static_cast<int>(ut[j][1] * scale),
+            static_cast<int>(16 * scale),
+            static_cast<int>(16 * scale)
+        );
+        
+        // Only reset style if it's the initial setup (empty or black background)
+        if (currentStyle.isEmpty() || currentStyle.contains("rgb(0,0,0)") || currentStyle.contains("rgb(0, 0, 0)")) {
+            upperTrack[counter]->setStyleSheet("background-color: rgb(0,0,0)");
+            upperTrack[counter]->hide();
+        } else {
+            // Preserve the existing style (green/red) and visibility
+            upperTrack[counter]->setVisible(isVisible);
+        }
+        counter++;
     }
     // lut lower side track
     int lt[MAX_TRACKS][2] = {
@@ -497,18 +507,30 @@ void MainWindow::prepareTracksPosition(void)
     counter = 0;
     for (j = 0; j < MAX_TRACKS; j++)
     {
-       lowerTrack[counter]->hide();
-       lowerTrack[counter]->setGeometry(
-           static_cast<int>(lt[j][0] * scale),
-           static_cast<int>(lt[j][1] * scale),
-           static_cast<int>(16 * scale),
-           static_cast<int>(16 * scale)
-       );
-       // All blacks
-       lowerTrack[counter]->setStyleSheet("background-color: rgb(0,0,0)");
-       counter++;
+        // Preserve the current visibility and style state during resize
+        bool isVisible = lowerTrack[counter]->isVisible();
+        QString currentStyle = lowerTrack[counter]->styleSheet();
+        
+        lowerTrack[counter]->setGeometry(
+            static_cast<int>(lt[j][0] * scale),
+            static_cast<int>(lt[j][1] * scale),
+            static_cast<int>(16 * scale),
+            static_cast<int>(16 * scale)
+        );
+        
+        // Only reset style if it's the initial setup (empty or black background)
+        if (currentStyle.isEmpty() || currentStyle.contains("rgb(0,0,0)") || currentStyle.contains("rgb(0, 0, 0)")) {
+            lowerTrack[counter]->setStyleSheet("background-color: rgb(0,0,0)");
+            lowerTrack[counter]->hide();
+        } else {
+            // Preserve the existing style (green/red) and visibility
+            lowerTrack[counter]->setVisible(isVisible);
+        }
+        counter++;
     }
-    ui->stopButton->hide();
+    
+    // Don't hide the stop button here - preserve its state during resize
+    // The stop button visibility is managed by the read/write operations
 }
 
 void MainWindow::checkStartWrite(void)
