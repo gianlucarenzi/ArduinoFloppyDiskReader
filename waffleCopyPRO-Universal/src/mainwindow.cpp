@@ -10,6 +10,8 @@
 #include <QFileInfo>
 #include <QEvent>
 #include <QMouseEvent>
+#include <QScreen>
+#include <QGuiApplication>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <stdio.h>
@@ -56,9 +58,35 @@ MainWindow::MainWindow(QWidget *parent)
   isDiagnosticVisible(false),
   player(new MikModPlayer(this, 20, 50)),
   m_musicLoaded(false),
-  m_musicPaused(false)
+  m_musicPaused(false),
+  m_scaleFactor(1.0)
 {
     ui->setupUi(this);
+
+    // Check if scale factor was forced via QApplication property (from main.cpp)
+    QVariant forcedScale = QApplication::instance()->property("forceScaleFactor");
+    if (forcedScale.isValid()) {
+        m_scaleFactor = forcedScale.toReal();
+        DebugMsg::print(__func__, QString("Using forced scale factor from main: %1").arg(m_scaleFactor));
+    } else {
+        // Calculate scale factor based on screen resolution
+        m_scaleFactor = calculateScaleFactor();
+    }
+    
+    // Apply scaling to window size
+    int baseWidth = 1024;
+    int baseHeight = 610;
+    int scaledWidth = static_cast<int>(baseWidth * m_scaleFactor);
+    int scaledHeight = static_cast<int>(baseHeight * m_scaleFactor);
+    
+    setFixedSize(scaledWidth, scaledHeight);
+    setMinimumSize(scaledWidth, scaledHeight);
+    setMaximumSize(scaledWidth, scaledHeight);
+
+    // Scale all widgets recursively - must be done AFTER setFixedSize
+    if (m_scaleFactor != 1.0) {
+        scaleAllWidgets(ui->mainWindow);
+    }
 
     // Load language from settings
     QString savedLanguage = settings.value("LANGUAGE", "en").toString();
@@ -92,6 +120,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->scrollText->setTextColor(QColor(255, 255, 255));
     QString empty = "                                                ";
+    stext += empty;
+    stext += empty;
+    stext += empty;
     stext += empty;
     stext += empty;
     stext += empty;
@@ -169,6 +200,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->numTracks->setChecked(tracks82);
     ui->skipReadError->setChecked(skipReadError);
     ui->skipWriteError->setChecked(skipWriteError);
+    ui->hdModeSelection->setChecked(diskDriveHDensityMode);
     QString savedPortName = settings.value("SERIALPORTNAME", "").toString();
     if (!savedPortName.isEmpty()) {
         int index = ui->serialPortComboBox->findText(savedPortName);
@@ -250,6 +282,134 @@ MainWindow::MainWindow(QWidget *parent)
     helpMenu->setFont(this->font());
     QAction *aboutAction = helpMenu->addAction(tr("About"));
     connect(aboutAction, &QAction::triggered, this, &MainWindow::onAbout);
+}
+
+qreal MainWindow::calculateScaleFactor()
+{
+    // Get primary screen
+    QScreen *screen = QGuiApplication::primaryScreen();
+    if (!screen) {
+        return 1.0; // Fallback to no scaling
+    }
+    
+    QRect screenGeometry = screen->availableGeometry();
+    int screenWidth = screenGeometry.width();
+    int screenHeight = screenGeometry.height();
+    
+    // Base dimensions
+    const int baseWidth = 1024;
+    const int baseHeight = 610;
+    
+    // Calculate scale factors for 50% and 75% of screen
+    qreal scale50Width = (screenWidth * 0.5) / baseWidth;
+    qreal scale50Height = (screenHeight * 0.5) / baseHeight;
+    qreal scale50 = qMin(scale50Width, scale50Height);
+    
+    qreal scale75Width = (screenWidth * 0.75) / baseWidth;
+    qreal scale75Height = (screenHeight * 0.75) / baseHeight;
+    qreal scale75 = qMin(scale75Width, scale75Height);
+    
+    // Choose scale factor based on screen size
+    qreal scaleFactor;
+    if (screenWidth >= 3840 || screenHeight >= 2160) {
+        // 4K or higher: use 75% of screen
+        scaleFactor = scale75;
+    } else if (screenWidth >= 2560 || screenHeight >= 1440) {
+        // 2K or higher: use between 50-75% based on actual size
+        scaleFactor = (scale50 + scale75) / 2.0;
+    } else if (screenWidth >= 1920 || screenHeight >= 1080) {
+        // Full HD: use 50-65% of screen
+        scaleFactor = scale50 * 1.3;
+    } else {
+        // Lower resolutions: use original size or slight scaling
+        scaleFactor = qMin(1.0, scale50);
+    }
+    
+    // Ensure minimum scale factor of 1.0 (never downscale below original)
+    scaleFactor = qMax(1.0, scaleFactor);
+    
+    DebugMsg::print(__func__, QString("Screen: %1x%2, Scale factor: %3")
+                    .arg(screenWidth).arg(screenHeight).arg(scaleFactor));
+    
+    return scaleFactor;
+}
+
+void MainWindow::scaleWidgetGeometry(QWidget *widget)
+{
+    if (!widget) return;
+    
+    // Scale the widget's geometry
+    QRect geom = widget->geometry();
+    if (widget != this) { // Don't scale the main window geometry again
+        widget->setGeometry(
+            static_cast<int>(geom.x() * m_scaleFactor),
+            static_cast<int>(geom.y() * m_scaleFactor),
+            static_cast<int>(geom.width() * m_scaleFactor),
+            static_cast<int>(geom.height() * m_scaleFactor)
+        );
+    }
+    
+    // Scale minimum and maximum size if set
+    QSize minSize = widget->minimumSize();
+    if (minSize.width() > 0 || minSize.height() > 0) {
+        widget->setMinimumSize(
+            static_cast<int>(minSize.width() * m_scaleFactor),
+            static_cast<int>(minSize.height() * m_scaleFactor)
+        );
+    }
+    
+    QSize maxSize = widget->maximumSize();
+    // Check if maxSize is not the default QWIDGETSIZE_MAX
+    if (maxSize.width() < 16777215 || maxSize.height() < 16777215) {
+        widget->setMaximumSize(
+            static_cast<int>(maxSize.width() * m_scaleFactor),
+            static_cast<int>(maxSize.height() * m_scaleFactor)
+        );
+    }
+    
+    // Recursively scale all child widgets
+    QList<QWidget*> children = widget->findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly);
+    for (QWidget *child : children) {
+        scaleWidgetGeometry(child);
+    }
+}
+
+void MainWindow::scaleAllWidgets(QWidget *widget)
+{
+    if (!widget) return;
+    
+    // Scale THIS widget's geometry (no skip condition)
+    QRect geom = widget->geometry();
+    widget->setGeometry(
+        static_cast<int>(geom.x() * m_scaleFactor),
+        static_cast<int>(geom.y() * m_scaleFactor),
+        static_cast<int>(geom.width() * m_scaleFactor),
+        static_cast<int>(geom.height() * m_scaleFactor)
+    );
+    
+    // Scale minimum and maximum size if set
+    QSize minSize = widget->minimumSize();
+    if (minSize.width() > 0 || minSize.height() > 0) {
+        widget->setMinimumSize(
+            static_cast<int>(minSize.width() * m_scaleFactor),
+            static_cast<int>(minSize.height() * m_scaleFactor)
+        );
+    }
+    
+    QSize maxSize = widget->maximumSize();
+    // Check if maxSize is not the default QWIDGETSIZE_MAX
+    if (maxSize.width() < 16777215 || maxSize.height() < 16777215) {
+        widget->setMaximumSize(
+            static_cast<int>(maxSize.width() * m_scaleFactor),
+            static_cast<int>(maxSize.height() * m_scaleFactor)
+        );
+    }
+    
+    // Recursively scale all child widgets
+    QList<QWidget*> children = widget->findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly);
+    for (QWidget *child : children) {
+        scaleAllWidgets(child);
+    }
 }
 
 void MainWindow::applyAmigaFontToWidgets()
@@ -450,7 +610,7 @@ void MainWindow::prepareTracksPosition(void)
 {
     int counter = 0;
     int j;
-    // lut upper side track
+    // lut upper side track (base coordinates - will be scaled)
     int ut[MAX_TRACKS][2] = {
         /* 0 */{394,240},{422,240},{450,240},{478,240},{505,240},{533,240},{561,240},{589,240},{617,240},{644,240},
         /* 1 */{394,267},{422,267},{450,267},{478,267},{505,267},{533,267},{561,267},{589,267},{617,267},{644,267},
@@ -462,15 +622,23 @@ void MainWindow::prepareTracksPosition(void)
         /* 7 */{394,434},{422,434},{450,434},{478,434},{505,434},{533,434},{561,434},{589,434},{617,434},{644,434},
         /* 8 */{394,461},{422,461},{450,461},{478,461},
     };
+    
+    // Base track size
+    const int baseTrackSize = 16;
+    int scaledTrackSize = static_cast<int>(baseTrackSize * m_scaleFactor);
+    
     for (j = 0; j < MAX_TRACKS; j++)
     {
        upperTrack[counter]->hide();
-       upperTrack[counter]->setGeometry(ut[j][0], ut[j][1], 16, 16);
+       // Apply scale factor to coordinates and size
+       int scaledX = static_cast<int>(ut[j][0] * m_scaleFactor);
+       int scaledY = static_cast<int>(ut[j][1] * m_scaleFactor);
+       upperTrack[counter]->setGeometry(scaledX, scaledY, scaledTrackSize, scaledTrackSize);
        // All blacks
        upperTrack[counter]->setStyleSheet("background-color: rgb(0,0,0)");
        counter++;
     }
-    // lut lower side track
+    // lut lower side track (base coordinates - will be scaled)
     int lt[MAX_TRACKS][2] = {
         /* 0 */{723,240},{751,240},{779,240},{807,240},{834,240},{862,240},{890,240},{918,240},{945,240},{973,240},
         /* 1 */{723,267},{751,267},{779,267},{807,267},{834,267},{862,267},{890,267},{918,267},{945,267},{973,267},
@@ -486,7 +654,10 @@ void MainWindow::prepareTracksPosition(void)
     for (j = 0; j < MAX_TRACKS; j++)
     {
        lowerTrack[counter]->hide();
-       lowerTrack[counter]->setGeometry(lt[j][0], lt[j][1], 16, 16);
+       // Apply scale factor to coordinates and size
+       int scaledX = static_cast<int>(lt[j][0] * m_scaleFactor);
+       int scaledY = static_cast<int>(lt[j][1] * m_scaleFactor);
+       lowerTrack[counter]->setGeometry(scaledX, scaledY, scaledTrackSize, scaledTrackSize);
        // All blacks
        lowerTrack[counter]->setStyleSheet("background-color: rgb(0,0,0)");
        counter++;
@@ -1217,16 +1388,20 @@ void MainWindow::toggleMusic()
     int channels = player->getNumChannels();
     int vuMeterWidth = 0;
     if (channels > 0) {
-        int barWidth = 24;
-        int barSpacing = 2;
-        vuMeterWidth = channels * barWidth + (channels + 1) * barSpacing;
+        int baseBarWidth = 24;
+        int baseBarSpacing = 2;
+        int scaledBarWidth = static_cast<int>(baseBarWidth * m_scaleFactor);
+        int scaledBarSpacing = static_cast<int>(baseBarSpacing * m_scaleFactor);
+        vuMeterWidth = channels * scaledBarWidth + (channels + 1) * scaledBarSpacing;
     } else {
-        vuMeterWidth = 100; // Fallback to default minimum width
+        vuMeterWidth = static_cast<int>(100 * m_scaleFactor); // Fallback to default minimum width
     }
 
     // Calculate position
     int x = (this->width() - vuMeterWidth) / 2;
-    int y = this->height() - vuMeter->height() - 5; // 5 pixels from the bottom
+    int baseMargin = 5;
+    int scaledMargin = static_cast<int>(baseMargin * m_scaleFactor);
+    int y = this->height() - vuMeter->height() - scaledMargin; // 5 pixels from the bottom
 
     if (!m_musicLoaded) {
         // State: Stopped -> Playing

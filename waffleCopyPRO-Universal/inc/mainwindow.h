@@ -88,8 +88,12 @@ private:
     QPoint m_diagnosticMousePressPos;
     QTimer *diagnosticTimeoutTimer;
     QTranslator m_translator;
+    qreal m_scaleFactor;
 
 private:
+    qreal calculateScaleFactor();
+    void scaleWidgetGeometry(QWidget *widget);
+    void scaleAllWidgets(QWidget *widget);
     void applyAmigaFontToWidgets();
     void loadLanguage(const QString &language);
     void changeLanguage(const QString &language);
