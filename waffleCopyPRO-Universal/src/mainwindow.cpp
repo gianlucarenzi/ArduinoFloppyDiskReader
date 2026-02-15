@@ -448,13 +448,9 @@ void MainWindow::prepareTracks(void)
 
 void MainWindow::prepareTracksPosition(void)
 {
-    // Base size (original design size)
-    const double baseWidth = 1024.0;
-    const double baseHeight = 610.0;
-    
     // Calculate scale factors
-    double scaleX = this->width() / baseWidth;
-    double scaleY = this->height() / baseHeight;
+    double scaleX = this->width() / BASE_WIDTH;
+    double scaleY = this->height() / BASE_HEIGHT;
     
     // Use the minimum scale to maintain aspect ratio
     double scale = qMin(scaleX, scaleY);
@@ -1068,15 +1064,9 @@ void MainWindow::onDiagnosticComplete(bool success)
 
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
-    QMainWindow::resizeEvent(event);
-    
-    // Base size (original design size)
-    const double baseWidth = 1024.0;
-    const double baseHeight = 610.0;
-    
     // Calculate scale factors
-    double scaleX = event->size().width() / baseWidth;
-    double scaleY = event->size().height() / baseHeight;
+    double scaleX = event->size().width() / BASE_WIDTH;
+    double scaleY = event->size().height() / BASE_HEIGHT;
     
     // Use the minimum scale to maintain aspect ratio
     double scale = qMin(scaleX, scaleY);
@@ -1087,8 +1077,8 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     // Scale the background to fill the window
     ui->background->setGeometry(0, 0, event->size().width(), event->size().height());
     
-    // Helper lambda to scale widget geometry
-    auto scaleWidget = [scale](QWidget* widget, int baseX, int baseY, int baseW, int baseH) {
+    // Helper lambda to scale widget geometry - capture scale by reference
+    auto scaleWidget = [&scale](QWidget* widget, int baseX, int baseY, int baseW, int baseH) {
         if (widget) {
             widget->setGeometry(
                 static_cast<int>(baseX * scale),
@@ -1140,6 +1130,9 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     
     // Reposition track indicators with scaling
     prepareTracksPosition();
+    
+    // Call base class implementation at the end
+    QMainWindow::resizeEvent(event);
 }
 
 void MainWindow::refreshSerialPorts()

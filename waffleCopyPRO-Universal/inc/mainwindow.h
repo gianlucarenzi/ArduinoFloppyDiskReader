@@ -36,6 +36,10 @@ public:
     ~MainWindow();
 
 #define MAX_TRACKS 84
+    // Base UI dimensions for scaling
+    static constexpr double BASE_WIDTH = 1024.0;
+    static constexpr double BASE_HEIGHT = 610.0;
+    
 private:
     Ui::MainWindow *ui;
     int track;
