@@ -1138,16 +1138,6 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     // Scale scroller
     scaleWidget(ui->scrollText, 30, 550, 960, 32);
     
-    // Scale font sizes proportionally
-    QFont currentFont = this->font();
-    int baseFontSize = 9; // Base font size
-    int scaledFontSize = qMax(static_cast<int>(baseFontSize * scale), 6); // Minimum 6pt
-    
-    if (currentFont.pointSize() > 0) {
-        currentFont.setPointSize(scaledFontSize);
-        QApplication::setFont(currentFont);
-    }
-    
     // Reposition track indicators with scaling
     prepareTracksPosition();
 }

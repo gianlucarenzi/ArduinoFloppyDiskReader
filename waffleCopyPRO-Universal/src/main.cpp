@@ -36,13 +36,13 @@ int main(int argc, char *argv[])
         }
     }
 
+    // Enable high DPI scaling - must be set before QApplication is created
+    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+
     QCoreApplication::setOrganizationName("RetroGiovedi");
     QCoreApplication::setApplicationName("waffleCopyPRO-Universal");
     QSettings::setDefaultFormat(QSettings::IniFormat);
-    
-    // Enable high DPI scaling
-    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-    QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
     
     QApplication a(argc, argv);
 #ifdef __APPLE__

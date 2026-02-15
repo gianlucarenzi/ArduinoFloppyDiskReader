@@ -67,6 +67,9 @@
     <property name="pixmap">
      <pixmap>WaffleUI/rightLogo.png</pixmap>
     </property>
+    <property name="scaledContents">
+     <bool>true</bool>
+    </property>
    </widget>
    <widget class="QComboBox" name="serialPortComboBox">
     <property name="geometry">
@@ -123,6 +126,9 @@ background-color: rgb(61, 56, 70);</string>
     </property>
     <property name="pixmap">
      <pixmap>WaffleUI/leftLogo.png</pixmap>
+    </property>
+    <property name="scaledContents">
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="ClickLabel" name="modPlayerButton">
@@ -186,6 +192,9 @@ background-color: rgb(61, 56, 70);</string>
     </property>
     <property name="pixmap">
      <pixmap>WaffleUI/waffleCopyPRO.png</pixmap>
+    </property>
+    <property name="scaledContents">
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="QLineEdit" name="setADFFileName">
