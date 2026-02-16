@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
         }
         if (arg.startsWith("-scale="))
         {
-            QString scaleValue = arg.mid(8); // Remove "-scale="
+            QString scaleValue = arg.mid(7); // Remove "-scale="
             bool ok;
             qreal scale = scaleValue.toDouble(&ok);
             if (ok && scale > 0.1 && scale <= 5.0) {
@@ -83,7 +83,6 @@ int main(int argc, char *argv[])
     {
         QString family = QFontDatabase::applicationFontFamilies(id).at(0);
         QFont amigaTopaz(family);
-        amigaTopaz.setPointSize(9); // Base size for Amiga Topaz font
         
         // Calculate scale factor for highDPI screens
         QScreen *screen = QGuiApplication::primaryScreen();
@@ -126,9 +125,10 @@ int main(int argc, char *argv[])
         // Store scale factor in QApplication property so MainWindow can access it
         a.setProperty("forceScaleFactor", scaleFactor);
         
-        // Apply scaled font size
-        int scaledFontSize = static_cast<int>(9 * scaleFactor);
-        amigaTopaz.setPointSize(scaledFontSize);
+        // Apply scaled font size using pixel size for better consistency
+        const int basePixelSize = 12; // A 9-point font is typically ~12 pixels high
+        int scaledPixelSize = static_cast<int>(basePixelSize * scaleFactor);
+        amigaTopaz.setPixelSize(scaledPixelSize);
         
         a.setFont(amigaTopaz); // Set font globally for the entire application
     }

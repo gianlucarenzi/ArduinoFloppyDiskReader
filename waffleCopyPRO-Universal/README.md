@@ -1,6 +1,22 @@
 # WaffleCopyPRO-Universal
 
-WaffleCopyPRO-Universal is a powerful, cross-platform floppy disk imaging and writing tool primarily designed for Amiga systems. It allows users to read and write Amiga floppy disk images (ADF, IPF, etc.) using standard PC floppy drives and custom hardware interfaces like the Waffle or DrawBridge. This project aims to provide a comprehensive and user-friendly solution for Amiga enthusiasts to preserve and utilize their floppy disk collections across various operating systems.
+WaffleCopyPRO-Universal è un potente strumento cross-platform per la lettura e la scrittura di floppy disk, progettato principalmente per i sistemi Amiga. Permette agli utenti di leggere e scrivere immagini di floppy disk Amiga (ADF, IPF, ecc.) utilizzando comuni lettori di floppy per PC e interfacce hardware personalizzate come il Waffle o il DrawBridge.
+
+Questo progetto mira a fornire una soluzione completa e facile da usare per gli appassionati di Amiga, per preservare e utilizzare le loro collezioni di floppy disk su vari sistemi operativi.
+
+## Novità
+
+Questa versione di WaffleCopyPRO-Universal introduce importanti miglioramenti:
+
+*   **Libreria CAPS Image Compilata Staticamente**: La libreria CAPS Image per il supporto al formato IPF è ora compilata staticamente su tutte le architetture supportate (Windows, macOS, Linux). Questo semplifica notevolmente la distribuzione e l'installazione, eliminando la necessità di gestire dipendenze dinamiche.
+*   **Supporto Cross-Platform Completo**: Il software è veramente universale e funziona in modo nativo su:
+    *   **Windows**
+    *   **macOS** (sia su architetture Intel x86_64 che Apple Silicon)
+    *   **Linux**
+*   **Ampio Supporto Multilingua**: L'interfaccia è tradotta in 16 lingue per una migliore accessibilità globale.
+*   **Compatibilità Hardware Estesa**: WaffleCopyPRO-Universal è compatibile con diversi dispositivi hardware:
+    *   **Waffle di RetroGiovedì**: Progettato per funzionare al meglio con il [Waffle di RetroGiovedì](https://github.com/gianlucarenzi/waffle).
+    *   **DrawBridge di Rob Smith**: Pieno supporto per le varie versioni del progetto [DrawBridge di Rob Smith](http://amiga.robsmith.com/).
 
 ## Table of Contents
 

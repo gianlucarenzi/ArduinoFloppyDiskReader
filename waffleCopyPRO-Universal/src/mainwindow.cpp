@@ -94,6 +94,13 @@ MainWindow::MainWindow(QWidget *parent)
         scaleAllWidgets(ui->mainWindow);
     }
 
+    // Manually scale fonts for specific labels that have hardcoded sizes in the UI file
+    QFont sideFont = ui->upperSideDisk->font();
+    const int basePixelSize = 20; // Original size is 15pt (~20px)
+    sideFont.setPixelSize(qMax(1, static_cast<int>(basePixelSize * m_scaleFactor)));
+    ui->upperSideDisk->setFont(sideFont);
+    ui->lowerSideDisk->setFont(sideFont);
+
     // Load language from settings
     QString savedLanguage = settings.value("LANGUAGE", "en").toString();
     loadLanguage(savedLanguage);
@@ -471,12 +478,12 @@ void MainWindow::applyAmigaFontToWidgets()
     ui->diagnosticButton->setFont(this->font());
     
     // Platform-specific font size for diagnostic text
-    // macOS: Amiga font + 2pt, Windows/Linux: Amiga font + 1pt
+    // macOS: Amiga font + 3px, Windows/Linux: Amiga font + 2px
     QFont diagnosticFont = this->font();
 #if defined(Q_OS_MACOS)
-    diagnosticFont.setPointSize(this->font().pointSize() + 2);
+    diagnosticFont.setPixelSize(this->font().pixelSize() + 3);
 #else
-    diagnosticFont.setPointSize(this->font().pointSize() + 1);
+    diagnosticFont.setPixelSize(this->font().pixelSize() + 2);
 #endif
     ui->diagnosticTest->setFont(diagnosticFont);
 }
