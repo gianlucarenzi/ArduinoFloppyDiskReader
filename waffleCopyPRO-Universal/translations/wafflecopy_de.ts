@@ -502,5 +502,63 @@ Klicken zum Schließen.</translation>
         <source>Language has been changed. The application will now close. Please restart it.</source>
         <translation>Sprache wurde geändert. Die Anwendung wird jetzt geschlossen. Bitte neu starten.</translation>
     </message>
+    <message>
+        <source>UPPER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>LOWER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Debug</source>
+        <translation>Debug</translation>
+    </message>
+    <message>
+        <source>Simulate Read/Write</source>
+        <translation>Lesen/Schreiben simulieren</translation>
+    </message>
+    <message>
+        <source>Simulation</source>
+        <translation>Simulation</translation>
+    </message>
+    <message>
+        <source>Simulation already running</source>
+        <translation>Simulation läuft bereits</translation>
+    </message>
+    <message>
+        <source>Simulation Starting</source>
+        <translation>Simulation startet</translation>
+    </message>
+    <message>
+        <source>Simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation>Die Simulation verarbeitet alle %1 Spuren:
+
+Spur 0: Seite 0 (Unten) dann Seite 1 (Oben)
+Spur 1: Seite 0 (Unten) dann Seite 1 (Oben)
+...und so weiter
+
+Seite 0 = Untere Reihe (rechte Seite)
+Seite 1 = Obere Reihe (linke Seite)</translation>
+    </message>
+    <message>
+        <source>Simulation Complete</source>
+        <translation>Simulation abgeschlossen</translation>
+    </message>
+    <message>
+        <source>Simulation completed successfully.
+
+%1 tracks processed (both sides: lower and upper)</source>
+        <translation>Simulation erfolgreich abgeschlossen.
+
+%1 Spuren verarbeitet (beide Seiten: unten und oben)</translation>
+    </message>
 </context>
 </TS>

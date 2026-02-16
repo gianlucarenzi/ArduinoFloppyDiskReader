@@ -502,5 +502,63 @@ Clic para cerrar.</translation>
         <source>Language has been changed. The application will now close. Please restart it.</source>
         <translation>El idioma ha sido cambiado. La aplicación se cerrará ahora. Por favor reiníciela.</translation>
     </message>
+    <message>
+        <source>UPPER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>LOWER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Debug</source>
+        <translation>Depuración</translation>
+    </message>
+    <message>
+        <source>Simulate Read/Write</source>
+        <translation>Simular Lectura/Escritura</translation>
+    </message>
+    <message>
+        <source>Simulation</source>
+        <translation>Simulación</translation>
+    </message>
+    <message>
+        <source>Simulation already running</source>
+        <translation>La simulación ya está en ejecución</translation>
+    </message>
+    <message>
+        <source>Simulation Starting</source>
+        <translation>Iniciando simulación</translation>
+    </message>
+    <message>
+        <source>Simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation>La simulación procesará todas las %1 pistas:
+
+Pista 0: Lado 0 (Inferior) luego Lado 1 (Superior)
+Pista 1: Lado 0 (Inferior) luego Lado 1 (Superior)
+...y así sucesivamente
+
+Lado 0 = Fila inferior (lado derecho)
+Lado 1 = Fila superior (lado izquierdo)</translation>
+    </message>
+    <message>
+        <source>Simulation Complete</source>
+        <translation>Simulación completada</translation>
+    </message>
+    <message>
+        <source>Simulation completed successfully.
+
+%1 tracks processed (both sides: lower and upper)</source>
+        <translation>Simulación completada con éxito.
+
+%1 pistas procesadas (ambos lados: inferior y superior)</translation>
+    </message>
 </context>
 </TS>

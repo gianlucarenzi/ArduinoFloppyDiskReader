@@ -35,6 +35,8 @@
 #include <QApplication>
 #include <QTranslator>
 #include <QInputDialog>
+#include <QLabel>
+#include <QRandomGenerator>
 
 extern void set_user_input(char data);
 
@@ -59,7 +61,11 @@ MainWindow::MainWindow(QWidget *parent)
   player(new MikModPlayer(this, 20, 50)),
   m_musicLoaded(false),
   m_musicPaused(false),
-  m_scaleFactor(1.0)
+  m_scaleFactor(1.0),
+  m_simulationTimer(nullptr),
+  m_simulationTrack(0),
+  m_simulationSide(0),
+  m_simulationMode(false)
 {
     ui->setupUi(this);
 
@@ -75,7 +81,7 @@ MainWindow::MainWindow(QWidget *parent)
     
     // Apply scaling to window size
     int baseWidth = 1024;
-    int baseHeight = 610;
+    int baseHeight = 615;
     int scaledWidth = static_cast<int>(baseWidth * m_scaleFactor);
     int scaledHeight = static_cast<int>(baseHeight * m_scaleFactor);
     
@@ -100,7 +106,16 @@ MainWindow::MainWindow(QWidget *parent)
     }
     m_sDefaultPath = homeDir.filePath("WaffleFolder");
 
-    cursor = QCursor(QPixmap("WaffleUI/cursor.png"), 0, 0);
+    // Load and scale cursor
+    QPixmap cursorPixmap("WaffleUI/cursor.png");
+    if (m_scaleFactor != 1.0 && !cursorPixmap.isNull()) {
+        QSize scaledCursorSize(
+            static_cast<int>(cursorPixmap.width() * m_scaleFactor),
+            static_cast<int>(cursorPixmap.height() * m_scaleFactor)
+        );
+        cursorPixmap = cursorPixmap.scaled(scaledCursorSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    }
+    cursor = QCursor(cursorPixmap, 0, 0);
     this->setCursor(cursor);
     // Connection when click actions
     connect(ui->startWrite, SIGNAL(emitClick()), SLOT(checkStartWrite()));
@@ -282,6 +297,12 @@ MainWindow::MainWindow(QWidget *parent)
     helpMenu->setFont(this->font());
     QAction *aboutAction = helpMenu->addAction(tr("About"));
     connect(aboutAction, &QAction::triggered, this, &MainWindow::onAbout);
+    
+    // Menu Debug (for simulation)
+    QMenu *debugMenu = menuBar->addMenu(tr("Debug"));
+    debugMenu->setFont(this->font());
+    QAction *simulateAction = debugMenu->addAction(tr("Simulate Read/Write"));
+    connect(simulateAction, &QAction::triggered, this, &MainWindow::startSimulation);
 }
 
 qreal MainWindow::calculateScaleFactor()
@@ -403,6 +424,17 @@ void MainWindow::scaleAllWidgets(QWidget *widget)
             static_cast<int>(maxSize.width() * m_scaleFactor),
             static_cast<int>(maxSize.height() * m_scaleFactor)
         );
+    }
+    
+    // Scale pixmaps in QLabel widgets
+    QLabel *label = qobject_cast<QLabel*>(widget);
+    if (label && label->pixmap() && !label->pixmap()->isNull()) {
+        QPixmap originalPixmap = *label->pixmap();
+        QSize scaledSize(
+            static_cast<int>(originalPixmap.width() * m_scaleFactor),
+            static_cast<int>(originalPixmap.height() * m_scaleFactor)
+        );
+        label->setPixmap(originalPixmap.scaled(scaledSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     }
     
     // Recursively scale all child widgets
@@ -601,67 +633,164 @@ void MainWindow::prepareTracks(void)
 {
     for (int j = 0; j < MAX_TRACKS; j++)
     {
-       upperTrack[j] = new QLabel(this);
-       lowerTrack[j] = new QLabel(this);
+       upperTrack[j] = new QLabel(ui->DiskTracksFrame);
+       lowerTrack[j] = new QLabel(ui->DiskTracksFrame);
     }
+    
+    // Create the grid after creating track labels
+    createTrackGrid();
+}
+
+void MainWindow::createTrackGrid(void)
+{
+    // Grid color (same as UPPER SIDE / LOWER SIDE text)
+    const QColor gridColor(192, 191, 188);
+    const QString gridStyle = QString("background-color: rgb(%1,%2,%3);").arg(gridColor.red()).arg(gridColor.green()).arg(gridColor.blue());
+    const QString labelStyle = QString("color: rgb(%1,%2,%3); background-color: transparent;").arg(gridColor.red()).arg(gridColor.green()).arg(gridColor.blue());
+    
+    // Grid layout constants (base values, will be scaled)
+    const int trackSize = 16;        // Track indicator size
+    const int padding = 4;           // Increased padding around track (was 2)
+    const int cellSize = trackSize + 2 * padding;  // 24x24 cell (was 20x20)
+    const int cols = 10;
+    const int rows = 9;
+    const int labelSize = 16;        // Increased size for row/column labels (was 14)
+    const int lineThickness = 2;     // Thickness for grid lines
+    
+    // Starting positions for each side (relative to DiskTracksFrame)
+    const int upperStartX = 14;
+    const int upperStartY = 60;
+    const int lowerStartX = 343;
+    const int lowerStartY = 60;
+    
+    // Create grids for both sides
+    auto createGrid = [&](int startX, int startY, const QString &sidePrefix) {
+        // Column numbers (0-9) at the top
+        for (int col = 0; col < cols; col++) {
+            QLabel *colLabel = new QLabel(ui->DiskTracksFrame);
+            colLabel->setText(QString::number(col));
+            colLabel->setStyleSheet(labelStyle);
+            colLabel->setAlignment(Qt::AlignCenter);
+            int x = static_cast<int>((startX + labelSize + col * cellSize) * m_scaleFactor);
+            int y = static_cast<int>((startY - labelSize - 4) * m_scaleFactor);
+            int w = static_cast<int>(cellSize * m_scaleFactor);
+            int h = static_cast<int>(labelSize * m_scaleFactor);
+            colLabel->setGeometry(x, y, w, h);
+            colLabel->raise();
+            colLabel->show();
+        }
+        
+        // Row numbers (0-8) on the left
+        for (int row = 0; row < rows; row++) {
+            QLabel *rowLabel = new QLabel(ui->DiskTracksFrame);
+            rowLabel->setText(QString::number(row));
+            rowLabel->setStyleSheet(labelStyle);
+            rowLabel->setAlignment(Qt::AlignCenter);
+            int x = static_cast<int>((startX - 4) * m_scaleFactor);
+            int y = static_cast<int>((startY + row * cellSize) * m_scaleFactor);
+            int w = static_cast<int>(labelSize * m_scaleFactor);
+            int h = static_cast<int>(cellSize * m_scaleFactor);
+            rowLabel->setGeometry(x, y, w, h);
+            rowLabel->raise();
+            rowLabel->show();
+        }
+        
+        // Horizontal lines (use QLabel instead of QFrame for better visibility)
+        for (int row = 0; row <= rows; row++) {
+            QLabel *line = new QLabel(ui->DiskTracksFrame);
+            line->setStyleSheet(gridStyle);
+            int x = static_cast<int>((startX + labelSize) * m_scaleFactor);
+            int y = static_cast<int>((startY + row * cellSize) * m_scaleFactor);
+            int w = static_cast<int>(cols * cellSize * m_scaleFactor);
+            int h = static_cast<int>(lineThickness * m_scaleFactor);
+            line->setGeometry(x, y, w, h);
+            line->raise();
+            line->show();
+        }
+        
+        // Vertical lines (use QLabel instead of QFrame for better visibility)
+        for (int col = 0; col <= cols; col++) {
+            QLabel *line = new QLabel(ui->DiskTracksFrame);
+            line->setStyleSheet(gridStyle);
+            int x = static_cast<int>((startX + labelSize + col * cellSize) * m_scaleFactor);
+            int y = static_cast<int>(startY * m_scaleFactor);
+            int w = static_cast<int>(lineThickness * m_scaleFactor);
+            int h = static_cast<int>(rows * cellSize * m_scaleFactor);
+            line->setGeometry(x, y, w, h);
+            line->raise();
+            line->show();
+        }
+    };
+    
+    // Create upper side grid
+    createGrid(upperStartX, upperStartY, "upper");
+    
+    // Create lower side grid
+    createGrid(lowerStartX, lowerStartY, "lower");
 }
 
 void MainWindow::prepareTracksPosition(void)
 {
-    int counter = 0;
-    int j;
-    // lut upper side track (base coordinates - will be scaled)
-    int ut[MAX_TRACKS][2] = {
-        /* 0 */{394,240},{422,240},{450,240},{478,240},{505,240},{533,240},{561,240},{589,240},{617,240},{644,240},
-        /* 1 */{394,267},{422,267},{450,267},{478,267},{505,267},{533,267},{561,267},{589,267},{617,267},{644,267},
-        /* 2 */{394,295},{422,295},{450,295},{478,295},{505,295},{533,295},{561,295},{589,295},{617,295},{644,295},
-        /* 3 */{394,323},{422,323},{450,323},{478,323},{505,323},{533,323},{561,323},{589,323},{617,323},{644,323},
-        /* 4 */{394,350},{422,350},{450,350},{478,350},{505,350},{533,350},{561,350},{589,350},{617,350},{644,350},
-        /* 5 */{394,379},{422,379},{450,379},{478,379},{505,379},{533,379},{561,379},{589,379},{617,379},{644,379},
-        /* 6 */{394,406},{422,406},{450,406},{478,406},{505,406},{533,406},{561,406},{589,406},{617,406},{644,406},
-        /* 7 */{394,434},{422,434},{450,434},{478,434},{505,434},{533,434},{561,434},{589,434},{617,434},{644,434},
-        /* 8 */{394,461},{422,461},{450,461},{478,461},
-    };
+    // Grid layout constants (base values, will be scaled) - must match createTrackGrid()
+    const int trackSize = 16;        // Track indicator size
+    const int padding = 4;           // Padding around track
+    const int cellSize = 24;         // Cell size (explicit instead of calculated)
+    const int cols = 10;
+    const int labelSize = 16;        // Size for row/column labels
+    const int lineThickness = 2;     // Line thickness
     
-    // Base track size
-    const int baseTrackSize = 16;
-    int scaledTrackSize = static_cast<int>(baseTrackSize * m_scaleFactor);
+    // Starting positions for each side (relative to DiskTracksFrame)
+    const int upperStartX = 14;
+    const int upperStartY = 60;
+    const int lowerStartX = 343;
+    const int lowerStartY = 60;
     
-    for (j = 0; j < MAX_TRACKS; j++)
+    int scaledTrackSize = static_cast<int>(trackSize * m_scaleFactor);
+    
+    // Position upper tracks in grid (10 cols x 9 rows, only first 84)
+    for (int j = 0; j < MAX_TRACKS; j++)
     {
-       upperTrack[counter]->hide();
-       // Apply scale factor to coordinates and size
-       int scaledX = static_cast<int>(ut[j][0] * m_scaleFactor);
-       int scaledY = static_cast<int>(ut[j][1] * m_scaleFactor);
-       upperTrack[counter]->setGeometry(scaledX, scaledY, scaledTrackSize, scaledTrackSize);
-       // All blacks
-       upperTrack[counter]->setStyleSheet("background-color: rgb(0,0,0)");
-       counter++;
+        int row = j / cols;
+        int col = j % cols;
+        
+        // Calculate position to center track in cell:
+        // Cell starts at: startX + labelSize + lineThickness + (col * cellSize)
+        // Track should be centered: + (cellSize - trackSize) / 2
+        int baseX = upperStartX + labelSize + lineThickness + col * cellSize + (cellSize - trackSize) / 2;
+        int baseY = upperStartY + lineThickness + row * cellSize + (cellSize - trackSize) / 2;
+        
+        int scaledX = static_cast<int>(baseX * m_scaleFactor);
+        int scaledY = static_cast<int>(baseY * m_scaleFactor);
+        
+        upperTrack[j]->hide();
+        upperTrack[j]->setGeometry(scaledX, scaledY, scaledTrackSize, scaledTrackSize);
+        upperTrack[j]->setStyleSheet("background-color: rgb(0,0,0)");
     }
-    // lut lower side track (base coordinates - will be scaled)
-    int lt[MAX_TRACKS][2] = {
-        /* 0 */{723,240},{751,240},{779,240},{807,240},{834,240},{862,240},{890,240},{918,240},{945,240},{973,240},
-        /* 1 */{723,267},{751,267},{779,267},{807,267},{834,267},{862,267},{890,267},{918,267},{945,267},{973,267},
-        /* 2 */{723,295},{751,295},{779,295},{807,295},{834,295},{862,295},{890,295},{918,295},{945,295},{973,295},
-        /* 3 */{723,323},{751,323},{779,323},{807,323},{834,323},{862,323},{890,323},{918,323},{945,323},{973,323},
-        /* 4 */{723,350},{751,350},{779,350},{807,350},{834,350},{862,350},{890,350},{918,350},{945,350},{973,350},
-        /* 5 */{723,379},{751,379},{779,379},{807,379},{834,379},{862,379},{890,379},{918,379},{945,379},{973,379},
-        /* 6 */{723,406},{751,406},{779,406},{807,406},{834,406},{862,406},{890,406},{918,406},{945,406},{973,406},
-        /* 7 */{723,434},{751,434},{779,434},{807,434},{834,434},{862,434},{890,434},{918,434},{945,434},{973,434},
-        /* 8 */{723,461},{751,461},{779,461},{807,461},
-    };
-    counter = 0;
-    for (j = 0; j < MAX_TRACKS; j++)
+    
+    // Position lower tracks in grid
+    for (int j = 0; j < MAX_TRACKS; j++)
     {
-       lowerTrack[counter]->hide();
-       // Apply scale factor to coordinates and size
-       int scaledX = static_cast<int>(lt[j][0] * m_scaleFactor);
-       int scaledY = static_cast<int>(lt[j][1] * m_scaleFactor);
-       lowerTrack[counter]->setGeometry(scaledX, scaledY, scaledTrackSize, scaledTrackSize);
-       // All blacks
-       lowerTrack[counter]->setStyleSheet("background-color: rgb(0,0,0)");
-       counter++;
+        int row = j / cols;
+        int col = j % cols;
+        
+        // Calculate position to center track in cell
+        int baseX = lowerStartX + labelSize + lineThickness + col * cellSize + (cellSize - trackSize) / 2;
+        int baseY = lowerStartY + lineThickness + row * cellSize + (cellSize - trackSize) / 2;
+        
+        int scaledX = static_cast<int>(baseX * m_scaleFactor);
+        int scaledY = static_cast<int>(baseY * m_scaleFactor);
+        
+        lowerTrack[j]->hide();
+        lowerTrack[j]->setGeometry(scaledX, scaledY, scaledTrackSize, scaledTrackSize);
+        lowerTrack[j]->setStyleSheet("background-color: rgb(0,0,0)");
     }
+    
+    // Bring tracks to front (above grid lines)
+    for (int j = 0; j < MAX_TRACKS; j++) {
+        upperTrack[j]->raise();
+        lowerTrack[j]->raise();
+    }
+    
     ui->stopButton->hide();
 }
 
@@ -1596,4 +1725,101 @@ void MainWindow::onAbout()
            "<p>IPF support powered by CAPS image library.<br>"
            "Music playback powered by libmikmod.</p>").arg(WAFFLE_VERSION));
 }
+
+void MainWindow::startSimulation()
+{
+    if (m_simulationMode) {
+        QMessageBox::warning(this, tr("Simulation"), tr("Simulation already running"));
+        return;
+    }
+    
+    // Initialize simulation
+    m_simulationMode = true;
+    m_simulationTrack = 0;
+    m_simulationSide = 0;  // Start with side 0 (Lower)
+    readyReadSHM = true;
+    
+    // Reset all tracks to black
+    for (int i = 0; i < MAX_TRACKS; i++) {
+        upperTrack[i]->setStyleSheet("background-color: rgb(0,0,0);");
+        lowerTrack[i]->setStyleSheet("background-color: rgb(0,0,0);");
+        upperTrack[i]->hide();
+        lowerTrack[i]->hide();
+    }
+    
+    // Bring frame to front
+    ui->DiskTracksFrame->raise();
+    
+    // Show busy indicator
+    ui->busy->setVisible(true);
+    ui->stopButton->setVisible(true);
+    ui->stopButton->raise();
+    
+    // Create and start timer
+    if (!m_simulationTimer) {
+        m_simulationTimer = new QTimer(this);
+        connect(m_simulationTimer, &QTimer::timeout, this, &MainWindow::simulationStep);
+    }
+    
+    m_simulationTimer->start(100); // Update every 100ms
+    
+    // Show a message about what the simulation will do
+    QMessageBox::information(this, tr("Simulation Starting"),
+        tr("Simulation will process all %1 tracks:\n\n"
+           "Track 0: Side 0 (Lower) then Side 1 (Upper)\n"
+           "Track 1: Side 0 (Lower) then Side 1 (Upper)\n"
+           "...and so on\n\n"
+           "Side 0 = Lower row (right side)\n"
+           "Side 1 = Upper row (left side)").arg(MAX_TRACKS));
+}
+
+void MainWindow::simulationStep()
+{
+    if (!m_simulationMode) {
+        return;
+    }
+    
+    // Simulate all tracks up to MAX_TRACKS (84)
+    int maxTracks = MAX_TRACKS;
+    
+    // Randomly decide if this track is successful or has an error (95% success rate)
+    bool success = (QRandomGenerator::global()->bounded(100) < 95);
+    
+    // Update track/side/status variables as the real code does
+    track = m_simulationTrack;
+    side = m_simulationSide;
+    status = success ? 0 : 1;  // 0 = success, 1 = error
+    err = success ? 0 : 1;
+    
+    // Use the existing progressChange logic
+    readyReadSHM = true;
+    progressChange("Track", track);
+    progressChange("Side", side);
+    progressChange("Status", status);
+    progressChange("Error", err);
+    
+    // Force UI update
+    QApplication::processEvents();
+    
+    // Alternate between sides: 0->1, then move to next track
+    m_simulationSide++;
+    
+    if (m_simulationSide >= 2) {
+        m_simulationSide = 0;
+        m_simulationTrack++;
+        
+        if (m_simulationTrack >= maxTracks) {
+            // Simulation complete
+            m_simulationMode = false;
+            m_simulationTimer->stop();
+            ui->busy->setVisible(false);
+            ui->stopButton->setVisible(false);
+            
+            QMessageBox::information(this, tr("Simulation Complete"),
+                tr("Simulation completed successfully.\n\n%1 tracks processed (both sides: lower and upper)")
+                .arg(maxTracks));
+        }
+    }
+}
+
 

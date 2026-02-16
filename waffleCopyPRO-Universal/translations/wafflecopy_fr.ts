@@ -502,5 +502,63 @@ Cliquer pour fermer.</translation>
         <source>Language has been changed. The application will now close. Please restart it.</source>
         <translation>La langue a été modifiée. L&apos;application va maintenant se fermer. Veuillez la redémarrer.</translation>
     </message>
+    <message>
+        <source>UPPER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>LOWER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Debug</source>
+        <translation>Débogage</translation>
+    </message>
+    <message>
+        <source>Simulate Read/Write</source>
+        <translation>Simuler Lecture/Écriture</translation>
+    </message>
+    <message>
+        <source>Simulation</source>
+        <translation>Simulation</translation>
+    </message>
+    <message>
+        <source>Simulation already running</source>
+        <translation>La simulation est déjà en cours</translation>
+    </message>
+    <message>
+        <source>Simulation Starting</source>
+        <translation>Démarrage de la simulation</translation>
+    </message>
+    <message>
+        <source>Simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation>La simulation traitera toutes les %1 pistes:
+
+Piste 0: Côté 0 (Inférieur) puis Côté 1 (Supérieur)
+Piste 1: Côté 0 (Inférieur) puis Côté 1 (Supérieur)
+...et ainsi de suite
+
+Côté 0 = Ligne inférieure (côté droit)
+Côté 1 = Ligne supérieure (côté gauche)</translation>
+    </message>
+    <message>
+        <source>Simulation Complete</source>
+        <translation>Simulation terminée</translation>
+    </message>
+    <message>
+        <source>Simulation completed successfully.
+
+%1 tracks processed (both sides: lower and upper)</source>
+        <translation>Simulation terminée avec succès.
+
+%1 pistes traitées (les deux côtés: inférieur et supérieur)</translation>
+    </message>
 </context>
 </TS>

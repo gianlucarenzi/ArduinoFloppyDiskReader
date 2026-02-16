@@ -71,7 +71,7 @@
     <property name="geometry">
      <rect>
       <x>870</x>
-      <y>23</y>
+      <y>30</y>
       <width>131</width>
       <height>131</height>
      </rect>
@@ -160,7 +160,7 @@ background-color: rgb(61, 56, 70);</string>
     <property name="geometry">
      <rect>
       <x>130</x>
-      <y>460</y>
+      <y>470</y>
       <width>91</width>
       <height>31</height>
      </rect>
@@ -239,7 +239,7 @@ background-color: rgb(61, 56, 70);</string>
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>178</y>
+      <y>180</y>
       <width>281</width>
       <height>27</height>
      </rect>
@@ -252,7 +252,7 @@ background-color: rgb(61, 56, 70);</string>
     <property name="geometry">
      <rect>
       <x>310</x>
-      <y>178</y>
+      <y>180</y>
       <width>29</width>
       <height>26</height>
      </rect>
@@ -528,7 +528,7 @@ background-color: rgb(61, 56, 70);</string>
     <property name="geometry">
      <rect>
       <x>890</x>
-      <y>149</y>
+      <y>154</y>
       <width>111</width>
       <height>17</height>
      </rect>
@@ -695,6 +695,183 @@ color: rgb(248, 228, 92);</string>
      <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
     </property>
    </widget>
+   <widget class="QLabel" name="rFloppyDisk">
+    <property name="geometry">
+     <rect>
+      <x>60</x>
+      <y>380</y>
+      <width>64</width>
+      <height>64</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string notr="true"/>
+    </property>
+    <property name="pixmap">
+     <pixmap>WaffleUI/FloppyDisk.png</pixmap>
+    </property>
+    <property name="scaledContents">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="rComputerDisk">
+    <property name="geometry">
+     <rect>
+      <x>210</x>
+      <y>380</y>
+      <width>64</width>
+      <height>64</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string notr="true"/>
+    </property>
+    <property name="pixmap">
+     <pixmap>WaffleUI/ComputerDisk.png</pixmap>
+    </property>
+    <property name="scaledContents">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="wFloppyDisk">
+    <property name="geometry">
+     <rect>
+      <x>210</x>
+      <y>210</y>
+      <width>64</width>
+      <height>64</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string notr="true"/>
+    </property>
+    <property name="pixmap">
+     <pixmap>WaffleUI/FloppyDisk.png</pixmap>
+    </property>
+    <property name="scaledContents">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="wComputerDisk">
+    <property name="geometry">
+     <rect>
+      <x>60</x>
+      <y>210</y>
+      <width>64</width>
+      <height>64</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string notr="true"/>
+    </property>
+    <property name="pixmap">
+     <pixmap>WaffleUI/ComputerDisk.png</pixmap>
+    </property>
+    <property name="scaledContents">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="rArrow">
+    <property name="geometry">
+     <rect>
+      <x>150</x>
+      <y>230</y>
+      <width>32</width>
+      <height>19</height>
+     </rect>
+    </property>
+    <property name="pixmap">
+     <pixmap>WaffleUI/arrow_right.png</pixmap>
+    </property>
+    <property name="scaledContents">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="wArrow">
+    <property name="geometry">
+     <rect>
+      <x>150</x>
+      <y>400</y>
+      <width>32</width>
+      <height>19</height>
+     </rect>
+    </property>
+    <property name="pixmap">
+     <pixmap>WaffleUI/arrow_right.png</pixmap>
+    </property>
+    <property name="scaledContents">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QFrame" name="DiskTracksFrame">
+    <property name="geometry">
+     <rect>
+      <x>380</x>
+      <y>180</y>
+      <width>621</width>
+      <height>311</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::NoFrame</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QLabel" name="upperSideDisk">
+     <property name="geometry">
+      <rect>
+       <x>80</x>
+       <y>10</y>
+       <width>158</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>15</pointsize>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">color: rgb(192, 191, 188)</string>
+     </property>
+     <property name="text">
+      <string>UPPER SIDE</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+    <widget class="QLabel" name="lowerSideDisk">
+     <property name="geometry">
+      <rect>
+       <x>400</x>
+       <y>10</y>
+       <width>158</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>15</pointsize>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">color: rgb(192, 191, 188)</string>
+     </property>
+     <property name="text">
+      <string>LOWER SIDE</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </widget>
+   <zorder>diagnosticTest</zorder>
    <zorder>busy</zorder>
    <zorder>background</zorder>
    <zorder>stopButton</zorder>
@@ -723,7 +900,13 @@ color: rgb(248, 228, 92);</string>
    <zorder>errorDialog</zorder>
    <zorder>hdModeSelection</zorder>
    <zorder>diagnosticButton</zorder>
-   <zorder>diagnosticTest</zorder>
+   <zorder>rFloppyDisk</zorder>
+   <zorder>wFloppyDisk</zorder>
+   <zorder>rComputerDisk</zorder>
+   <zorder>wComputerDisk</zorder>
+   <zorder>rArrow</zorder>
+   <zorder>wArrow</zorder>
+   <zorder>DiskTracksFrame</zorder>
   </widget>
  </widget>
  <customwidgets>

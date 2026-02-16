@@ -502,5 +502,63 @@ Click anywhere on this window to close.</source>
         <source>Language has been changed. The application will now close. Please restart it.</source>
         <translation>Η γλώσσα άλλαξε. Η εφαρμογή θα κλείσει τώρα. Παρακαλώ επανεκκινήστε την.</translation>
     </message>
+    <message>
+        <source>UPPER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>LOWER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Debug</source>
+        <translation>Αποσφαλμάτωση</translation>
+    </message>
+    <message>
+        <source>Simulate Read/Write</source>
+        <translation>Προσομοίωση ανάγνωσης/εγγραφής</translation>
+    </message>
+    <message>
+        <source>Simulation</source>
+        <translation>Προσομοίωση</translation>
+    </message>
+    <message>
+        <source>Simulation already running</source>
+        <translation>Η προσομοίωση εκτελείται ήδη</translation>
+    </message>
+    <message>
+        <source>Simulation Starting</source>
+        <translation>Έναρξη προσομοίωσης</translation>
+    </message>
+    <message>
+        <source>Simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation>Η προσομοίωση θα επεξεργαστεί όλα τα %1 κομμάτια:
+
+Κομμάτι 0: Πλευρά 0 (Κάτω) στη συνέχεια Πλευρά 1 (Πάνω)
+Κομμάτι 1: Πλευρά 0 (Κάτω) στη συνέχεια Πλευρά 1 (Πάνω)
+...και ούτω καθεξής
+
+Πλευρά 0 = Κάτω σειρά (δεξιά πλευρά)
+Πλευρά 1 = Πάνω σειρά (αριστερή πλευρά)</translation>
+    </message>
+    <message>
+        <source>Simulation Complete</source>
+        <translation>Η προσομοίωση ολοκληρώθηκε</translation>
+    </message>
+    <message>
+        <source>Simulation completed successfully.
+
+%1 tracks processed (both sides: lower and upper)</source>
+        <translation>Η προσομοίωση ολοκληρώθηκε με επιτυχία.
+
+%1 κομμάτια επεξεργάστηκαν (και οι δύο πλευρές: κάτω και πάνω)</translation>
+    </message>
 </context>
 </TS>

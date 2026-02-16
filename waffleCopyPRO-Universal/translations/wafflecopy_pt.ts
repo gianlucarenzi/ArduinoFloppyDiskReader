@@ -502,5 +502,63 @@ Clique para fechar.</translation>
         <source>Language has been changed. The application will now close. Please restart it.</source>
         <translation>O idioma foi alterado. A aplicação será fechada agora. Por favor reinicie-a.</translation>
     </message>
+    <message>
+        <source>UPPER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>LOWER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Debug</source>
+        <translation>Depuração</translation>
+    </message>
+    <message>
+        <source>Simulate Read/Write</source>
+        <translation>Simular Leitura/Escrita</translation>
+    </message>
+    <message>
+        <source>Simulation</source>
+        <translation>Simulação</translation>
+    </message>
+    <message>
+        <source>Simulation already running</source>
+        <translation>Simulação já em execução</translation>
+    </message>
+    <message>
+        <source>Simulation Starting</source>
+        <translation>Iniciando simulação</translation>
+    </message>
+    <message>
+        <source>Simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation>A simulação processará todas as %1 trilhas:
+
+Trilha 0: Lado 0 (Inferior) depois Lado 1 (Superior)
+Trilha 1: Lado 0 (Inferior) depois Lado 1 (Superior)
+...e assim por diante
+
+Lado 0 = Linha inferior (lado direito)
+Lado 1 = Linha superior (lado esquerdo)</translation>
+    </message>
+    <message>
+        <source>Simulation Complete</source>
+        <translation>Simulação concluída</translation>
+    </message>
+    <message>
+        <source>Simulation completed successfully.
+
+%1 tracks processed (both sides: lower and upper)</source>
+        <translation>Simulação concluída com sucesso.
+
+%1 trilhas processadas (ambos os lados: inferior e superior)</translation>
+    </message>
 </context>
 </TS>

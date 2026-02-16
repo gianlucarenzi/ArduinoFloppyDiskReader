@@ -502,5 +502,63 @@ Click anywhere on this window to close.</source>
         <source>Language has been changed. The application will now close. Please restart it.</source>
         <translation>Язык изменен. Приложение сейчас закроется. Пожалуйста, перезапустите его.</translation>
     </message>
+    <message>
+        <source>UPPER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>LOWER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Debug</source>
+        <translation>Отладка</translation>
+    </message>
+    <message>
+        <source>Simulate Read/Write</source>
+        <translation>Имитация чтения/записи</translation>
+    </message>
+    <message>
+        <source>Simulation</source>
+        <translation>Имитация</translation>
+    </message>
+    <message>
+        <source>Simulation already running</source>
+        <translation>Имитация уже запущена</translation>
+    </message>
+    <message>
+        <source>Simulation Starting</source>
+        <translation>Запуск имитации</translation>
+    </message>
+    <message>
+        <source>Simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation>Имитация обработает все %1 дорожек:
+
+Дорожка 0: Сторона 0 (Нижняя) затем Сторона 1 (Верхняя)
+Дорожка 1: Сторона 0 (Нижняя) затем Сторона 1 (Верхняя)
+...и так далее
+
+Сторона 0 = Нижний ряд (правая сторона)
+Сторона 1 = Верхний ряд (левая сторона)</translation>
+    </message>
+    <message>
+        <source>Simulation Complete</source>
+        <translation>Имитация завершена</translation>
+    </message>
+    <message>
+        <source>Simulation completed successfully.
+
+%1 tracks processed (both sides: lower and upper)</source>
+        <translation>Имитация завершена успешно.
+
+%1 дорожек обработано (обе стороны: нижняя и верхняя)</translation>
+    </message>
 </context>
 </TS>

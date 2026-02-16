@@ -502,5 +502,63 @@ Kliknij aby zamknąć.</translation>
         <source>Language has been changed. The application will now close. Please restart it.</source>
         <translation>Język został zmieniony. Aplikacja zostanie teraz zamknięta. Proszę ją ponownie uruchomić.</translation>
     </message>
+    <message>
+        <source>UPPER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>LOWER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Debug</source>
+        <translation>Debugowanie</translation>
+    </message>
+    <message>
+        <source>Simulate Read/Write</source>
+        <translation>Symuluj Odczyt/Zapis</translation>
+    </message>
+    <message>
+        <source>Simulation</source>
+        <translation>Symulacja</translation>
+    </message>
+    <message>
+        <source>Simulation already running</source>
+        <translation>Symulacja już działa</translation>
+    </message>
+    <message>
+        <source>Simulation Starting</source>
+        <translation>Rozpoczynanie symulacji</translation>
+    </message>
+    <message>
+        <source>Simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation>Symulacja przetworzy wszystkie %1 ścieżek:
+
+Ścieżka 0: Strona 0 (Dolna) następnie Strona 1 (Górna)
+Ścieżka 1: Strona 0 (Dolna) następnie Strona 1 (Górna)
+...i tak dalej
+
+Strona 0 = Dolny rząd (prawa strona)
+Strona 1 = Górny rząd (lewa strona)</translation>
+    </message>
+    <message>
+        <source>Simulation Complete</source>
+        <translation>Symulacja zakończona</translation>
+    </message>
+    <message>
+        <source>Simulation completed successfully.
+
+%1 tracks processed (both sides: lower and upper)</source>
+        <translation>Symulacja zakończona pomyślnie.
+
+%1 ścieżek przetworzonych (obie strony: dolna i górna)</translation>
+    </message>
 </context>
 </TS>

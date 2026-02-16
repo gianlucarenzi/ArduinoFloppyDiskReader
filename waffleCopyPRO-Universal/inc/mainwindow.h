@@ -46,6 +46,7 @@ private:
     QLabel *lowerTrack[MAX_TRACKS];
     void prepareTracks(void);
     void prepareTracksPosition(void);
+    void createTrackGrid(void);
     QTimer *serialPortRefreshTimer;
     QtDrawBridge *amigaBridge;
     DiagnosticThread *diagnosticThread;
@@ -89,6 +90,12 @@ private:
     QTimer *diagnosticTimeoutTimer;
     QTranslator m_translator;
     qreal m_scaleFactor;
+    
+    // Simulation mode
+    QTimer *m_simulationTimer;
+    int m_simulationTrack;
+    int m_simulationSide;
+    bool m_simulationMode;
 
 private:
     qreal calculateScaleFactor();
@@ -138,6 +145,9 @@ private slots:
     // Menu actions
     void onLanguageSettings();
     void onAbout();
+    // Simulation mode
+    void startSimulation();
+    void simulationStep();
 
 protected:
     void resizeEvent(QResizeEvent *event);

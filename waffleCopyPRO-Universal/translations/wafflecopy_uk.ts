@@ -502,5 +502,63 @@ Click anywhere on this window to close.</source>
         <source>Language has been changed. The application will now close. Please restart it.</source>
         <translation>Мову змінено. Додаток зараз закриється. Будь ласка, перезапустіть його.</translation>
     </message>
+    <message>
+        <source>UPPER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>LOWER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Debug</source>
+        <translation>Налагодження</translation>
+    </message>
+    <message>
+        <source>Simulate Read/Write</source>
+        <translation>Імітація читання/запису</translation>
+    </message>
+    <message>
+        <source>Simulation</source>
+        <translation>Імітація</translation>
+    </message>
+    <message>
+        <source>Simulation already running</source>
+        <translation>Імітація вже запущена</translation>
+    </message>
+    <message>
+        <source>Simulation Starting</source>
+        <translation>Запуск імітації</translation>
+    </message>
+    <message>
+        <source>Simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation>Імітація обробить усі %1 доріжок:
+
+Доріжка 0: Бік 0 (Нижній) потім Бік 1 (Верхній)
+Доріжка 1: Бік 0 (Нижній) потім Бік 1 (Верхній)
+...і так далі
+
+Бік 0 = Нижній ряд (права сторона)
+Бік 1 = Верхній ряд (ліва сторона)</translation>
+    </message>
+    <message>
+        <source>Simulation Complete</source>
+        <translation>Імітація завершена</translation>
+    </message>
+    <message>
+        <source>Simulation completed successfully.
+
+%1 tracks processed (both sides: lower and upper)</source>
+        <translation>Імітація завершена успішно.
+
+%1 доріжок оброблено (обидві сторони: нижня та верхня)</translation>
+    </message>
 </context>
 </TS>

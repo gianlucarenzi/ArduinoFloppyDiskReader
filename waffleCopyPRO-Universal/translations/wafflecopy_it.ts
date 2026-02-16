@@ -502,5 +502,63 @@ Clicca per chiudere.</translation>
         <source>Language has been changed. The application will now close. Please restart it.</source>
         <translation>La lingua è stata cambiata. L&apos;applicazione si chiuderà ora. Riavviala.</translation>
     </message>
+    <message>
+        <source>UPPER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>LOWER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Debug</source>
+        <translation>Debug</translation>
+    </message>
+    <message>
+        <source>Simulate Read/Write</source>
+        <translation>Simula Lettura/Scrittura</translation>
+    </message>
+    <message>
+        <source>Simulation</source>
+        <translation>Simulazione</translation>
+    </message>
+    <message>
+        <source>Simulation already running</source>
+        <translation>Simulazione già in esecuzione</translation>
+    </message>
+    <message>
+        <source>Simulation Starting</source>
+        <translation>Avvio Simulazione</translation>
+    </message>
+    <message>
+        <source>Simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation>La simulazione processerà tutte le %1 tracce:
+
+Traccia 0: Lato 0 (Inferiore) poi Lato 1 (Superiore)
+Traccia 1: Lato 0 (Inferiore) poi Lato 1 (Superiore)
+...e così via
+
+Lato 0 = Riga inferiore (lato destro)
+Lato 1 = Riga superiore (lato sinistro)</translation>
+    </message>
+    <message>
+        <source>Simulation Complete</source>
+        <translation>Simulazione Completata</translation>
+    </message>
+    <message>
+        <source>Simulation completed successfully.
+
+%1 tracks processed (both sides: lower and upper)</source>
+        <translation>Simulazione completata con successo.
+
+%1 tracce processate (entrambi i lati: inferiore e superiore)</translation>
+    </message>
 </context>
 </TS>

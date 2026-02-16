@@ -502,5 +502,63 @@ Click anywhere on this window to close.</translation>
         <source>Language has been changed. The application will now close. Please restart it.</source>
         <translation>Language has been changed. The application will now close. Please restart it.</translation>
     </message>
+    <message>
+        <source>UPPER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>LOWER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Debug</source>
+        <translation>Debug</translation>
+    </message>
+    <message>
+        <source>Simulate Read/Write</source>
+        <translation>Simulate Read/Write</translation>
+    </message>
+    <message>
+        <source>Simulation</source>
+        <translation>Simulation</translation>
+    </message>
+    <message>
+        <source>Simulation already running</source>
+        <translation>Simulation already running</translation>
+    </message>
+    <message>
+        <source>Simulation Starting</source>
+        <translation>Simulation Starting</translation>
+    </message>
+    <message>
+        <source>Simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation>Simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</translation>
+    </message>
+    <message>
+        <source>Simulation Complete</source>
+        <translation>Simulation Complete</translation>
+    </message>
+    <message>
+        <source>Simulation completed successfully.
+
+%1 tracks processed (both sides: lower and upper)</source>
+        <translation>Simulation completed successfully.
+
+%1 tracks processed (both sides: lower and upper)</translation>
+    </message>
 </context>
 </TS>

@@ -73,6 +73,7 @@ CVS
 /waffleCopyPRO-Universal/sinescroller.o
 /waffleCopyPRO-Universal/qrc_translations.cpp
 /waffleCopyPRO-Universal/qrc_translations.o
+/waffleCopyPRO-Universal/translations/wafflecopy_en.ts.bak
 # Build artifacts
 config.status
 config.log

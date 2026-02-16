@@ -502,5 +502,63 @@ Kattintson a bezáráshoz.</translation>
         <source>Language has been changed. The application will now close. Please restart it.</source>
         <translation>A nyelv megváltozott. Az alkalmazás most bezáródik. Kérjük, indítsa újra.</translation>
     </message>
+    <message>
+        <source>UPPER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>LOWER SIDE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Debug</source>
+        <translation>Hibakeresés</translation>
+    </message>
+    <message>
+        <source>Simulate Read/Write</source>
+        <translation>Olvasás/írás szimulálása</translation>
+    </message>
+    <message>
+        <source>Simulation</source>
+        <translation>Szimuláció</translation>
+    </message>
+    <message>
+        <source>Simulation already running</source>
+        <translation>A szimuláció már fut</translation>
+    </message>
+    <message>
+        <source>Simulation Starting</source>
+        <translation>Szimuláció indítása</translation>
+    </message>
+    <message>
+        <source>Simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation>A szimuláció az összes %1 sávot feldolgozza:
+
+Sáv 0: 0. oldal (Alsó) majd 1. oldal (Felső)
+Sáv 1: 0. oldal (Alsó) majd 1. oldal (Felső)
+...és így tovább
+
+0. oldal = Alsó sor (jobb oldal)
+1. oldal = Felső sor (bal oldal)</translation>
+    </message>
+    <message>
+        <source>Simulation Complete</source>
+        <translation>Szimuláció befejezve</translation>
+    </message>
+    <message>
+        <source>Simulation completed successfully.
+
+%1 tracks processed (both sides: lower and upper)</source>
+        <translation>A szimuláció sikeresen befejeződött.
+
+%1 sáv feldolgozva (mindkét oldal: alsó és felső)</translation>
+    </message>
 </context>
 </TS>
