@@ -26,9 +26,9 @@ int main(int argc, char *argv[])
         {
             useDebug = true;
         }
-        if (arg.startsWith("--scale="))
+        if (arg.startsWith("-scale="))
         {
-            QString scaleValue = arg.mid(8); // Remove "--scale="
+            QString scaleValue = arg.mid(8); // Remove "-scale="
             bool ok;
             qreal scale = scaleValue.toDouble(&ok);
             if (ok && scale > 0.1 && scale <= 5.0) {
