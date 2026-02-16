@@ -298,11 +298,13 @@ MainWindow::MainWindow(QWidget *parent)
     QAction *aboutAction = helpMenu->addAction(tr("About"));
     connect(aboutAction, &QAction::triggered, this, &MainWindow::onAbout);
     
-    // Menu Debug (for simulation)
+#ifdef QT_DEBUG
+    // Menu Debug (for simulation) - only available in debug builds
     QMenu *debugMenu = menuBar->addMenu(tr("Debug"));
     debugMenu->setFont(this->font());
     QAction *simulateAction = debugMenu->addAction(tr("Simulate Read/Write"));
     connect(simulateAction, &QAction::triggered, this, &MainWindow::startSimulation);
+#endif
 }
 
 qreal MainWindow::calculateScaleFactor()
