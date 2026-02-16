@@ -71,6 +71,8 @@ CVS
 /waffleCopyPRO-Universal/moc_sinescroller.cpp
 /waffleCopyPRO-Universal/moc_sinescroller.o
 /waffleCopyPRO-Universal/sinescroller.o
+/waffleCopyPRO-Universal/qrc_translations.cpp
+/waffleCopyPRO-Universal/qrc_translations.o
 # Build artifacts
 config.status
 config.log
