@@ -84,6 +84,7 @@ MainWindow::MainWindow(QWidget *parent)
     int baseHeight = 615;
     int scaledWidth = static_cast<int>(baseWidth * m_scaleFactor);
     int scaledHeight = static_cast<int>(baseHeight * m_scaleFactor);
+    DebugMsg::print(__func__, QString("W: %1 - H: %2").arg(scaledWidth).arg(scaledHeight));
     
     setFixedSize(scaledWidth, scaledHeight);
     setMinimumSize(scaledWidth, scaledHeight);
@@ -614,7 +615,7 @@ void MainWindow::done(void)
     ui->copyError->hide();
     ui->busy->hide();
     ui->stopButton->hide();
-    //prepareTracksPosition();
+    setOperationMode(false);
     DebugMsg::print(__func__, "DONE");
     readyReadSHM = false;
 }
@@ -946,11 +947,34 @@ void MainWindow::checkStartRead(void)
     readyReadSHM = true;
 }
 
+void MainWindow::setOperationMode(bool active)
+{
+    // Disable/enable all interactive controls during read/write operations
+    ui->startWrite->setEnabled(!active);
+    ui->startRead->setEnabled(!active);
+    ui->serialPortComboBox->setEnabled(!active);
+    ui->setADFFileName->setEnabled(!active);
+    ui->fileSaveADF->setEnabled(!active);
+    ui->getADFFileName->setEnabled(!active);
+    ui->fileReadADF->setEnabled(!active);
+    ui->preCompSelection->setEnabled(!active);
+    ui->skipWriteError->setEnabled(!active);
+    ui->eraseBeforeWrite->setEnabled(!active);
+    ui->numTracks->setEnabled(!active);
+    ui->skipReadError->setEnabled(!active);
+    ui->hdModeSelection->setEnabled(!active);
+    ui->diagnosticButton->setEnabled(!active);
+    ui->modPlayerButton->setEnabled(!active);
+    ui->rightLogo->setEnabled(!active);
+    if (active)
+        ui->DiskTracksFrame->raise();
+}
+
 void MainWindow::startWrite(void)
 {
     QApplication::processEvents();
     amigaBridge->start();
-    ui->busy->show();
+    setOperationMode(true);
     ui->stopButton->raise();
     ui->stopButton->show();
 }
@@ -959,7 +983,7 @@ void MainWindow::startRead(void)
 {
     QApplication::processEvents();
     amigaBridge->start();
-    ui->busy->show();
+    setOperationMode(true);
     ui->stopButton->raise();
     ui->stopButton->show();
 }
@@ -994,6 +1018,7 @@ void MainWindow::progressChange(QString s, int value)
                     ui->errorDialog->hide();
                 } else {
                     ui->errorDialog->show();
+                    ui->errorDialog->raise();
                 }
             } else {
                 ui->errorDialog->hide();

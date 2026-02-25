@@ -104,6 +104,7 @@ private:
     void applyAmigaFontToWidgets();
     void loadLanguage(const QString &language);
     void changeLanguage(const QString &language);
+    void setOperationMode(bool active);
 
 private slots:
     void onDiagnosticTimeout();
