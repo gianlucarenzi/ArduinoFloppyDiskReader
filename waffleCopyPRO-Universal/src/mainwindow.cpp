@@ -630,8 +630,14 @@ void MainWindow::stopClicked(void)
     if (ui->errorDialog->isVisible())
         ui->errorDialog->hide();
     ui->stopButton->hide();
-    amigaBridge->terminate();
-    ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice(); // Close port on stop
+    if (m_simulationMode && m_simulationTimer) {
+        m_simulationMode = false;
+        m_simulationTimer->stop();
+        setOperationMode(false);
+    } else {
+        amigaBridge->terminate();
+        ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice(); // Close port on stop
+    }
 }
 
 void MainWindow::toggleScrollMode(void)
