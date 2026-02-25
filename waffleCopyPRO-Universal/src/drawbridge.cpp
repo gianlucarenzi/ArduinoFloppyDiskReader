@@ -369,7 +369,7 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 #pragma warning(push)
 #pragma warning(disable: 4100)
 #endif
-        result = ArduinoFloppyReader::ADFWriterManager::getInstance().IPFToDisk(filename, eraseFirst, [skipWriteError](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
+        result = ArduinoFloppyReader::ADFWriterManager::getInstance().IPFToDisk(filename, false, [skipWriteError](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
             if (isVerifyError) {
                 if (skipWriteError) {
                     return WriteResponse::wrSkipBadChecksums;
@@ -420,7 +420,7 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 #pragma warning(disable: 4100)
 #endif
     if (isSCP) {
-        result = ArduinoFloppyReader::ADFWriterManager::getInstance().SCPToDisk(filename, eraseFirst, [skipWriteError](const int currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
+        result = ArduinoFloppyReader::ADFWriterManager::getInstance().SCPToDisk(filename, false, [skipWriteError](const int currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
             if (isVerifyError) {
                 if (skipWriteError) {
                     return WriteResponse::wrSkipBadChecksums;
@@ -447,7 +447,7 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 
                 switch (input) {
                 case 'R': return WriteResponse::wrRetry;
-                case 'I': return WriteResponse::wrSkipBadChecksums;
+                case 'S': return WriteResponse::wrSkipBadChecksums;
                 case 'A': return WriteResponse::wrAbort;
                 }
             }
@@ -710,17 +710,17 @@ int wmain(QStringList list)
     std::wstring port = list.at(0).toStdWString();
     std::wstring filename = list.at(1).toStdWString();;
 
-    DebugMsg::print(__func__, "port" + QString::fromStdWString(port));
-    DebugMsg::print(__func__, "filename" + QString::fromStdWString(filename));
+    DebugMsg::print(__func__, "port: " + QString::fromStdWString(port));
+    DebugMsg::print(__func__, "filename: " + QString::fromStdWString(filename));
 
-    DebugMsg::print(__func__, "writeMode" + QString::number(writeMode));
-    DebugMsg::print(__func__, "verify" + QString::number(verify));
-    DebugMsg::print(__func__, "preComp" + QString::number(preComp));
-    DebugMsg::print(__func__, "eraseBeforeWrite" + QString::number(eraseBeforeWrite));
-    DebugMsg::print(__func__, "TRACKS" + QString::number(numTracks));
-    DebugMsg::print(__func__, "HD" + QString::number(isHDMode));
-    DebugMsg::print(__func__, "SKIPREADERROR" + QString::number(skipReadError));
-    DebugMsg::print(__func__, "SKIPWRITEERROR" + QString::number(skipWriteError));
+    DebugMsg::print(__func__, "writeMode: " + QString::number(writeMode));
+    DebugMsg::print(__func__, "verify: " + QString::number(verify));
+    DebugMsg::print(__func__, "preComp: " + QString::number(preComp));
+    DebugMsg::print(__func__, "eraseBeforeWrite: " + QString::number(eraseBeforeWrite));
+    DebugMsg::print(__func__, "TRACKS: " + QString::number(numTracks));
+    DebugMsg::print(__func__, "HD: " + QString::number(isHDMode));
+    DebugMsg::print(__func__, "SKIPREADERROR: " + QString::number(skipReadError));
+    DebugMsg::print(__func__, "SKIPWRITEERROR: " + QString::number(skipWriteError));
 
     userInputDone = false; // It will be changed by the user on errors
 
