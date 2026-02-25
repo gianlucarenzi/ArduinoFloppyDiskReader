@@ -32,6 +32,9 @@ typedef const char *LPCSTR;
 typedef const char *LPCTSTR;
 typedef unsigned short WORD;
 
+// Define INTEL for MSVC builds when CAPS_USER is defined, to ensure byte-swapping
+#define INTEL
+
 // Define S_ISREG macro for Windows
 #ifndef S_ISREG
 #define S_ISREG(m) (((m) & _S_IFMT) == _S_IFREG)
