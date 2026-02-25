@@ -65,7 +65,9 @@ MainWindow::MainWindow(QWidget *parent)
   m_simulationTimer(nullptr),
   m_simulationTrack(0),
   m_simulationSide(0),
-  m_simulationMode(false)
+  m_simulationMode(false),
+  m_simulationSkipped(false),
+  m_simulationIsWrite(false)
 {
     ui->setupUi(this);
 
@@ -204,11 +206,11 @@ MainWindow::MainWindow(QWidget *parent)
     ui->version->show();
     // Settings
     // If not exists default is true
-    DebugMsg::print(__func__, "BEFORE PRECOMP" + QString::number(preComp));
-    DebugMsg::print(__func__, "BEFORE ERASEBEFOREWRITE" + QString::number(eraseBeforeWrite));
-    DebugMsg::print(__func__, "BEFORE TRACKS82" + QString::number(tracks82));
-    DebugMsg::print(__func__, "BEFORE SKIPREADERROR" + QString::number(skipReadError));
-    DebugMsg::print(__func__, "BEFORE SKIPWRITEERROR" + QString::number(skipWriteError));
+    DebugMsg::print(__func__, "BEFORE PRECOMP: " + QString::number(preComp));
+    DebugMsg::print(__func__, "BEFORE ERASEBEFOREWRITE: " + QString::number(eraseBeforeWrite));
+    DebugMsg::print(__func__, "BEFORE TRACKS82: " + QString::number(tracks82));
+    DebugMsg::print(__func__, "BEFORE SKIPREADERROR: " + QString::number(skipReadError));
+    DebugMsg::print(__func__, "BEFORE SKIPWRITEERROR: " + QString::number(skipWriteError));
 
     preComp = settings.value("PRECOMP", true).toBool();
     eraseBeforeWrite = settings.value("ERASEBEFOREWRITE", false).toBool();
@@ -234,18 +236,18 @@ MainWindow::MainWindow(QWidget *parent)
         if (ui->serialPortComboBox->count() > 0) {
             QString currentPort = ui->serialPortComboBox->currentText();
             if (!currentPort.isEmpty()) {
-                DebugMsg::print(__func__, "WRITE INITIAL SETTINGS SERIALPORTNAME" + currentPort);
+                DebugMsg::print(__func__, "WRITE INITIAL SETTINGS SERIALPORTNAME " + currentPort);
                 settings.setValue("SERIALPORTNAME", currentPort);
                 settings.sync();
             }
         }
     }
 
-    DebugMsg::print(__func__, "AFTER PRECOMP" + QString::number(preComp));
-    DebugMsg::print(__func__, "AFTER ERASEBEFOREWRITE" + QString::number(eraseBeforeWrite));
-    DebugMsg::print(__func__, "AFTER TRACKS82" + QString::number(tracks82));
-    DebugMsg::print(__func__, "AFTER SKIPREADERROR" + QString::number(skipReadError));
-    DebugMsg::print(__func__, "AFTER SKIPWRITEERROR" + QString::number(skipWriteError));
+    DebugMsg::print(__func__, "AFTER PRECOMP: " + QString::number(preComp));
+    DebugMsg::print(__func__, "AFTER ERASEBEFOREWRITE: " + QString::number(eraseBeforeWrite));
+    DebugMsg::print(__func__, "AFTER TRACKS82: " + QString::number(tracks82));
+    DebugMsg::print(__func__, "AFTER SKIPREADERROR: " + QString::number(skipReadError));
+    DebugMsg::print(__func__, "AFTER SKIPWRITEERROR: " + QString::number(skipWriteError));
 
     ui->errorDialog->hide();
     ui->errorDialog->raise();
@@ -310,8 +312,10 @@ MainWindow::MainWindow(QWidget *parent)
     // Menu Debug (for simulation) - only available in debug builds
     QMenu *debugMenu = menuBar->addMenu(tr("Debug"));
     debugMenu->setFont(this->font());
-    QAction *simulateAction = debugMenu->addAction(tr("Simulate Read/Write"));
-    connect(simulateAction, &QAction::triggered, this, &MainWindow::startSimulation);
+    QAction *simulateReadAction = debugMenu->addAction(tr("Simulate Read"));
+    connect(simulateReadAction, &QAction::triggered, this, &MainWindow::startSimulation);
+    QAction *simulateWriteAction = debugMenu->addAction(tr("Simulate Write"));
+    connect(simulateWriteAction, &QAction::triggered, this, &MainWindow::startWriteSimulation);
 #endif
 }
 
@@ -964,8 +968,6 @@ void MainWindow::setOperationMode(bool active)
     ui->skipReadError->setEnabled(!active);
     ui->hdModeSelection->setEnabled(!active);
     ui->diagnosticButton->setEnabled(!active);
-    ui->modPlayerButton->setEnabled(!active);
-    ui->rightLogo->setEnabled(!active);
     if (active)
         ui->DiskTracksFrame->raise();
 }
@@ -1112,10 +1114,14 @@ extern void set_user_input(char data);
 
 void MainWindow::errorDialog_SkipClicked(void)
 {
-    //DebugMsg::print(__func__, "SKIP Clicked");
     set_user_input('S'); // Skip
     ui->errorDialog->hide();
-    serialPortRefreshTimer->start();
+    if (m_simulationMode && m_simulationTimer) {
+        m_simulationSkipped = true; // advance without re-testing: square stays red
+        m_simulationTimer->start(100);
+    } else {
+        serialPortRefreshTimer->start();
+    }
 }
 
 void MainWindow::errorDialog_CancelClicked(void)
@@ -1123,8 +1129,15 @@ void MainWindow::errorDialog_CancelClicked(void)
     //DebugMsg::print(__func__, "ABORT Clicked");
     set_user_input('A'); // Abort
     ui->errorDialog->hide();
-    stopClicked();
-    serialPortRefreshTimer->start();
+    if (m_simulationMode && m_simulationTimer) {
+        m_simulationMode = false;
+        m_simulationTimer->stop();
+        setOperationMode(false);
+        ui->stopButton->setVisible(false);
+    } else {
+        stopClicked();
+        serialPortRefreshTimer->start();
+    }
 }
 
 void MainWindow::errorDialog_RetryClicked(void)
@@ -1132,6 +1145,8 @@ void MainWindow::errorDialog_RetryClicked(void)
     //DebugMsg::print(__func__, "RETRY Clicked");
     set_user_input('R'); // Retry
     ui->errorDialog->hide();
+    if (m_simulationMode && m_simulationTimer)
+        m_simulationTimer->start(100);
 }
 
 void MainWindow::manageQtDrawBridgeSignal(int sig)
@@ -1762,6 +1777,7 @@ void MainWindow::onAbout()
 
 void MainWindow::startSimulation()
 {
+    m_simulationIsWrite = false;
     if (m_simulationMode) {
         QMessageBox::warning(this, tr("Simulation"), tr("Simulation already running"));
         return;
@@ -1781,11 +1797,8 @@ void MainWindow::startSimulation()
         lowerTrack[i]->hide();
     }
     
-    // Bring frame to front
-    ui->DiskTracksFrame->raise();
-    
-    // Show busy indicator
-    ui->busy->setVisible(true);
+    // Disable controls, bring track frame to front (no overlay)
+    setOperationMode(true);
     ui->stopButton->setVisible(true);
     ui->stopButton->raise();
     
@@ -1799,7 +1812,52 @@ void MainWindow::startSimulation()
     
     // Show a message about what the simulation will do
     QMessageBox::information(this, tr("Simulation Starting"),
-        tr("Simulation will process all %1 tracks:\n\n"
+        tr("Read simulation will process all %1 tracks:\n\n"
+           "Track 0: Side 0 (Lower) then Side 1 (Upper)\n"
+           "Track 1: Side 0 (Lower) then Side 1 (Upper)\n"
+           "...and so on\n\n"
+           "Side 0 = Lower row (right side)\n"
+           "Side 1 = Upper row (left side)").arg(MAX_TRACKS));
+}
+
+void MainWindow::startWriteSimulation()
+{
+    m_simulationIsWrite = true;
+    if (m_simulationMode) {
+        QMessageBox::warning(this, tr("Simulation"), tr("Simulation already running"));
+        return;
+    }
+    
+    // Initialize simulation
+    m_simulationMode = true;
+    m_simulationTrack = 0;
+    m_simulationSide = 0;  // Start with side 0 (Lower)
+    readyReadSHM = true;
+    
+    // Reset all tracks to black
+    for (int i = 0; i < MAX_TRACKS; i++) {
+        upperTrack[i]->setStyleSheet("background-color: rgb(0,0,0);");
+        lowerTrack[i]->setStyleSheet("background-color: rgb(0,0,0);");
+        upperTrack[i]->hide();
+        lowerTrack[i]->hide();
+    }
+    
+    // Disable controls, bring track frame to front (no overlay)
+    setOperationMode(true);
+    ui->stopButton->setVisible(true);
+    ui->stopButton->raise();
+    
+    // Create and start timer
+    if (!m_simulationTimer) {
+        m_simulationTimer = new QTimer(this);
+        connect(m_simulationTimer, &QTimer::timeout, this, &MainWindow::simulationStep);
+    }
+    
+    m_simulationTimer->start(100); // Update every 100ms
+    
+    // Show a message about what the simulation will do
+    QMessageBox::information(this, tr("Simulation Starting"),
+        tr("Write simulation will process all %1 tracks:\n\n"
            "Track 0: Side 0 (Lower) then Side 1 (Upper)\n"
            "Track 1: Side 0 (Lower) then Side 1 (Upper)\n"
            "...and so on\n\n"
@@ -1815,26 +1873,37 @@ void MainWindow::simulationStep()
     
     // Simulate all tracks up to MAX_TRACKS (84)
     int maxTracks = MAX_TRACKS;
-    
-    // Randomly decide if this track is successful or has an error (95% success rate)
-    bool success = (QRandomGenerator::global()->bounded(100) < 95);
-    
-    // Update track/side/status variables as the real code does
-    track = m_simulationTrack;
-    side = m_simulationSide;
-    status = success ? 0 : 1;  // 0 = success, 1 = error
-    err = success ? 0 : 1;
-    
-    // Use the existing progressChange logic
-    readyReadSHM = true;
-    progressChange("Track", track);
-    progressChange("Side", side);
-    progressChange("Status", status);
-    progressChange("Error", err);
-    
-    // Force UI update
-    QApplication::processEvents();
-    
+
+    if (!m_simulationSkipped) {
+        // Randomly decide if this track is successful or has an error (95% success rate)
+        bool success = (QRandomGenerator::global()->bounded(100) < 95);
+
+        // Update track/side/status variables as the real code does
+        track = m_simulationTrack;
+        side = m_simulationSide;
+        status = success ? 0 : 1;
+        err = success ? 0 : 1;
+
+        // Use the existing progressChange logic
+        readyReadSHM = true;
+        progressChange("Track", track);
+        progressChange("Side", side);
+        progressChange("Status", status);
+        progressChange("Error", err);
+
+        // Force UI update
+        QApplication::processEvents();
+
+        // If an error dialog is shown waiting for user input, pause the timer
+        if (err != 0 && !(m_simulationIsWrite ? skipWriteError : skipReadError) && ui->errorDialog->isVisible()) {
+            m_simulationTimer->stop();
+            return;
+        }
+    } else {
+        // Skip was pressed: the track stays red, just advance
+        m_simulationSkipped = false;
+    }
+
     // Alternate between sides: 0->1, then move to next track
     m_simulationSide++;
     
@@ -1846,11 +1915,12 @@ void MainWindow::simulationStep()
             // Simulation complete
             m_simulationMode = false;
             m_simulationTimer->stop();
-            ui->busy->setVisible(false);
+            setOperationMode(false);
             ui->stopButton->setVisible(false);
             
             QMessageBox::information(this, tr("Simulation Complete"),
-                tr("Simulation completed successfully.\n\n%1 tracks processed (both sides: lower and upper)")
+                tr("%1 simulation completed successfully.\n\n%2 tracks processed (both sides: lower and upper)")
+                .arg(m_simulationIsWrite ? tr("Write") : tr("Read"))
                 .arg(maxTracks));
         }
     }

@@ -96,6 +96,8 @@ private:
     int m_simulationTrack;
     int m_simulationSide;
     bool m_simulationMode;
+    bool m_simulationSkipped; // true = Skip was pressed: advance without re-testing
+    bool m_simulationIsWrite; // true = simulating write, false = simulating read
 
 private:
     qreal calculateScaleFactor();
@@ -148,6 +150,7 @@ private slots:
     void onAbout();
     // Simulation mode
     void startSimulation();
+    void startWriteSimulation();
     void simulationStep();
 
 protected:
