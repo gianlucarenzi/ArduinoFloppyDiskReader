@@ -16,6 +16,9 @@
 
 // Windows/MSVC specific includes
 #if defined(_WIN32)
+// Windows (x86/x64) is always little-endian; INTEL must be defined for correct
+// big-endian <-> little-endian swapping of IPF chunk headers in CapsLoader::Swap().
+#define INTEL
 #define WIN32_LEAN_AND_MEAN
 // Don't include windows.h here if CAPS_USER is defined (static linking)
 // CommonTypes.h will handle it appropriately
@@ -31,9 +34,6 @@
 typedef const char *LPCSTR;
 typedef const char *LPCTSTR;
 typedef unsigned short WORD;
-
-// Define INTEL for MSVC builds when CAPS_USER is defined, to ensure byte-swapping
-#define INTEL
 
 // Define S_ISREG macro for Windows
 #ifndef S_ISREG
