@@ -45,7 +45,7 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           cd waffleCopyPRO-Universal
-          qmake -tp vc "INCLUDEPATH+=${{ env.VCPKG_ROOT }}\\installed\\x64-windows\\include" waffleCopyPRO-Universal.pro
+          qmake -tp vc "INCLUDEPATH+=${{ env.VCPKG_ROOT }}\\installed\\x64-windows\\include" "LIBS+=-L${{ env.VCPKG_ROOT }}\\installed\\x64-windows\\lib -lmikmod" waffleCopyPRO-Universal.pro
           msbuild waffleCopyPRO-Universal.vcxproj /p:Configuration=Release /p:PlatformToolset=v143
 
       - name: Deploy and Package
