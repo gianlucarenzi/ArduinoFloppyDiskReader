@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     steps:
       - name: Checkout code
@@ -23,7 +23,7 @@ jobs:
           version:      5.15.2
           host:        windows
           target:       desktop
-          arch:        win64_msvc2019_64
+          arch:        win64_msvc2022_64
           dir:          ${{ runner.temp }}
           setup-python: false
 
@@ -43,7 +43,7 @@ jobs:
         env:
           VCPKG_ROOT: ${{ github.workspace }}\vcpkg
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           cd waffleCopyPRO-Universal
           qmake -tp vc waffleCopyPRO-Universal.pro
           msbuild waffleCopyPRO-Universal.vcxproj /p:Configuration=Release
@@ -68,11 +68,11 @@ jobs:
 
           # Prefer VS Redist x64 CRT path, then WinSxS, then download+extract vc_redist
           $CRT_COPIED = $false
-          $MSVC_BASE = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Redist\MSVC"
+          $MSVC_BASE = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC"
           if (Test-Path $MSVC_BASE) {
             $MSVC_REDIST = Get-ChildItem $MSVC_BASE -Directory | Sort-Object Name -Descending | Select-Object -First 1
             if ($MSVC_REDIST) {
-              $CRT_PATH = Join-Path $MSVC_REDIST.FullName "x64\Microsoft.VC142.CRT"
+              $CRT_PATH = Join-Path $MSVC_REDIST.FullName "x64\Microsoft.VC143.CRT"
               if (Test-Path $CRT_PATH) {
                 Copy-Item "$CRT_PATH\*.dll" $RELEASE_DIR -Force -ErrorAction SilentlyContinue
                 $CRT_COPIED = $true
@@ -81,7 +81,7 @@ jobs:
           }
 
           if (-not $CRT_COPIED) {
-            $winSxS = Get-ChildItem "C:\Windows\WinSxS" -Filter "*Microsoft.VC142.CRT*" -Directory -ErrorAction SilentlyContinue
+            $winSxS = Get-ChildItem "C:\Windows\WinSxS" -Filter "*Microsoft.VC143.CRT*" -Directory -ErrorAction SilentlyContinue
             foreach ($d in $winSxS) {
               $possible = Join-Path $d.FullName "x64"
               if (Test-Path $possible) {
@@ -94,7 +94,7 @@ jobs:
 
           if (-not $CRT_COPIED) {
             $vc = "$env:TEMP\vc_redist.x64.exe"
-            Invoke-WebRequest -Uri "https://aka.ms/vs/16/release/vc_redist.x64.exe" -OutFile $vc -UseBasicParsing -ErrorAction SilentlyContinue
+            Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile $vc -UseBasicParsing -ErrorAction SilentlyContinue
             if (Test-Path $vc) {
               $extractDir = Join-Path $env:TEMP "vc_redist_extracted"
               if (Test-Path $extractDir) { Remove-Item $extractDir -Recurse -Force -ErrorAction SilentlyContinue }
@@ -105,7 +105,7 @@ jobs:
               } else {
                 try { Expand-Archive -Path $vc -DestinationPath $extractDir -ErrorAction Stop } catch {}
               }
-              $found = Get-ChildItem $extractDir -Recurse -Filter "Microsoft.VC142.CRT" -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+              $found = Get-ChildItem $extractDir -Recurse -Filter "Microsoft.VC143.CRT" -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
               if ($found) {
                 $possible = Join-Path $found.FullName "x64"
                 if (Test-Path $possible) {
@@ -124,7 +124,7 @@ jobs:
               Write-Host "Looking for $dll to copy into release..."
               # Try VS Redist location
               if ($MSVC_REDIST) {
-                $tryPath = Join-Path $MSVC_REDIST.FullName (Join-Path "x64\Microsoft.VC142.CRT" $dll)
+                $tryPath = Join-Path $MSVC_REDIST.FullName (Join-Path "x64\Microsoft.VC143.CRT" $dll)
                 if (Test-Path $tryPath) { Copy-Item $tryPath $RELEASE_DIR -Force -ErrorAction SilentlyContinue; continue }
               }
               # Try WinSxS
