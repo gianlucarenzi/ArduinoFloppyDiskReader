@@ -273,6 +273,22 @@
         <translation>КОПІЮВАННЯ ДИСКА AMIGA ЗАВЕРШЕНО</translation>
     </message>
     <message>
+        <source>SCP COPY COMPLETED</source>
+        <translation>КОПІЮВАННЯ SCP ЗАВЕРШЕНО</translation>
+    </message>
+    <message>
+        <source>IPF COPY COMPLETED</source>
+        <translation>КОПІЮВАННЯ IPF ЗАВЕРШЕНО</translation>
+    </message>
+    <message>
+        <source>ST COPY COMPLETED</source>
+        <translation>КОПІЮВАННЯ ST ЗАВЕРШЕНО</translation>
+    </message>
+    <message>
+        <source>PC-DOS COPY COMPLETED</source>
+        <translation>КОПІЮВАННЯ PC-DOS ЗАВЕРШЕНО</translation>
+    </message>
+    <message>
         <source>AMIGA DISK COPY ERROR</source>
         <translation>ПОМИЛКА КОПІЮВАННЯ ДИСКА AMIGA</translation>
     </message>

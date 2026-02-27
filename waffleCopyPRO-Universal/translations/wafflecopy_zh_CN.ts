@@ -296,6 +296,22 @@
         <translation>完成</translation>
     </message>
     <message>
+        <source>SCP COPY COMPLETED</source>
+        <translation>SCP 复制完成</translation>
+    </message>
+    <message>
+        <source>IPF COPY COMPLETED</source>
+        <translation>IPF 复制完成</translation>
+    </message>
+    <message>
+        <source>ST COPY COMPLETED</source>
+        <translation>ST 复制完成</translation>
+    </message>
+    <message>
+        <source>PC-DOS COPY COMPLETED</source>
+        <translation>PC-DOS 复制完成</translation>
+    </message>
+    <message>
         <location filename="../src/mainwindow.ui" line="404"/>
         <source>AMIGA DISK COPY ERROR</source>
         <translation>错误</translation>

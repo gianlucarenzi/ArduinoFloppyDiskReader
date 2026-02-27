@@ -296,6 +296,22 @@
         <translation>Finalizat</translation>
     </message>
     <message>
+        <source>SCP COPY COMPLETED</source>
+        <translation>COPIERE SCP COMPLETATĂ</translation>
+    </message>
+    <message>
+        <source>IPF COPY COMPLETED</source>
+        <translation>COPIERE IPF COMPLETATĂ</translation>
+    </message>
+    <message>
+        <source>ST COPY COMPLETED</source>
+        <translation>COPIERE ST COMPLETATĂ</translation>
+    </message>
+    <message>
+        <source>PC-DOS COPY COMPLETED</source>
+        <translation>COPIERE PC-DOS COMPLETATĂ</translation>
+    </message>
+    <message>
         <location filename="../src/mainwindow.ui" line="404"/>
         <source>AMIGA DISK COPY ERROR</source>
         <translation>Eroare</translation>

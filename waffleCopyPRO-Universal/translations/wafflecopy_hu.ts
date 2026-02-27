@@ -273,6 +273,22 @@
         <translation>AMIGA LEMEZ MÁSOLÁSA BEFEJEZVE</translation>
     </message>
     <message>
+        <source>SCP COPY COMPLETED</source>
+        <translation>SCP MÁSOLÁS KÉSZ</translation>
+    </message>
+    <message>
+        <source>IPF COPY COMPLETED</source>
+        <translation>IPF MÁSOLÁS KÉSZ</translation>
+    </message>
+    <message>
+        <source>ST COPY COMPLETED</source>
+        <translation>ST MÁSOLÁS KÉSZ</translation>
+    </message>
+    <message>
+        <source>PC-DOS COPY COMPLETED</source>
+        <translation>PC-DOS MÁSOLÁS KÉSZ</translation>
+    </message>
+    <message>
         <source>AMIGA DISK COPY ERROR</source>
         <translation>AMIGA LEMEZ MÁSOLÁSI HIBA</translation>
     </message>

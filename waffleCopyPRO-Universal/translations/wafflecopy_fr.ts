@@ -273,6 +273,22 @@
         <translation>COPIE DE DISQUE AMIGA TERMINÉE</translation>
     </message>
     <message>
+        <source>SCP COPY COMPLETED</source>
+        <translation>COPIE SCP TERMINÉE</translation>
+    </message>
+    <message>
+        <source>IPF COPY COMPLETED</source>
+        <translation>COPIE IPF TERMINÉE</translation>
+    </message>
+    <message>
+        <source>ST COPY COMPLETED</source>
+        <translation>COPIE ST TERMINÉE</translation>
+    </message>
+    <message>
+        <source>PC-DOS COPY COMPLETED</source>
+        <translation>COPIE PC-DOS TERMINÉE</translation>
+    </message>
+    <message>
         <source>AMIGA DISK COPY ERROR</source>
         <translation>ERREUR DE COPIE DE DISQUE AMIGA</translation>
     </message>

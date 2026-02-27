@@ -296,6 +296,22 @@
         <translation>Dokončeno</translation>
     </message>
     <message>
+        <source>SCP COPY COMPLETED</source>
+        <translation>KOPÍROVÁNÍ SCP DOKONČENO</translation>
+    </message>
+    <message>
+        <source>IPF COPY COMPLETED</source>
+        <translation>KOPÍROVÁNÍ IPF DOKONČENO</translation>
+    </message>
+    <message>
+        <source>ST COPY COMPLETED</source>
+        <translation>KOPÍROVÁNÍ ST DOKONČENO</translation>
+    </message>
+    <message>
+        <source>PC-DOS COPY COMPLETED</source>
+        <translation>KOPÍROVÁNÍ PC-DOS DOKONČENO</translation>
+    </message>
+    <message>
         <location filename="../src/mainwindow.ui" line="404"/>
         <source>AMIGA DISK COPY ERROR</source>
         <translation>Chyba</translation>

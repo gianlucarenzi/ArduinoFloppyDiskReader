@@ -273,6 +273,22 @@
         <translation>ΑΝΤΙΓΡΑΦΗ ΔΙΣΚΟΥ AMIGA ΟΛΟΚΛΗΡΩΘΗΚΕ</translation>
     </message>
     <message>
+        <source>SCP COPY COMPLETED</source>
+        <translation>ΑΝΤΙΓΡΑΦΗ SCP ΟΛΟΚΛΗΡΩΘΗΚΕ</translation>
+    </message>
+    <message>
+        <source>IPF COPY COMPLETED</source>
+        <translation>ΑΝΤΙΓΡΑΦΗ IPF ΟΛΟΚΛΗΡΩΘΗΚΕ</translation>
+    </message>
+    <message>
+        <source>ST COPY COMPLETED</source>
+        <translation>ΑΝΤΙΓΡΑΦΗ ST ΟΛΟΚΛΗΡΩΘΗΚΕ</translation>
+    </message>
+    <message>
+        <source>PC-DOS COPY COMPLETED</source>
+        <translation>ΑΝΤΙΓΡΑΦΗ PC-DOS ΟΛΟΚΛΗΡΩΘΗΚΕ</translation>
+    </message>
+    <message>
         <source>AMIGA DISK COPY ERROR</source>
         <translation>ΣΦΑΛΜΑ ΑΝΤΙΓΡΑΦΗΣ ΔΙΣΚΟΥ AMIGA</translation>
     </message>

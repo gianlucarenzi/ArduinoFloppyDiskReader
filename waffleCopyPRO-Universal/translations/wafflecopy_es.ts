@@ -273,6 +273,22 @@
         <translation>COPIA DE DISCO AMIGA COMPLETADA</translation>
     </message>
     <message>
+        <source>SCP COPY COMPLETED</source>
+        <translation>COPIA SCP COMPLETADA</translation>
+    </message>
+    <message>
+        <source>IPF COPY COMPLETED</source>
+        <translation>COPIA IPF COMPLETADA</translation>
+    </message>
+    <message>
+        <source>ST COPY COMPLETED</source>
+        <translation>COPIA ST COMPLETADA</translation>
+    </message>
+    <message>
+        <source>PC-DOS COPY COMPLETED</source>
+        <translation>COPIA PC-DOS COMPLETADA</translation>
+    </message>
+    <message>
         <source>AMIGA DISK COPY ERROR</source>
         <translation>ERROR DE COPIA DE DISCO AMIGA</translation>
     </message>
