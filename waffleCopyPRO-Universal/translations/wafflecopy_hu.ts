@@ -337,6 +337,22 @@
         <translation>A MŰVELETET A FELHASZNÁLÓ MEGSZAKÍTOTTA</translation>
     </message>
     <message>
+        <source>Skip Write Errors</source>
+        <translation>Skip íráshibák</translation>
+    </message>
+    <message>
+        <source>Tracks: 82</source>
+        <translation>Sávok: 82</translation>
+    </message>
+    <message>
+        <source>Skip Read Errors</source>
+        <translation>Skip olv. hibák</translation>
+    </message>
+    <message>
+        <source>HIGH DENSITY DISK SELECTION</source>
+        <translation>NAGY SŰRŰSÉG</translation>
+    </message>
+    <message>
         <source>ERROR: No serial port selected!
 
 Please select a serial port from the dropdown menu.</source>
@@ -520,11 +536,11 @@ Kattintson a bezáráshoz.</translation>
     </message>
     <message>
         <source>UPPER SIDE</source>
-        <translation type="unfinished"></translation>
+        <translation>FELSŐ OLDAL</translation>
     </message>
     <message>
         <source>LOWER SIDE</source>
-        <translation type="unfinished"></translation>
+        <translation>ALSÓ OLDAL</translation>
     </message>
     <message>
         <source>Debug</source>
@@ -532,7 +548,7 @@ Kattintson a bezáráshoz.</translation>
     </message>
     <message>
         <source>Simulate Read/Write</source>
-        <translation>Olvasás/írás szimulálása</translation>
+        <translation type="vanished">Olvasás/írás szimulálása</translation>
     </message>
     <message>
         <source>Simulation</source>
@@ -555,7 +571,7 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation>A szimuláció az összes %1 sávot feldolgozza:
+        <translation type="vanished">A szimuláció az összes %1 sávot feldolgozza:
 
 Sáv 0: 0. oldal (Alsó) majd 1. oldal (Felső)
 Sáv 1: 0. oldal (Alsó) majd 1. oldal (Felső)
@@ -572,9 +588,53 @@ Sáv 1: 0. oldal (Alsó) majd 1. oldal (Felső)
         <source>Simulation completed successfully.
 
 %1 tracks processed (both sides: lower and upper)</source>
-        <translation>A szimuláció sikeresen befejeződött.
+        <translation type="vanished">A szimuláció sikeresen befejeződött.
 
 %1 sáv feldolgozva (mindkét oldal: alsó és felső)</translation>
+    </message>
+    <message>
+        <source>Simulate Read</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Simulate Write</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Read simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Write simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 simulation completed successfully.
+
+%2 tracks processed (both sides: lower and upper)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Write</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 </TS>

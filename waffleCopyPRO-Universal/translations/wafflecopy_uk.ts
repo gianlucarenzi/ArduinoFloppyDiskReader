@@ -337,6 +337,22 @@
         <translation>ОПЕРАЦІЮ ПЕРЕРВАНО КОРИСТУВАЧЕМ</translation>
     </message>
     <message>
+        <source>Skip Write Errors</source>
+        <translation>Пропуск пом. запису</translation>
+    </message>
+    <message>
+        <source>Tracks: 82</source>
+        <translation>Доріжки: 82</translation>
+    </message>
+    <message>
+        <source>Skip Read Errors</source>
+        <translation>Skip пом. читання</translation>
+    </message>
+    <message>
+        <source>HIGH DENSITY DISK SELECTION</source>
+        <translation>ВИСОКА ЩІЛЬНІСТЬ</translation>
+    </message>
+    <message>
         <source>ERROR: No serial port selected!
 
 Please select a serial port from the dropdown menu.</source>
@@ -520,11 +536,11 @@ Click anywhere on this window to close.</source>
     </message>
     <message>
         <source>UPPER SIDE</source>
-        <translation type="unfinished"></translation>
+        <translation>ВЕРХНЯ СТОРОНА</translation>
     </message>
     <message>
         <source>LOWER SIDE</source>
-        <translation type="unfinished"></translation>
+        <translation>НИЖНЯ СТОРОНА</translation>
     </message>
     <message>
         <source>Debug</source>
@@ -532,7 +548,7 @@ Click anywhere on this window to close.</source>
     </message>
     <message>
         <source>Simulate Read/Write</source>
-        <translation>Імітація читання/запису</translation>
+        <translation type="vanished">Імітація читання/запису</translation>
     </message>
     <message>
         <source>Simulation</source>
@@ -555,7 +571,7 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation>Імітація обробить усі %1 доріжок:
+        <translation type="vanished">Імітація обробить усі %1 доріжок:
 
 Доріжка 0: Бік 0 (Нижній) потім Бік 1 (Верхній)
 Доріжка 1: Бік 0 (Нижній) потім Бік 1 (Верхній)
@@ -572,9 +588,53 @@ Side 1 = Upper row (left side)</source>
         <source>Simulation completed successfully.
 
 %1 tracks processed (both sides: lower and upper)</source>
-        <translation>Імітація завершена успішно.
+        <translation type="vanished">Імітація завершена успішно.
 
 %1 доріжок оброблено (обидві сторони: нижня та верхня)</translation>
+    </message>
+    <message>
+        <source>Simulate Read</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Simulate Write</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Read simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Write simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 simulation completed successfully.
+
+%2 tracks processed (both sides: lower and upper)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Write</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 </TS>

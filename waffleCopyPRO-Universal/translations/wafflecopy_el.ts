@@ -337,6 +337,22 @@
         <translation>Η ΛΕΙΤΟΥΡΓΙΑ ΤΕΡΜΑΤΙΣΤΗΚΕ ΑΠΟ ΤΟΝ ΧΡΗΣΤΗ</translation>
     </message>
     <message>
+        <source>Skip Write Errors</source>
+        <translation>Skip σφάλ. εγγρ.</translation>
+    </message>
+    <message>
+        <source>Tracks: 82</source>
+        <translation>Τράκ: 82</translation>
+    </message>
+    <message>
+        <source>Skip Read Errors</source>
+        <translation>Skip σφάλ. ανάγ.</translation>
+    </message>
+    <message>
+        <source>HIGH DENSITY DISK SELECTION</source>
+        <translation>ΥΨΗΛΉ ΠΥΚΝΌΤΗΤΑ</translation>
+    </message>
+    <message>
         <source>ERROR: No serial port selected!
 
 Please select a serial port from the dropdown menu.</source>
@@ -520,11 +536,11 @@ Click anywhere on this window to close.</source>
     </message>
     <message>
         <source>UPPER SIDE</source>
-        <translation type="unfinished"></translation>
+        <translation>ΠΆΝΩ ΠΛΕΥΡΆ</translation>
     </message>
     <message>
         <source>LOWER SIDE</source>
-        <translation type="unfinished"></translation>
+        <translation>ΚΆΤΩ ΠΛΕΥΡΆ</translation>
     </message>
     <message>
         <source>Debug</source>
@@ -532,7 +548,7 @@ Click anywhere on this window to close.</source>
     </message>
     <message>
         <source>Simulate Read/Write</source>
-        <translation>Προσομοίωση ανάγνωσης/εγγραφής</translation>
+        <translation type="vanished">Προσομοίωση ανάγνωσης/εγγραφής</translation>
     </message>
     <message>
         <source>Simulation</source>
@@ -555,7 +571,7 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation>Η προσομοίωση θα επεξεργαστεί όλα τα %1 κομμάτια:
+        <translation type="vanished">Η προσομοίωση θα επεξεργαστεί όλα τα %1 κομμάτια:
 
 Κομμάτι 0: Πλευρά 0 (Κάτω) στη συνέχεια Πλευρά 1 (Πάνω)
 Κομμάτι 1: Πλευρά 0 (Κάτω) στη συνέχεια Πλευρά 1 (Πάνω)
@@ -572,9 +588,53 @@ Side 1 = Upper row (left side)</source>
         <source>Simulation completed successfully.
 
 %1 tracks processed (both sides: lower and upper)</source>
-        <translation>Η προσομοίωση ολοκληρώθηκε με επιτυχία.
+        <translation type="vanished">Η προσομοίωση ολοκληρώθηκε με επιτυχία.
 
 %1 κομμάτια επεξεργάστηκαν (και οι δύο πλευρές: κάτω και πάνω)</translation>
+    </message>
+    <message>
+        <source>Simulate Read</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Simulate Write</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Read simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Write simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 simulation completed successfully.
+
+%2 tracks processed (both sides: lower and upper)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Write</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 </TS>

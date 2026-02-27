@@ -337,6 +337,22 @@
         <translation>ОПЕРАЦИЯ ПРЕРВАНА ПОЛЬЗОВАТЕЛЕМ</translation>
     </message>
     <message>
+        <source>Skip Write Errors</source>
+        <translation>Пропуск ош. записи</translation>
+    </message>
+    <message>
+        <source>Tracks: 82</source>
+        <translation>Дорожки: 82</translation>
+    </message>
+    <message>
+        <source>Skip Read Errors</source>
+        <translation>Пропуск ош. чтения</translation>
+    </message>
+    <message>
+        <source>HIGH DENSITY DISK SELECTION</source>
+        <translation>ВЫСОКАЯ ПЛОТНОСТЬ</translation>
+    </message>
+    <message>
         <source>ERROR: No serial port selected!
 
 Please select a serial port from the dropdown menu.</source>
@@ -520,11 +536,11 @@ Click anywhere on this window to close.</source>
     </message>
     <message>
         <source>UPPER SIDE</source>
-        <translation type="unfinished"></translation>
+        <translation>ВЕРХНЯЯ СТОРОНА</translation>
     </message>
     <message>
         <source>LOWER SIDE</source>
-        <translation type="unfinished"></translation>
+        <translation>НИЖНЯЯ СТОРОНА</translation>
     </message>
     <message>
         <source>Debug</source>
@@ -532,7 +548,7 @@ Click anywhere on this window to close.</source>
     </message>
     <message>
         <source>Simulate Read/Write</source>
-        <translation>Имитация чтения/записи</translation>
+        <translation type="vanished">Имитация чтения/записи</translation>
     </message>
     <message>
         <source>Simulation</source>
@@ -555,7 +571,7 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation>Имитация обработает все %1 дорожек:
+        <translation type="vanished">Имитация обработает все %1 дорожек:
 
 Дорожка 0: Сторона 0 (Нижняя) затем Сторона 1 (Верхняя)
 Дорожка 1: Сторона 0 (Нижняя) затем Сторона 1 (Верхняя)
@@ -572,9 +588,53 @@ Side 1 = Upper row (left side)</source>
         <source>Simulation completed successfully.
 
 %1 tracks processed (both sides: lower and upper)</source>
-        <translation>Имитация завершена успешно.
+        <translation type="vanished">Имитация завершена успешно.
 
 %1 дорожек обработано (обе стороны: нижняя и верхняя)</translation>
+    </message>
+    <message>
+        <source>Simulate Read</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Simulate Write</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Read simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Write simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 simulation completed successfully.
+
+%2 tracks processed (both sides: lower and upper)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Write</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 </TS>

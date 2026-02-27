@@ -337,6 +337,22 @@
         <translation>OPERAZIONE TERMINATA DALL&apos;UTENTE</translation>
     </message>
     <message>
+        <source>Skip Write Errors</source>
+        <translation>Salta Err. Scrittura</translation>
+    </message>
+    <message>
+        <source>Tracks: 82</source>
+        <translation>Tracce: 82</translation>
+    </message>
+    <message>
+        <source>Skip Read Errors</source>
+        <translation>Salta Err. Lettura</translation>
+    </message>
+    <message>
+        <source>HIGH DENSITY DISK SELECTION</source>
+        <translation>ALTA DENSITÀ</translation>
+    </message>
+    <message>
         <source>ERROR: No serial port selected!
 
 Please select a serial port from the dropdown menu.</source>
@@ -520,11 +536,11 @@ Clicca per chiudere.</translation>
     </message>
     <message>
         <source>UPPER SIDE</source>
-        <translation type="unfinished"></translation>
+        <translation>LATO SUPERIORE</translation>
     </message>
     <message>
         <source>LOWER SIDE</source>
-        <translation type="unfinished"></translation>
+        <translation>LATO INFERIORE</translation>
     </message>
     <message>
         <source>Debug</source>
@@ -532,7 +548,7 @@ Clicca per chiudere.</translation>
     </message>
     <message>
         <source>Simulate Read/Write</source>
-        <translation>Simula Lettura/Scrittura</translation>
+        <translation type="vanished">Simula Lettura/Scrittura</translation>
     </message>
     <message>
         <source>Simulation</source>
@@ -555,7 +571,7 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation>La simulazione processerà tutte le %1 tracce:
+        <translation type="vanished">La simulazione processerà tutte le %1 tracce:
 
 Traccia 0: Lato 0 (Inferiore) poi Lato 1 (Superiore)
 Traccia 1: Lato 0 (Inferiore) poi Lato 1 (Superiore)
@@ -572,9 +588,53 @@ Lato 1 = Riga superiore (lato sinistro)</translation>
         <source>Simulation completed successfully.
 
 %1 tracks processed (both sides: lower and upper)</source>
-        <translation>Simulazione completata con successo.
+        <translation type="vanished">Simulazione completata con successo.
 
 %1 tracce processate (entrambi i lati: inferiore e superiore)</translation>
+    </message>
+    <message>
+        <source>Simulate Read</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Simulate Write</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Read simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Write simulation will process all %1 tracks:
+
+Track 0: Side 0 (Lower) then Side 1 (Upper)
+Track 1: Side 0 (Lower) then Side 1 (Upper)
+...and so on
+
+Side 0 = Lower row (right side)
+Side 1 = Upper row (left side)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 simulation completed successfully.
+
+%2 tracks processed (both sides: lower and upper)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Write</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 </TS>
