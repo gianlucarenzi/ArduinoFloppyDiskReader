@@ -424,7 +424,7 @@ Please select a serial port from the dropdown menu.</source>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1063"/>
-        <source>Disk Images (*.adf *.scp *.ima *.img *.st *.ipf);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st);;IPF Files (*.ipf)</source>
+        <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST *.ipf *.IPF);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST);;IPF Files (*.ipf *.IPF)</source>
         <translation>ディスクイメージ (*.adf *.scp *.ima *.img *.st *.ipf);;ADFファイル (*.adf);;SCPファイル (*.scp);;IMAファイル (*.ima);;IMGファイル (*.img);;STファイル (*.st);;IPFファイル (*.ipf)</translation>
     </message>
     <message>
@@ -434,7 +434,7 @@ Please select a serial port from the dropdown menu.</source>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1072"/>
-        <source>Disk Images (*.adf *.scp *.ima *.img *.st);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st)</source>
+        <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST)</source>
         <translation>ディスクイメージ (*.adf *.scp *.ima *.img *.st);;ADFファイル (*.adf);;SCPファイル (*.scp);;IMAファイル (*.ima);;IMGファイル (*.img);;STファイル (*.st)</translation>
     </message>
     <message>

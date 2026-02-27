@@ -337,7 +337,7 @@ Veuillez sélectionner un port série dans le menu déroulant.</translation>
         <translation>Sélectionner le Fichier Image de Disque</translation>
     </message>
     <message>
-        <source>Disk Images (*.adf *.scp *.ima *.img *.st *.ipf);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st);;IPF Files (*.ipf)</source>
+        <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST *.ipf *.IPF);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST);;IPF Files (*.ipf *.IPF)</source>
         <translation>Images de Disque (*.adf *.scp *.ima *.img *.st *.ipf);;Fichiers ADF (*.adf);;Fichiers SCP (*.scp);;Fichiers IMA (*.ima);;Fichiers IMG (*.img);;Fichiers ST (*.st);;Fichiers IPF (*.ipf)</translation>
     </message>
     <message>
@@ -345,7 +345,7 @@ Veuillez sélectionner un port série dans le menu déroulant.</translation>
         <translation>Écrire le Fichier Image de Disque sur le disque dur</translation>
     </message>
     <message>
-        <source>Disk Images (*.adf *.scp *.ima *.img *.st);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st)</source>
+        <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST)</source>
         <translation>Images de Disque (*.adf *.scp *.ima *.img *.st);;Fichiers ADF (*.adf);;Fichiers SCP (*.scp);;Fichiers IMA (*.ima);;Fichiers IMG (*.img);;Fichiers ST (*.st)</translation>
     </message>
     <message>

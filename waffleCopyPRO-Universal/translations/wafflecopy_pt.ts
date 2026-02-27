@@ -337,7 +337,7 @@ Por favor selecione uma porta serial no menu suspenso.</translation>
         <translation>Selecionar Arquivo de Imagem de Disco</translation>
     </message>
     <message>
-        <source>Disk Images (*.adf *.scp *.ima *.img *.st *.ipf);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st);;IPF Files (*.ipf)</source>
+        <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST *.ipf *.IPF);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST);;IPF Files (*.ipf *.IPF)</source>
         <translation>Imagens de Disco (*.adf *.scp *.ima *.img *.st *.ipf);;Arquivos ADF (*.adf);;Arquivos SCP (*.scp);;Arquivos IMA (*.ima);;Arquivos IMG (*.img);;Arquivos ST (*.st);;Arquivos IPF (*.ipf)</translation>
     </message>
     <message>
@@ -345,7 +345,7 @@ Por favor selecione uma porta serial no menu suspenso.</translation>
         <translation>Escrever Arquivo de Imagem de Disco no disco rígido</translation>
     </message>
     <message>
-        <source>Disk Images (*.adf *.scp *.ima *.img *.st);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st)</source>
+        <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST)</source>
         <translation>Imagens de Disco (*.adf *.scp *.ima *.img *.st);;Arquivos ADF (*.adf);;Arquivos SCP (*.scp);;Arquivos IMA (*.ima);;Arquivos IMG (*.img);;Arquivos ST (*.st)</translation>
     </message>
     <message>

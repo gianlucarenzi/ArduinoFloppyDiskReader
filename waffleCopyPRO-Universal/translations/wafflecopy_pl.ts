@@ -337,7 +337,7 @@ Proszę wybrać port szeregowy z menu rozwijanego.</translation>
         <translation>Wybierz Plik Obrazu Dysku</translation>
     </message>
     <message>
-        <source>Disk Images (*.adf *.scp *.ima *.img *.st *.ipf);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st);;IPF Files (*.ipf)</source>
+        <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST *.ipf *.IPF);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST);;IPF Files (*.ipf *.IPF)</source>
         <translation>Obrazy Dysków (*.adf *.scp *.ima *.img *.st *.ipf);;Pliki ADF (*.adf);;Pliki SCP (*.scp);;Pliki IMA (*.ima);;Pliki IMG (*.img);;Pliki ST (*.st);;Pliki IPF (*.ipf)</translation>
     </message>
     <message>
@@ -345,7 +345,7 @@ Proszę wybrać port szeregowy z menu rozwijanego.</translation>
         <translation>Zapisz Plik Obrazu Dysku na dysku twardym</translation>
     </message>
     <message>
-        <source>Disk Images (*.adf *.scp *.ima *.img *.st);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st)</source>
+        <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST)</source>
         <translation>Obrazy Dysków (*.adf *.scp *.ima *.img *.st);;Pliki ADF (*.adf);;Pliki SCP (*.scp);;Pliki IMA (*.ima);;Pliki IMG (*.img);;Pliki ST (*.st)</translation>
     </message>
     <message>

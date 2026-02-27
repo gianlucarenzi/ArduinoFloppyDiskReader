@@ -424,7 +424,7 @@ Selectați</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1063"/>
-        <source>Disk Images (*.adf *.scp *.ima *.img *.st *.ipf);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st);;IPF Files (*.ipf)</source>
+        <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST *.ipf *.IPF);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST);;IPF Files (*.ipf *.IPF)</source>
         <translation>Imagini disc (*.adf *.scp *.ima *.img *.st *.ipf);;Fișiere ADF (*.adf);;Fișiere SCP (*.scp);;Fișiere IMA (*.ima);;Fișiere IMG (*.img);;Fișiere ST (*.st);;Fișiere IPF (*.ipf)</translation>
     </message>
     <message>
@@ -434,7 +434,7 @@ Selectați</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1072"/>
-        <source>Disk Images (*.adf *.scp *.ima *.img *.st);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st)</source>
+        <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST)</source>
         <translation>Imagini disc (*.adf *.scp *.ima *.img *.st);;Fișiere ADF (*.adf);;Fișiere SCP (*.scp);;Fișiere IMA (*.ima);;Fișiere IMG (*.img);;Fișiere ST (*.st)</translation>
     </message>
     <message>

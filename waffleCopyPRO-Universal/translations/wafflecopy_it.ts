@@ -337,7 +337,7 @@ Seleziona una porta seriale dal menu a discesa.</translation>
         <translation>Seleziona File Immagine Disco</translation>
     </message>
     <message>
-        <source>Disk Images (*.adf *.scp *.ima *.img *.st *.ipf);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st);;IPF Files (*.ipf)</source>
+        <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST *.ipf *.IPF);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST);;IPF Files (*.ipf *.IPF)</source>
         <translation>Immagini Disco (*.adf *.scp *.ima *.img *.st *.ipf);;File ADF (*.adf);;File SCP (*.scp);;File IMA (*.ima);;File IMG (*.img);;File ST (*.st);;File IPF (*.ipf)</translation>
     </message>
     <message>
@@ -345,7 +345,7 @@ Seleziona una porta seriale dal menu a discesa.</translation>
         <translation>Scrivi File Immagine Disco da scrivere su hard disk</translation>
     </message>
     <message>
-        <source>Disk Images (*.adf *.scp *.ima *.img *.st);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st)</source>
+        <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST)</source>
         <translation>Immagini Disco (*.adf *.scp *.ima *.img *.st);;File ADF (*.adf);;File SCP (*.scp);;File IMA (*.ima);;File IMG (*.img);;File ST (*.st)</translation>
     </message>
     <message>

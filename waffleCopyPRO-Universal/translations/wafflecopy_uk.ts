@@ -337,7 +337,7 @@ Please select a serial port from the dropdown menu.</source>
         <translation>Вибрати Файл Образу Диска</translation>
     </message>
     <message>
-        <source>Disk Images (*.adf *.scp *.ima *.img *.st *.ipf);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st);;IPF Files (*.ipf)</source>
+        <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST *.ipf *.IPF);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST);;IPF Files (*.ipf *.IPF)</source>
         <translation>Образи Дисків (*.adf *.scp *.ima *.img *.st *.ipf);;Файли ADF (*.adf);;Файли SCP (*.scp);;Файли IMA (*.ima);;Файли IMG (*.img);;Файли ST (*.st);;Файли IPF (*.ipf)</translation>
     </message>
     <message>
@@ -345,7 +345,7 @@ Please select a serial port from the dropdown menu.</source>
         <translation>Записати Файл Образу Диска на жорсткий диск</translation>
     </message>
     <message>
-        <source>Disk Images (*.adf *.scp *.ima *.img *.st);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st)</source>
+        <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST)</source>
         <translation>Образи Дисків (*.adf *.scp *.ima *.img *.st);;Файли ADF (*.adf);;Файли SCP (*.scp);;Файли IMA (*.ima);;Файли IMG (*.img);;Файли ST (*.st)</translation>
     </message>
     <message>
