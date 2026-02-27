@@ -336,6 +336,8 @@ bool iequals(const std::string& a, const std::string& b) {
 void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eraseFirst, bool hdMode, bool skipWriteError) {
     bool isSCP = true;
     bool isIPF = false;
+    bool isIMG = false;
+    bool isST = false;
     bool writeFromIndex = true;
 
     const wchar_t* extension = wcsrchr(filename.c_str(), L'.');
@@ -343,10 +345,14 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
         extension++;
         isSCP = iequals(extension, L"SCP");
         isIPF = iequals(extension, L"IPF");
+        isIMG = iequals(extension, L"IMG") || iequals(extension, L"IMA");
+        isST = iequals(extension, L"ST");
     }
 
     if (isIPF) printf("\nWrite disk from IPF mode\n\n"); else
-    if (isSCP) printf("\nWrite disk from SCP mode\n\n"); else {
+    if (isSCP) printf("\nWrite disk from SCP mode\n\n"); else
+    if (isIMG) printf("\nWrite disk from IMG/IMA (PC) mode\n\n"); else
+    if (isST) printf("\nWrite disk from ST (Atari ST) mode\n\n"); else {
         printf("\nWrite disk from ADF mode\n\n");
         if (!verify) printf("WARNING: It is STRONGLY recommended to write with verify support turned on.\r\n\r\n");
     }
@@ -462,6 +468,47 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
             return WriteResponse::wrContinue;
             });
     }
+    else if (isIMG || isST) {
+        result = ArduinoFloppyReader::ADFWriterManager::getInstance().sectorFileToDisk(filename, hdMode, verify, preComp, eraseFirst, isST, [skipWriteError](const int32_t currentTrack, const DiskSurface currentSide, bool isVerifyError, const CallbackOperation operation) ->WriteResponse {
+            if (isVerifyError) {
+                if (skipWriteError) {
+                    return WriteResponse::wrSkipBadChecksums;
+                }
+                char input;
+                do {
+#ifdef __USE_GUI__
+                    update_error_file(1);
+                    update_gui(currentTrack, currentSide, 1);
+                    fprintf(stderr, "\r\n %s WRITE ERROR NOW WAIT USER INPUT\r\n", __func__);
+                    fflush(stderr);
+                    input = wait_user_input();
+                    update_error_file(0);
+#else
+                    printf("\rDisk write verify error on track %i, %s side. [R]etry, [S]kip, [A]bort?                                   ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
+    #ifdef _WIN32
+                    input = toupper(_getch());
+    #else
+                    input = toupper(_getChar());
+    #endif
+#endif
+                } while ((input != 'R') && (input != 'S') && (input != 'A'));
+                switch (input) {
+                case 'R': return WriteResponse::wrRetry;
+                case 'S': return WriteResponse::wrSkipBadChecksums;
+                case 'A': return WriteResponse::wrAbort;
+                }
+            }
+#ifdef __USE_GUI__
+            update_gui(currentTrack, currentSide, 0);
+#else
+            printf("\rWriting Track %i, %s side     ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
+#endif
+#ifndef _WIN32
+            fflush(stdout);
+#endif
+            return WriteResponse::wrContinue;
+        });
+    }
 #ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable: 4100)
@@ -521,6 +568,10 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
                                                         printf("\nIPF writing is only supported for DD disks and images                          "); else
                                                     if (isSCP)
                                                         printf("\nSCP writing is only supported for DD disks and images                             "); else
+                                                    if (isIMG || isST)
+                                                        if (hdMode)
+                                                            printf("\nDisk in drive was detected as HD, but a DD image file supplied.                    "); else
+                                                            printf("\nDisk in drive was detected as DD, but an HD image file supplied.                   "); else
                                                     if (hdMode)
                                                         printf("\nDisk in drive was detected as HD, but a DD ADF file supplied.                      "); else
                                                         printf("\nDisk in drive was detected as DD, but an HD ADF file supplied.                     ");
@@ -544,19 +595,26 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool skipReadError) {
 //    qDebug() << __func__ << "START";
 	const wchar_t* extension = wcsrchr(filename.c_str(), L'.');
+	bool isIMG = false;
+	bool isST = false;
 	bool isADF = true;
 
 	if (extension) {
 		extension++;
-		isADF = !iequals(extension, L"SCP");
+		isIMG = iequals(extension, L"IMG") || iequals(extension, L"IMA");
+		isST = iequals(extension, L"ST");
+		isADF = !iequals(extension, L"SCP") && !isIMG && !isST;
 	}
 
-	if (isADF) printf("\nCreate ADF from disk mode\n\n"); else printf("\nCreate SCP file from disk mode\n\n");
+	if (isADF) printf("\nCreate ADF from disk mode\n\n"); else
+	if (isIMG) printf("\nCreate IMG/IMA (PC) file from disk mode\n\n"); else
+	if (isST) printf("\nCreate ST (Atari ST) file from disk mode\n\n"); else
+	printf("\nCreate SCP file from disk mode\n\n");
 
 	// Get the current firmware version.  Only valid if openDevice is successful
 	const ArduinoFloppyReader::FirmwareVersion v = ArduinoFloppyReader::ADFWriterManager::getInstance().getFirwareVersion();
 	if ((v.major == 1) && (v.minor < 8)) {
-		if (!isADF) {
+		if (!isADF && !isIMG && !isST) {
 			printf("This requires firmware V1.8 or newer.\n");
             lastResponse = DiagnosticResponse::drOldFirmware;
 			return;
@@ -574,7 +632,7 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool ski
 #pragma warning(push)
 #pragma warning(disable: 4100)
 #endif
-    auto callback = [isADF, hdMode, skipReadError](const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound, const int totalSectors, const CallbackOperation operation) ->WriteResponse {
+    auto callback = [isADF, isIMG, isST, hdMode, skipReadError](const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound, const int totalSectors, const CallbackOperation operation) ->WriteResponse {
         //qDebug() << __func__ << "Callback entered. Track:" << currentTrack << "Side:" << (int)currentSide << "Retry:" << retryCounter << "Bad Sectors:" << badSectorsFound;
 		if (retryCounter > 20) {
             if (skipReadError) {
@@ -613,6 +671,9 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool ski
         if (isADF) {
             printf("\rReading Track %i, %s side (retry: %i) - Got %i/11 sectors (%i bad found)   ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower", retryCounter, sectorsFound, badSectorsFound);
         }
+        else if (isIMG || isST) {
+            printf("\rReading Track %i, %s side (retry: %i) - Got %i/%i sectors (%i bad found)   ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower", retryCounter, sectorsFound, totalSectors, badSectorsFound);
+        }
         else {
             printf("\rReading Track %i, %s side   ", currentTrack, (currentSide == DiskSurface::dsUpper) ? "Upper" : "Lower");
         }
@@ -633,7 +694,9 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool ski
     if (numTracks > 83)
         numTracks = 83;
 
-    if (isADF) {
+    if (isIMG || isST) {
+        result = ArduinoFloppyReader::ADFWriterManager::getInstance().diskToIBMST(filename, hdMode, callback);
+    } else if (isADF) {
         //qDebug() << __func__ << "Calling DiskToADF";
         result = ArduinoFloppyReader::ADFWriterManager::getInstance().DiskToADF(filename, hdMode, numTracks, callback);
     } else {

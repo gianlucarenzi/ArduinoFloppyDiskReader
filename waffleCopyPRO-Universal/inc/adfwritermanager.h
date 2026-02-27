@@ -72,6 +72,10 @@ public:
     ArduinoFloppyReader::ADFResult DiskToADF(const std::wstring& outputFile, bool hdMode, int numTracks, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound, const int totalSectors, const ArduinoFloppyReader::CallbackOperation operation)> callback);
     // From DiskToSCP
     ArduinoFloppyReader::ADFResult DiskToSCP(const std::wstring& outputFile, bool hdMode, int numTracks, unsigned char revolutions, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound, const int totalSectors, const ArduinoFloppyReader::CallbackOperation)> callback, bool useNewFluxReader = false);
+    // From sectorFileToDisk (writes IMG/IMA/ST to floppy)
+    ArduinoFloppyReader::ADFResult sectorFileToDisk(const std::wstring& inputFile, bool inHDMode, bool verify, bool usePrecompMode, bool eraseFirst, bool useAtariSTTiming, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, bool isVerifyError, const ArduinoFloppyReader::CallbackOperation operation) > callback);
+    // From diskToIBMST (reads PC/Atari ST floppy to IMG/IMA/ST file)
+    ArduinoFloppyReader::ADFResult diskToIBMST(const std::wstring& outputFile, bool inHDMode, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound, const int maxSectors, const ArduinoFloppyReader::CallbackOperation operation)> callback);
     // From GuessDiskDensity
     ArduinoFloppyReader::ADFResult GuessDiskDensity(bool& isHD);
 

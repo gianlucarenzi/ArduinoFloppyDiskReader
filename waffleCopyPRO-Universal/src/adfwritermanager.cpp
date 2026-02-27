@@ -97,6 +97,14 @@ ADFResult ADFWriterManager::DiskToSCP(const std::wstring& outputFile, bool hdMod
     return m_adfWriter.DiskToSCP(outputFile, hdMode, numTracks, revolutions, callback, useNewFluxReader);
 }
 
+ADFResult ADFWriterManager::sectorFileToDisk(const std::wstring& inputFile, bool inHDMode, bool verify, bool usePrecompMode, bool eraseFirst, bool useAtariSTTiming, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, bool isVerifyError, const ArduinoFloppyReader::CallbackOperation operation) > callback) {
+    return m_adfWriter.sectorFileToDisk(inputFile, inHDMode, verify, usePrecompMode, eraseFirst, useAtariSTTiming, callback);
+}
+
+ADFResult ADFWriterManager::diskToIBMST(const std::wstring& outputFile, bool inHDMode, std::function < ArduinoFloppyReader::WriteResponse(const int currentTrack, const ArduinoFloppyReader::DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound, const int maxSectors, const ArduinoFloppyReader::CallbackOperation operation)> callback) {
+    return m_adfWriter.diskToIBMST(outputFile, inHDMode, callback);
+}
+
 ADFResult ADFWriterManager::GuessDiskDensity(bool& isHD) {
     return m_adfWriter.GuessDiskDensity(isHD);
 }
