@@ -591,7 +591,7 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool ski
                     input = wait_user_input(); // This locks the program flow as getch()
                     update_error_file(0); // clear error flag for next one
 #else
-                    printf("\rDisk has checksum errors/missing data.  [R]etry, [I]gnore, [A]bort?                                      ");
+                    printf("\rDisk has checksum errors/missing data.  [R]etry, [S]kip, [A]bort?                                      ");
     #ifdef _WIN32
                     input = toupper(_getch());
     #else

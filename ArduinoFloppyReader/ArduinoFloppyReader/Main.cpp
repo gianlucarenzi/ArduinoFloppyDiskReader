@@ -266,7 +266,7 @@ void file2Disk(const std::wstring& filename, bool verify) {
 
 				switch (input) {
 				case 'R': return WriteResponse::wrRetry;
-				case 'I': return WriteResponse::wrSkipBadChecksums;
+				case 'S': return WriteResponse::wrSkipBadChecksums;
 				case 'A': return WriteResponse::wrAbort;
 				}
 			}
@@ -304,7 +304,7 @@ void file2Disk(const std::wstring& filename, bool verify) {
 
 				switch (input) {
 				case 'R': return WriteResponse::wrRetry;
-				case 'I': return WriteResponse::wrSkipBadChecksums;
+				case 'S': return WriteResponse::wrSkipBadChecksums;
 				case 'A': return WriteResponse::wrAbort;
 				}
 			}
@@ -332,7 +332,7 @@ void file2Disk(const std::wstring& filename, bool verify) {
 
 				switch (input) {
 				case 'R': return WriteResponse::wrRetry;
-				case 'I': return WriteResponse::wrSkipBadChecksums;
+				case 'S': return WriteResponse::wrSkipBadChecksums;
 				case 'A': return WriteResponse::wrAbort;
 				}
 			}
@@ -415,16 +415,16 @@ void disk2file(const std::wstring& filename) {
 		if (retryCounter > 20) {
 			char input;
 			do {
-				printf("\rDisk has checksum errors/missing data.  [R]etry, [I]gnore, [A]bort?                                      ");
+				printf("\rDisk has checksum errors/missing data.  [R]etry, [S]kip, [A]bort?                                      ");
 #ifdef _WIN32
 				input = toupper(_getch());
 #else
 				input = toupper(_getChar());
 #endif	
-			} while ((input != 'R') && (input != 'I') && (input != 'A'));
+			} while ((input != 'R') && (input != 'S') && (input != 'A'));
 			switch (input) {
 			case 'R': return WriteResponse::wrRetry;
-			case 'I': return WriteResponse::wrSkipBadChecksums;
+			case 'S': return WriteResponse::wrSkipBadChecksums;
 			case 'A': return WriteResponse::wrAbort;
 			}
 		}
