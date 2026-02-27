@@ -1102,7 +1102,7 @@ void MainWindow::on_fileReadADF_clicked()
 {
         QString fileName = QFileDialog::getOpenFileName(this, tr("Select Disk Image File"),
             m_sDefaultPath,
-            tr("Disk Images (*.adf *.scp *.ima *.img *.st *.ipf);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st);;IPF Files (*.ipf)"));    if (!fileName.isEmpty())
+            tr("Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST *.ipf *.IPF);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST);;IPF Files (*.ipf *.IPF)"));    if (!fileName.isEmpty())
         ui->getADFFileName->setText(fileName);
 
 }
@@ -1111,7 +1111,7 @@ void MainWindow::on_fileSaveADF_clicked()
 {
         QString fileName = QFileDialog::getSaveFileName(this, tr("Write Disk Image File to be written on hard disk"),
             m_sDefaultPath,
-            tr("Disk Images (*.adf *.scp *.ima *.img *.st);;ADF Files (*.adf);;SCP Files (*.scp);;IMA Files (*.ima);;IMG Files (*.img);;ST Files (*.st)"));    if (!fileName.isEmpty())
+            tr("Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST)"));    if (!fileName.isEmpty())
         ui->setADFFileName->setText(fileName);
 
 }
