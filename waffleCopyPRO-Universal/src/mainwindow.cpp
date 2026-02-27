@@ -814,6 +814,21 @@ void MainWindow::prepareTracksPosition(void)
     ui->stopButton->hide();
 }
 
+QString MainWindow::completionMessageForFile(const QString& filename)
+{
+    QString ext = QFileInfo(filename).suffix().toLower();
+    if (ext == "scp")
+    	return tr("SCP COPY COMPLETED");
+    if (ext == "ipf")
+    	return tr("IPF COPY COMPLETED");
+    if (ext == "st")
+    	return tr("ST COPY COMPLETED");
+    if (ext == "img" || ext == "ima")
+    	return tr("PC-DOS COPY COMPLETED");
+    // Fallback for ADF files
+    return tr("AMIGA DISK COPY COMPLETED");
+}
+
 void MainWindow::checkStartWrite(void)
 {
     serialPortRefreshTimer->stop();
@@ -871,6 +886,7 @@ void MainWindow::checkStartWrite(void)
     DebugMsg::print(__func__, "Status: " + QString::number(status) + "NEED TO WRITE");
 
     prepareTracksPosition();
+    ui->copyCompleted->setText(completionMessageForFile(filename));
     amigaBridge->setup(port, filename, command);
     startWrite();
     // Now we can read the shared memory coming from the Thread
@@ -910,7 +926,7 @@ void MainWindow::checkStartRead(void)
     }
 
     // To have the correct text on the copyCompleted.
-    ui->copyCompleted->setText(tr("AMIGA DISK COPY COMPLETED"));
+    ui->copyCompleted->setText(completionMessageForFile(ui->setADFFileName->text()));
     QString port = ui->serialPortComboBox->currentText();
     DebugMsg::print(__func__, "checkStartRead: UI portName before modification =" + port);
 #ifndef _WIN32

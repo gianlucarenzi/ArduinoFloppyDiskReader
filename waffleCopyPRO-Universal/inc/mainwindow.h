@@ -68,6 +68,7 @@ private:
     void startWrite(void);
     void startRead(void);
     void showSetupError(QString err);
+    QString completionMessageForFile(const QString& filename);
     QString m_track;
     QString m_side;
     QString m_status;
