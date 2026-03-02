@@ -387,7 +387,7 @@
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="299"/>
-        <location filename="../src/mainwindow.cpp" line="1687"/>
+        <location filename="../src/mainwindow.cpp" line="1711"/>
         <source>Language Settings</source>
         <translation>Jezik</translation>
     </message>
@@ -452,8 +452,8 @@
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="846"/>
-        <location filename="../src/mainwindow.cpp" line="939"/>
-        <location filename="../src/mainwindow.cpp" line="1309"/>
+        <location filename="../src/mainwindow.cpp" line="956"/>
+        <location filename="../src/mainwindow.cpp" line="1333"/>
         <source>ERROR: No serial port selected!
 
 Please select a serial port from the dropdown menu.</source>
@@ -467,250 +467,261 @@ Izaberi</translation>
         <translation>Fajl potreban</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1119"/>
+        <location filename="../src/mainwindow.cpp" line="967"/>
+        <source>ERROR: Cannot create IPF files!
+
+Waffle can only read disks into ADF, SCP, IMG/IMA, or ST formats.
+IPF files can be written to disk, but not created from one.</source>
+        <translation>GREŠKA: Nije moguće kreirati IPF datoteke!
+
+Waffle može čitati diskove samo u ADF, SCP, IMG/IMA ili ST formatima.
+IPF datoteke se mogu upisati na disk, ali ne i kreirati iz njega.</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="1143"/>
         <source>Select Disk Image File</source>
         <translation>Izbor</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1121"/>
+        <location filename="../src/mainwindow.cpp" line="1145"/>
         <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST *.ipf *.IPF);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST);;IPF Files (*.ipf *.IPF)</source>
         <translation>Slike (*.adf *.scp *.ima *.img *.st *.ipf);;ADF (*.adf);;SCP (*.scp);;IMA (*.ima);;IMG (*.img);;ST (*.st);;IPF (*.ipf)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1128"/>
+        <location filename="../src/mainwindow.cpp" line="1152"/>
         <source>Write Disk Image File to be written on hard disk</source>
         <translation>Sačuvaj</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1130"/>
+        <location filename="../src/mainwindow.cpp" line="1154"/>
         <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST)</source>
         <translation>Slike (*.adf *.scp *.ima *.img *.st);;ADF (*.adf);;SCP (*.scp);;IMA (*.ima);;IMG (*.img);;ST (*.st)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1183"/>
+        <location filename="../src/mainwindow.cpp" line="1207"/>
         <source>Port In Use</source>
         <translation>U upotrebi</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1184"/>
+        <location filename="../src/mainwindow.cpp" line="1208"/>
         <source>Port Not Found</source>
         <translation>Nije nađen</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1185"/>
+        <location filename="../src/mainwindow.cpp" line="1209"/>
         <source>Port Error</source>
         <translation>Port greška</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1186"/>
+        <location filename="../src/mainwindow.cpp" line="1210"/>
         <source>Access Denied</source>
         <translation>Odbijeno</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1187"/>
+        <location filename="../src/mainwindow.cpp" line="1211"/>
         <source>Comport Config Error</source>
         <translation>Config greška</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1188"/>
+        <location filename="../src/mainwindow.cpp" line="1212"/>
         <source>BaudRate Not Supported</source>
         <translation>Baud greška</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1189"/>
+        <location filename="../src/mainwindow.cpp" line="1213"/>
         <source>Error Reading Version</source>
         <translation>Ver greška</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1190"/>
+        <location filename="../src/mainwindow.cpp" line="1214"/>
         <source>Error Malformed Version</source>
         <translation>Ver loša</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1191"/>
+        <location filename="../src/mainwindow.cpp" line="1215"/>
         <source>Old Firmware</source>
         <translation>FW star</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1193"/>
+        <location filename="../src/mainwindow.cpp" line="1217"/>
         <source>Send Failed</source>
         <translation>Slanje neuspeh</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1194"/>
+        <location filename="../src/mainwindow.cpp" line="1218"/>
         <source>Send Parameter Failed</source>
         <translation>Param neuspeh</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1195"/>
+        <location filename="../src/mainwindow.cpp" line="1219"/>
         <source>Read Response Failed or No Disk in Drive</source>
         <translation>Neuspeh/Nema</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1196"/>
+        <location filename="../src/mainwindow.cpp" line="1220"/>
         <source>Write Timeout</source>
         <translation>Timeout</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1197"/>
+        <location filename="../src/mainwindow.cpp" line="1221"/>
         <source>Serial Overrun</source>
         <translation>Overrun</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1198"/>
+        <location filename="../src/mainwindow.cpp" line="1222"/>
         <source>Framing Error</source>
         <translation>Frame greška</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1199"/>
+        <location filename="../src/mainwindow.cpp" line="1223"/>
         <source>Error</source>
         <translation>Greška</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1202"/>
+        <location filename="../src/mainwindow.cpp" line="1226"/>
         <source>Track Range Error</source>
         <translation>Opseg greška</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1203"/>
+        <location filename="../src/mainwindow.cpp" line="1227"/>
         <source>Select Track Error</source>
         <translation>Izbor greška</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1204"/>
+        <location filename="../src/mainwindow.cpp" line="1228"/>
         <source>Write Protected</source>
         <translation>Zaštićen</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1205"/>
+        <location filename="../src/mainwindow.cpp" line="1229"/>
         <source>Status Error</source>
         <translation>Status greška</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1206"/>
+        <location filename="../src/mainwindow.cpp" line="1230"/>
         <source>Send Data Failed</source>
         <translation>Podaci neuspeh</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1207"/>
+        <location filename="../src/mainwindow.cpp" line="1231"/>
         <source>Track Write Response Error</source>
         <translation>Odgovor greška</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1210"/>
+        <location filename="../src/mainwindow.cpp" line="1234"/>
         <source>No Disk In Drive</source>
         <translation>Nema disk</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1212"/>
+        <location filename="../src/mainwindow.cpp" line="1236"/>
         <source>Diagnostic Not Available</source>
         <translation>Dijagnostika N/A</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1213"/>
+        <location filename="../src/mainwindow.cpp" line="1237"/>
         <source>USB Serial Bad</source>
         <translation>USB loš</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1214"/>
+        <location filename="../src/mainwindow.cpp" line="1238"/>
         <source>CTS Failure</source>
         <translation>CTS neuspeh</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1215"/>
+        <location filename="../src/mainwindow.cpp" line="1239"/>
         <source>Rewind Failure</source>
         <translation>Rewind neuspeh</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1216"/>
+        <location filename="../src/mainwindow.cpp" line="1240"/>
         <source>Media Type Mismatch or No Disk in Drive</source>
         <translation>Tip loš</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1217"/>
+        <location filename="../src/mainwindow.cpp" line="1241"/>
         <source>Unknown Error</source>
         <translation>Nepoznato</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1341"/>
+        <location filename="../src/mainwindow.cpp" line="1365"/>
         <source>=== Waffle Copy Pro - Diagnostic Test ===
 </source>
         <translation>=== Dijagnostika ===
 </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1342"/>
+        <location filename="../src/mainwindow.cpp" line="1366"/>
         <source>Starting diagnostic on port: %1
 </source>
         <translation>Start: %1
 </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1400"/>
+        <location filename="../src/mainwindow.cpp" line="1424"/>
         <source>
 === ALL TESTS PASSED ===</source>
         <translation>
 === Sve OK ===</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1402"/>
+        <location filename="../src/mainwindow.cpp" line="1426"/>
         <source>
 === SOME TESTS FAILED ===</source>
         <translation>
 === Neuspeh ===</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1404"/>
+        <location filename="../src/mainwindow.cpp" line="1428"/>
         <source>
 Click anywhere on this window to close.</source>
         <translation>
 Klik = zatvori</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1688"/>
+        <location filename="../src/mainwindow.cpp" line="1712"/>
         <source>Select language:</source>
         <translation>Jezik:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1781"/>
+        <location filename="../src/mainwindow.cpp" line="1805"/>
         <source>Language Changed</source>
         <translation>Promenjeno</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1782"/>
+        <location filename="../src/mainwindow.cpp" line="1806"/>
         <source>Language has been changed. The application will now close. Please restart it.</source>
         <translation>Restart</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1790"/>
+        <location filename="../src/mainwindow.cpp" line="1814"/>
         <source>About Waffle Copy Pro</source>
         <translation>About</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1791"/>
+        <location filename="../src/mainwindow.cpp" line="1815"/>
         <source>&lt;h3&gt;Waffle Copy Professional v%1&lt;/h3&gt;&lt;p&gt;The essential USB floppy drive solution for the real Amiga user.&lt;/p&gt;&lt;p&gt;&lt;b&gt;Original Concept:&lt;/b&gt; Rob Smith&lt;br&gt;&lt;b&gt;Modified version by:&lt;/b&gt; Gianluca Renzi&lt;br&gt;&lt;b&gt;Product by:&lt;/b&gt; RetroBit Lab and RetroGiovedi&lt;/p&gt;&lt;p&gt;IPF support powered by CAPS image library.&lt;br&gt;Music playback powered by libmikmod.&lt;/p&gt;</source>
         <translation>&lt;h3&gt;Waffle Copy Pro v%1&lt;/h3&gt;&lt;p&gt;USB floppy za Amiga.&lt;/p&gt;&lt;p&gt;&lt;b&gt;Original:&lt;/b&gt; R.Smith&lt;br&gt;&lt;b&gt;Mod:&lt;/b&gt; G.Renzi&lt;br&gt;&lt;b&gt;By:&lt;/b&gt; RetroBit Lab&lt;/p&gt;&lt;p&gt;IPF: CAPS. Muzika: libmikmod.&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1804"/>
-        <location filename="../src/mainwindow.cpp" line="1849"/>
+        <location filename="../src/mainwindow.cpp" line="1828"/>
+        <location filename="../src/mainwindow.cpp" line="1873"/>
         <source>Simulation</source>
         <translation>Симулација</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1804"/>
-        <location filename="../src/mainwindow.cpp" line="1849"/>
+        <location filename="../src/mainwindow.cpp" line="1828"/>
+        <location filename="../src/mainwindow.cpp" line="1873"/>
         <source>Simulation already running</source>
         <translation>Симулација већ ради</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1836"/>
-        <location filename="../src/mainwindow.cpp" line="1881"/>
+        <location filename="../src/mainwindow.cpp" line="1860"/>
+        <location filename="../src/mainwindow.cpp" line="1905"/>
         <source>Simulation Starting</source>
         <translation>Покретање симулације</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1837"/>
+        <location filename="../src/mainwindow.cpp" line="1861"/>
         <source>Read simulation will process all %1 tracks:
 
 Track 0: Side 0 (Lower) then Side 1 (Upper)
@@ -722,7 +733,7 @@ Side 1 = Upper row (left side)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1882"/>
+        <location filename="../src/mainwindow.cpp" line="1906"/>
         <source>Write simulation will process all %1 tracks:
 
 Track 0: Side 0 (Lower) then Side 1 (Upper)
@@ -734,19 +745,19 @@ Side 1 = Upper row (left side)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1944"/>
+        <location filename="../src/mainwindow.cpp" line="1968"/>
         <source>%1 simulation completed successfully.
 
 %2 tracks processed (both sides: lower and upper)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1945"/>
+        <location filename="../src/mainwindow.cpp" line="1969"/>
         <source>Write</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1945"/>
+        <location filename="../src/mainwindow.cpp" line="1969"/>
         <source>Read</source>
         <translation type="unfinished"></translation>
     </message>
@@ -769,7 +780,7 @@ Side 1 = Upper row (left side)</source>
 Страна 1 = Горњи ред (лева страна)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1943"/>
+        <location filename="../src/mainwindow.cpp" line="1967"/>
         <source>Simulation Complete</source>
         <translation>Симулација завршена</translation>
     </message>
@@ -783,3 +794,4 @@ Side 1 = Upper row (left side)</source>
     </message>
 </context>
 </TS>
+

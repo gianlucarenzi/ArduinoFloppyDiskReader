@@ -636,5 +636,16 @@ Side 1 = Upper row (left side)</source>
         <source>Read</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>ERROR: Cannot create IPF files!
+
+Waffle can only read disks into ADF, SCP, IMG/IMA, or ST formats.
+IPF files can be written to disk, but not created from one.</source>
+        <translation>ΣΦΑΛΜΑ: Δεν είναι δυνατή η δημιουργία αρχείων IPF!
+
+Το Waffle μπορεί να διαβάσει δίσκους μόνο σε μορφές ADF, SCP, IMG/IMA ή ST.
+Τα αρχεία IPF μπορούν να γραφτούν στο δίσκο, αλλά όχι να δημιουργηθούν από αυτόν.</translation>
+    </message>
 </context>
 </TS>
+
