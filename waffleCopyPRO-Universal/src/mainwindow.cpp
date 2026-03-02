@@ -896,20 +896,37 @@ void MainWindow::checkStartWrite(void)
 void MainWindow::showSetupError(QString err)
 {
     ui->showError->setText(err);
+    
+    // Imposta il wrapping del testo per permettere l'espansione verticale
+    // Poiché showError è un QPushButton, usiamo un trucco o ci assicuriamo che il testo vada a capo.
+    // Se fosse una QLabel sarebbe più facile, ma per QPushButton possiamo provare a forzare il resize.
+    
+    QFontMetrics fm(ui->showError->font());
+    QRect textRect = fm.boundingRect(0, 0, ui->showError->width(), 1000, 
+                                     Qt::AlignCenter | Qt::TextWordWrap, err);
+    
+    int newHeight = textRect.height() + 20; // +20 per padding
+    int newWidth = ui->showError->width();
+    
+    // Centra il widget rispetto alla MainWindow
+    int newX = (this->width() - newWidth) / 2;
+    int newY = (this->height() - newHeight) / 2;
+    
+    ui->showError->setGeometry(newX, newY, newWidth, newHeight);
     ui->showError->show();
-    QElapsedTimer timer;
-    timer.start();
-    while (timer.elapsed() < 5000)
-    {
-        qApp->processEvents();
-    }
-    ui->showError->hide();
+    ui->showError->raise();
+
+    // Rimuoviamo il timer e il loop processEvents per lasciare il messaggio visibile
+    // finché l'utente non preme il pulsante (gestito da manageError)
 }
 
 void MainWindow::manageError(void)
 {
-    // Simply hide error window
+    // Nascondi la finestra di errore al click
     ui->showError->hide();
+    
+    // Ripristina la geometria originale se necessario, o lasciala così dato che verrà
+    // ricalcolata al prossimo showSetupError
 }
 
 void MainWindow::checkStartRead(void)
@@ -944,6 +961,13 @@ void MainWindow::checkStartRead(void)
 
     QString filename = ui->setADFFileName->text();
     QFileInfo fileInfo(filename);
+
+    if (fileInfo.suffix().toLower() == "ipf") {
+        DebugMsg::print(__func__, "ERROR: Cannot CREATE IPF files from disk.");
+        showSetupError(tr("ERROR: Cannot create IPF files!\n\nWaffle can only read disks into ADF, SCP, IMG/IMA, or ST formats.\nIPF files can be written to disk, but not created from one."));
+        return;
+    }
+
     if (!fileInfo.isAbsolute()) {
         filename = QDir(m_sDefaultPath).filePath(filename);
     }
