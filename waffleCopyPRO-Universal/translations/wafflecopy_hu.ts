@@ -610,11 +610,11 @@ Sáv 1: 0. oldal (Alsó) majd 1. oldal (Felső)
     </message>
     <message>
         <source>Simulate Read</source>
-        <translation type="unfinished"></translation>
+        <translation>Olvasás szimulálása</translation>
     </message>
     <message>
         <source>Simulate Write</source>
-        <translation type="unfinished"></translation>
+        <translation>Írás szimulálása</translation>
     </message>
     <message>
         <source>Read simulation will process all %1 tracks:
@@ -625,7 +625,14 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation type="unfinished"></translation>
+        <translation>Az olvasás szimulációja az összes %1 sávot feldolgozza:
+
+Sáv 0: 0. oldal (Alsó) majd 1. oldal (Felső)
+Sáv 1: 0. oldal (Alsó) majd 1. oldal (Felső)
+...és így tovább
+
+0. oldal = Alsó sor (jobb oldal)
+1. oldal = Felső sor (bal oldal)</translation>
     </message>
     <message>
         <source>Write simulation will process all %1 tracks:
@@ -636,21 +643,30 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation type="unfinished"></translation>
+        <translation>Az írás szimulációja az összes %1 sávot feldolgozza:
+
+Sáv 0: 0. oldal (Alsó) majd 1. oldal (Felső)
+Sáv 1: 0. oldal (Alsó) majd 1. oldal (Felső)
+...és így tovább
+
+0. oldal = Alsó sor (jobb oldal)
+1. oldal = Felső sor (bal oldal)</translation>
     </message>
     <message>
         <source>%1 simulation completed successfully.
 
 %2 tracks processed (both sides: lower and upper)</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 szimuláció sikeresen befejeződött.
+
+%2 sáv feldolgozva (mindkét oldal: alsó és felső)</translation>
     </message>
     <message>
         <source>Write</source>
-        <translation type="unfinished"></translation>
+        <translation>Írás</translation>
     </message>
     <message>
         <source>Read</source>
-        <translation type="unfinished"></translation>
+        <translation>Olvasás</translation>
     </message>
     <message>
         <source>ERROR: Cannot create IPF files!
@@ -661,6 +677,10 @@ IPF files can be written to disk, but not created from one.</source>
 
 A Waffle csak ADF, SCP, IMG/IMA vagy ST formátumba tud lemezeket olvasni.
 Az IPF fájlok lemezre írkhahatók, ma lemezről nem hozhatók létre.</translation>
+    </message>
+    <message>
+        <source>HD requires Firmware V1.8 or newer. Please update your firmware.</source>
+        <translation>A HD módhoz V1.8 vagy újabb firmware szükséges. Kérjük, frissítse a firmware-t.</translation>
     </message>
 </context>
 </TS>

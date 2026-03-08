@@ -610,11 +610,11 @@ Side 1 = Upper row (left side)</source>
     </message>
     <message>
         <source>Simulate Read</source>
-        <translation type="unfinished"></translation>
+        <translation>Имитация чтения</translation>
     </message>
     <message>
         <source>Simulate Write</source>
-        <translation type="unfinished"></translation>
+        <translation>Имитация записи</translation>
     </message>
     <message>
         <source>Read simulation will process all %1 tracks:
@@ -625,7 +625,14 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation type="unfinished"></translation>
+        <translation>Имитация чтения обработает все %1 дорожек:
+
+Дорожка 0: Сторона 0 (Нижняя) затем Сторона 1 (Верхняя)
+Дорожка 1: Сторона 0 (Нижняя) затем Сторона 1 (Верхняя)
+...и так далее
+
+Сторона 0 = Нижний ряд (правая сторона)
+Сторона 1 = Верхний ряд (левая сторона)</translation>
     </message>
     <message>
         <source>Write simulation will process all %1 tracks:
@@ -636,21 +643,30 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation type="unfinished"></translation>
+        <translation>Имитация записи обработает все %1 дорожек:
+
+Дорожка 0: Сторона 0 (Нижняя) затем Сторона 1 (Верхняя)
+Дорожка 1: Сторона 0 (Нижняя) затем Сторона 1 (Верхняя)
+...и так далее
+
+Сторона 0 = Нижний ряд (правая сторона)
+Сторона 1 = Верхний ряд (левая сторона)</translation>
     </message>
     <message>
         <source>%1 simulation completed successfully.
 
 %2 tracks processed (both sides: lower and upper)</source>
-        <translation type="unfinished"></translation>
+        <translation>Имитация %1 завершена успешно.
+
+%2 дорожек обработано (обе стороны: нижняя и верхняя)</translation>
     </message>
     <message>
         <source>Write</source>
-        <translation type="unfinished"></translation>
+        <translation>Запись</translation>
     </message>
     <message>
         <source>Read</source>
-        <translation type="unfinished"></translation>
+        <translation>Чтение</translation>
     </message>
     <message>
         <source>ERROR: Cannot create IPF files!
@@ -661,6 +677,10 @@ IPF files can be written to disk, but not created from one.</source>
 
 Waffle может читать диски только в форматах ADF, SCP, IMG/IMA или ST.
 Файлы IPF можно записывать на диск, но нельзя создавать из него.</translation>
+    </message>
+    <message>
+        <source>HD requires Firmware V1.8 or newer. Please update your firmware.</source>
+        <translation>HD требует прошивки V1.8 или новее. Пожалуйста, обновите прошивку.</translation>
     </message>
 </context>
 </TS>

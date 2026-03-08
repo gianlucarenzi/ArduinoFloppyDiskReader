@@ -408,7 +408,7 @@
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="299"/>
-        <location filename="../src/mainwindow.cpp" line="1727"/>
+        <location filename="../src/mainwindow.cpp" line="1728"/>
         <source>Language Settings</source>
         <translation>语言</translation>
     </message>
@@ -464,17 +464,17 @@
     <message>
         <location filename="../src/mainwindow.cpp" line="315"/>
         <source>Simulate Read</source>
-        <translation type="unfinished"></translation>
+        <translation>模拟读取</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="317"/>
         <source>Simulate Write</source>
-        <translation type="unfinished"></translation>
+        <translation>模拟写入</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="862"/>
         <location filename="../src/mainwindow.cpp" line="972"/>
-        <location filename="../src/mainwindow.cpp" line="1349"/>
+        <location filename="../src/mainwindow.cpp" line="1350"/>
         <source>ERROR: No serial port selected!
 
 Please select a serial port from the dropdown menu.</source>
@@ -660,89 +660,94 @@ IPF 文件可以写入磁盘，但不能从磁盘创建。</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1257"/>
+        <source>HD requires Firmware V1.8 or newer. Please update your firmware.</source>
+        <translation>HD需要固件V1.8或更新版本。请更新您的固件。</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="1258"/>
         <source>Unknown Error</source>
         <translation>未知错</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1381"/>
+        <location filename="../src/mainwindow.cpp" line="1382"/>
         <source>=== Waffle Copy Pro - Diagnostic Test ===
 </source>
         <translation>=== 诊断 ===
 </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1382"/>
+        <location filename="../src/mainwindow.cpp" line="1383"/>
         <source>Starting diagnostic on port: %1
 </source>
         <translation>启动: %1
 </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1440"/>
+        <location filename="../src/mainwindow.cpp" line="1441"/>
         <source>
 === ALL TESTS PASSED ===</source>
         <translation>
 === 全通过 ===</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1442"/>
+        <location filename="../src/mainwindow.cpp" line="1443"/>
         <source>
 === SOME TESTS FAILED ===</source>
         <translation>
 === 部分失败 ===</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1444"/>
+        <location filename="../src/mainwindow.cpp" line="1445"/>
         <source>
 Click anywhere on this window to close.</source>
         <translation>
 点击关闭</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1728"/>
+        <location filename="../src/mainwindow.cpp" line="1729"/>
         <source>Select language:</source>
         <translation>语言:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1821"/>
+        <location filename="../src/mainwindow.cpp" line="1822"/>
         <source>Language Changed</source>
         <translation>已更改</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1822"/>
+        <location filename="../src/mainwindow.cpp" line="1823"/>
         <source>Language has been changed. The application will now close. Please restart it.</source>
         <translation>需重启</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1830"/>
+        <location filename="../src/mainwindow.cpp" line="1831"/>
         <source>About Waffle Copy Pro</source>
         <translation>About</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1831"/>
+        <location filename="../src/mainwindow.cpp" line="1832"/>
         <source>&lt;h3&gt;Waffle Copy Professional v%1&lt;/h3&gt;&lt;p&gt;The essential USB floppy drive solution for the real Amiga user.&lt;/p&gt;&lt;p&gt;&lt;b&gt;Original Concept:&lt;/b&gt; Rob Smith&lt;br&gt;&lt;b&gt;Modified version by:&lt;/b&gt; Gianluca Renzi&lt;br&gt;&lt;b&gt;Product by:&lt;/b&gt; RetroBit Lab and RetroGiovedi&lt;/p&gt;&lt;p&gt;IPF support powered by CAPS image library.&lt;br&gt;Music playback powered by libmikmod.&lt;/p&gt;</source>
         <translation>&lt;h3&gt;Waffle v%1&lt;/h3&gt;&lt;p&gt;Amiga USB软驱方案&lt;/p&gt;&lt;p&gt;&lt;b&gt;作者:&lt;/b&gt; Rob Smith&lt;br&gt;&lt;b&gt;改进:&lt;/b&gt; Gianluca Renzi&lt;br&gt;&lt;b&gt;产品:&lt;/b&gt; RetroBit Lab/RetroGiovedi&lt;/p&gt;&lt;p&gt;IPF: CAPS library&lt;br&gt;音乐: libmikmod&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1844"/>
-        <location filename="../src/mainwindow.cpp" line="1889"/>
+        <location filename="../src/mainwindow.cpp" line="1845"/>
+        <location filename="../src/mainwindow.cpp" line="1890"/>
         <source>Simulation</source>
         <translation>模拟</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1844"/>
-        <location filename="../src/mainwindow.cpp" line="1889"/>
+        <location filename="../src/mainwindow.cpp" line="1845"/>
+        <location filename="../src/mainwindow.cpp" line="1890"/>
         <source>Simulation already running</source>
         <translation>模拟已在运行</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1876"/>
-        <location filename="../src/mainwindow.cpp" line="1921"/>
+        <location filename="../src/mainwindow.cpp" line="1877"/>
+        <location filename="../src/mainwindow.cpp" line="1922"/>
         <source>Simulation Starting</source>
         <translation>启动模拟</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1877"/>
+        <location filename="../src/mainwindow.cpp" line="1878"/>
         <source>Read simulation will process all %1 tracks:
 
 Track 0: Side 0 (Lower) then Side 1 (Upper)
@@ -751,10 +756,17 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation type="unfinished"></translation>
+        <translation>读取模拟将处理所有 %1 磁道：
+
+磁道 0：面 0（下面）然后面 1（上面）
+磁道 1：面 0（下面）然后面 1（上面）
+...依此类推
+
+面 0 = 下排（右侧）
+面 1 = 上排（左侧）</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1922"/>
+        <location filename="../src/mainwindow.cpp" line="1923"/>
         <source>Write simulation will process all %1 tracks:
 
 Track 0: Side 0 (Lower) then Side 1 (Upper)
@@ -763,24 +775,33 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation type="unfinished"></translation>
+        <translation>写入模拟将处理所有 %1 磁道：
+
+磁道 0：面 0（下面）然后面 1（上面）
+磁道 1：面 0（下面）然后面 1（上面）
+...依此类推
+
+面 0 = 下排（右侧）
+面 1 = 上排（左侧）</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1984"/>
+        <location filename="../src/mainwindow.cpp" line="1985"/>
         <source>%1 simulation completed successfully.
 
 %2 tracks processed (both sides: lower and upper)</source>
-        <translation type="unfinished"></translation>
+        <translation>%1模拟成功完成。
+
+已处理 %2 磁道（两面：下面和上面）</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1985"/>
+        <location filename="../src/mainwindow.cpp" line="1986"/>
         <source>Write</source>
-        <translation type="unfinished"></translation>
+        <translation>写入</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1985"/>
+        <location filename="../src/mainwindow.cpp" line="1986"/>
         <source>Read</source>
-        <translation type="unfinished"></translation>
+        <translation>读取</translation>
     </message>
     <message>
         <source>Simulation will process all %1 tracks:
@@ -801,7 +822,7 @@ Side 1 = Upper row (left side)</source>
 面 1 = 上排（左侧）</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1983"/>
+        <location filename="../src/mainwindow.cpp" line="1984"/>
         <source>Simulation Complete</source>
         <translation>模拟完成</translation>
     </message>

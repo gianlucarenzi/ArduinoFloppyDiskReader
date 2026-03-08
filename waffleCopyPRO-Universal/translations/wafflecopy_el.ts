@@ -610,11 +610,11 @@ Side 1 = Upper row (left side)</source>
     </message>
     <message>
         <source>Simulate Read</source>
-        <translation type="unfinished"></translation>
+        <translation>Προσομοίωση ανάγνωσης</translation>
     </message>
     <message>
         <source>Simulate Write</source>
-        <translation type="unfinished"></translation>
+        <translation>Προσομοίωση εγγραφής</translation>
     </message>
     <message>
         <source>Read simulation will process all %1 tracks:
@@ -625,7 +625,14 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation type="unfinished"></translation>
+        <translation>Η προσομοίωση ανάγνωσης θα επεξεργαστεί όλα τα %1 κομμάτια:
+
+Κομμάτι 0: Πλευρά 0 (Κάτω) στη συνέχεια Πλευρά 1 (Πάνω)
+Κομμάτι 1: Πλευρά 0 (Κάτω) στη συνέχεια Πλευρά 1 (Πάνω)
+...και ούτω καθεξής
+
+Πλευρά 0 = Κάτω σειρά (δεξιά πλευρά)
+Πλευρά 1 = Πάνω σειρά (αριστερή πλευρά)</translation>
     </message>
     <message>
         <source>Write simulation will process all %1 tracks:
@@ -636,21 +643,30 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation type="unfinished"></translation>
+        <translation>Η προσομοίωση εγγραφής θα επεξεργαστεί όλα τα %1 κομμάτια:
+
+Κομμάτι 0: Πλευρά 0 (Κάτω) στη συνέχεια Πλευρά 1 (Πάνω)
+Κομμάτι 1: Πλευρά 0 (Κάτω) στη συνέχεια Πλευρά 1 (Πάνω)
+...και ούτω καθεξής
+
+Πλευρά 0 = Κάτω σειρά (δεξιά πλευρά)
+Πλευρά 1 = Πάνω σειρά (αριστερή πλευρά)</translation>
     </message>
     <message>
         <source>%1 simulation completed successfully.
 
 %2 tracks processed (both sides: lower and upper)</source>
-        <translation type="unfinished"></translation>
+        <translation>Προσομοίωση %1 ολοκληρώθηκε με επιτυχία.
+
+%2 κομμάτια επεξεργάστηκαν (και οι δύο πλευρές: κάτω και πάνω)</translation>
     </message>
     <message>
         <source>Write</source>
-        <translation type="unfinished"></translation>
+        <translation>Εγγραφή</translation>
     </message>
     <message>
         <source>Read</source>
-        <translation type="unfinished"></translation>
+        <translation>Ανάγνωση</translation>
     </message>
     <message>
         <source>ERROR: Cannot create IPF files!
@@ -661,6 +677,10 @@ IPF files can be written to disk, but not created from one.</source>
 
 Το Waffle μπορεί να διαβάσει δίσκους μόνο σε μορφές ADF, SCP, IMG/IMA ή ST.
 Τα αρχεία IPF μπορούν να γραφτούν στο δίσκο, αλλά όχι να δημιουργηθούν από αυτόν.</translation>
+    </message>
+    <message>
+        <source>HD requires Firmware V1.8 or newer. Please update your firmware.</source>
+        <translation>Το HD απαιτεί Firmware V1.8 ή νεότερο. Παρακαλώ ενημερώστε το firmware σας.</translation>
     </message>
 </context>
 </TS>

@@ -610,11 +610,11 @@ Seite 1 = Obere Reihe (linke Seite)</translation>
     </message>
     <message>
         <source>Simulate Read</source>
-        <translation type="unfinished"></translation>
+        <translation>Lesesimulation</translation>
     </message>
     <message>
         <source>Simulate Write</source>
-        <translation type="unfinished"></translation>
+        <translation>Schreibsimulation</translation>
     </message>
     <message>
         <source>Read simulation will process all %1 tracks:
@@ -625,7 +625,14 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation type="unfinished"></translation>
+        <translation>Lesesimulation verarbeitet alle %1 Spuren:
+
+Spur 0: Seite 0 (Unten) dann Seite 1 (Oben)
+Spur 1: Seite 0 (Unten) dann Seite 1 (Oben)
+...und so weiter
+
+Seite 0 = Untere Reihe (rechte Seite)
+Seite 1 = Obere Reihe (linke Seite)</translation>
     </message>
     <message>
         <source>Write simulation will process all %1 tracks:
@@ -636,21 +643,30 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation type="unfinished"></translation>
+        <translation>Schreibsimulation verarbeitet alle %1 Spuren:
+
+Spur 0: Seite 0 (Unten) dann Seite 1 (Oben)
+Spur 1: Seite 0 (Unten) dann Seite 1 (Oben)
+...und so weiter
+
+Seite 0 = Untere Reihe (rechte Seite)
+Seite 1 = Obere Reihe (linke Seite)</translation>
     </message>
     <message>
         <source>%1 simulation completed successfully.
 
 %2 tracks processed (both sides: lower and upper)</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 Simulation erfolgreich abgeschlossen.
+
+%2 Spuren verarbeitet (beide Seiten: unten und oben)</translation>
     </message>
     <message>
         <source>Write</source>
-        <translation type="unfinished"></translation>
+        <translation>Schreiben</translation>
     </message>
     <message>
         <source>Read</source>
-        <translation type="unfinished"></translation>
+        <translation>Lesen</translation>
     </message>
     <message>
         <source>ERROR: Cannot create IPF files!
@@ -661,6 +677,10 @@ IPF files can be written to disk, but not created from one.</source>
 
 Waffle kann Disketten nur in den Formaten ADF, SCP, IMG/IMA oder ST lesen.
 IPF-Dateien können auf Diskette geschrieben, aber nicht von ihr erstellt werden.</translation>
+    </message>
+    <message>
+        <source>HD requires Firmware V1.8 or newer. Please update your firmware.</source>
+        <translation>HD erfordert Firmware V1.8 oder neuer. Bitte aktualisieren Sie die Firmware.</translation>
     </message>
 </context>
 </TS>

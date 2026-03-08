@@ -408,7 +408,7 @@
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="299"/>
-        <location filename="../src/mainwindow.cpp" line="1727"/>
+        <location filename="../src/mainwindow.cpp" line="1728"/>
         <source>Language Settings</source>
         <translation>Limbă</translation>
     </message>
@@ -464,17 +464,17 @@
     <message>
         <location filename="../src/mainwindow.cpp" line="315"/>
         <source>Simulate Read</source>
-        <translation type="unfinished"></translation>
+        <translation>Simulare citire</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="317"/>
         <source>Simulate Write</source>
-        <translation type="unfinished"></translation>
+        <translation>Simulare scriere</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="862"/>
         <location filename="../src/mainwindow.cpp" line="972"/>
-        <location filename="../src/mainwindow.cpp" line="1349"/>
+        <location filename="../src/mainwindow.cpp" line="1350"/>
         <source>ERROR: No serial port selected!
 
 Please select a serial port from the dropdown menu.</source>
@@ -660,89 +660,94 @@ Fișierele IPF pot fi scrise pe disc, dar nu create din acesta.</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1257"/>
+        <source>HD requires Firmware V1.8 or newer. Please update your firmware.</source>
+        <translation>HD necesită Firmware V1.8 sau mai nou. Vă rugăm să actualizați firmware-ul.</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="1258"/>
         <source>Unknown Error</source>
         <translation>Necunoscut</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1381"/>
+        <location filename="../src/mainwindow.cpp" line="1382"/>
         <source>=== Waffle Copy Pro - Diagnostic Test ===
 </source>
         <translation>=== Diagnostic ===
 </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1382"/>
+        <location filename="../src/mainwindow.cpp" line="1383"/>
         <source>Starting diagnostic on port: %1
 </source>
         <translation>Start: %1
 </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1440"/>
+        <location filename="../src/mainwindow.cpp" line="1441"/>
         <source>
 === ALL TESTS PASSED ===</source>
         <translation>
 === Toate OK ===</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1442"/>
+        <location filename="../src/mainwindow.cpp" line="1443"/>
         <source>
 === SOME TESTS FAILED ===</source>
         <translation>
 === Eșuat ===</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1444"/>
+        <location filename="../src/mainwindow.cpp" line="1445"/>
         <source>
 Click anywhere on this window to close.</source>
         <translation>
 Clic = închide</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1728"/>
+        <location filename="../src/mainwindow.cpp" line="1729"/>
         <source>Select language:</source>
         <translation>Limbă:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1821"/>
+        <location filename="../src/mainwindow.cpp" line="1822"/>
         <source>Language Changed</source>
         <translation>Schimbat</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1822"/>
+        <location filename="../src/mainwindow.cpp" line="1823"/>
         <source>Language has been changed. The application will now close. Please restart it.</source>
         <translation>Repornire</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1830"/>
+        <location filename="../src/mainwindow.cpp" line="1831"/>
         <source>About Waffle Copy Pro</source>
         <translation>Despre Waffle Copy Pro</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1831"/>
+        <location filename="../src/mainwindow.cpp" line="1832"/>
         <source>&lt;h3&gt;Waffle Copy Professional v%1&lt;/h3&gt;&lt;p&gt;The essential USB floppy drive solution for the real Amiga user.&lt;/p&gt;&lt;p&gt;&lt;b&gt;Original Concept:&lt;/b&gt; Rob Smith&lt;br&gt;&lt;b&gt;Modified version by:&lt;/b&gt; Gianluca Renzi&lt;br&gt;&lt;b&gt;Product by:&lt;/b&gt; RetroBit Lab and RetroGiovedi&lt;/p&gt;&lt;p&gt;IPF support powered by CAPS image library.&lt;br&gt;Music playback powered by libmikmod.&lt;/p&gt;</source>
         <translation>&lt;h3&gt;Waffle Copy Pro v%1&lt;/h3&gt;&lt;p&gt;USB Amiga&lt;/p&gt;&lt;p&gt;&lt;b&gt;Concept:&lt;/b&gt; Rob Smith&lt;br&gt;&lt;b&gt;Modificat:&lt;/b&gt; Gianluca Renzi&lt;br&gt;&lt;b&gt;RetroBit Lab/RetroGiovedi&lt;/b&gt;&lt;/p&gt;&lt;p&gt;IPF: CAPS. Muzică: libmikmod.&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1844"/>
-        <location filename="../src/mainwindow.cpp" line="1889"/>
+        <location filename="../src/mainwindow.cpp" line="1845"/>
+        <location filename="../src/mainwindow.cpp" line="1890"/>
         <source>Simulation</source>
         <translation>Simulare</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1844"/>
-        <location filename="../src/mainwindow.cpp" line="1889"/>
+        <location filename="../src/mainwindow.cpp" line="1845"/>
+        <location filename="../src/mainwindow.cpp" line="1890"/>
         <source>Simulation already running</source>
         <translation>Simularea este deja în curs</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1876"/>
-        <location filename="../src/mainwindow.cpp" line="1921"/>
+        <location filename="../src/mainwindow.cpp" line="1877"/>
+        <location filename="../src/mainwindow.cpp" line="1922"/>
         <source>Simulation Starting</source>
         <translation>Pornire simulare</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1877"/>
+        <location filename="../src/mainwindow.cpp" line="1878"/>
         <source>Read simulation will process all %1 tracks:
 
 Track 0: Side 0 (Lower) then Side 1 (Upper)
@@ -751,10 +756,17 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation type="unfinished"></translation>
+        <translation>Simularea citirii va procesa toate %1 piste:
+
+Pista 0: Partea 0 (Inferioară) apoi Partea 1 (Superioară)
+Pista 1: Partea 0 (Inferioară) apoi Partea 1 (Superioară)
+...și așa mai departe
+
+Partea 0 = Rândul inferior (partea dreaptă)
+Partea 1 = Rândul superior (partea stângă)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1922"/>
+        <location filename="../src/mainwindow.cpp" line="1923"/>
         <source>Write simulation will process all %1 tracks:
 
 Track 0: Side 0 (Lower) then Side 1 (Upper)
@@ -763,24 +775,33 @@ Track 1: Side 0 (Lower) then Side 1 (Upper)
 
 Side 0 = Lower row (right side)
 Side 1 = Upper row (left side)</source>
-        <translation type="unfinished"></translation>
+        <translation>Simularea scrierii va procesa toate %1 piste:
+
+Pista 0: Partea 0 (Inferioară) apoi Partea 1 (Superioară)
+Pista 1: Partea 0 (Inferioară) apoi Partea 1 (Superioară)
+...și așa mai departe
+
+Partea 0 = Rândul inferior (partea dreaptă)
+Partea 1 = Rândul superior (partea stângă)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1984"/>
+        <location filename="../src/mainwindow.cpp" line="1985"/>
         <source>%1 simulation completed successfully.
 
 %2 tracks processed (both sides: lower and upper)</source>
-        <translation type="unfinished"></translation>
+        <translation>Simulare %1 finalizată cu succes.
+
+%2 piste procesate (ambele părți: inferioară și superioară)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1985"/>
+        <location filename="../src/mainwindow.cpp" line="1986"/>
         <source>Write</source>
-        <translation type="unfinished"></translation>
+        <translation>Scriere</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1985"/>
+        <location filename="../src/mainwindow.cpp" line="1986"/>
         <source>Read</source>
-        <translation type="unfinished"></translation>
+        <translation>Citire</translation>
     </message>
     <message>
         <source>Simulation will process all %1 tracks:
@@ -801,7 +822,7 @@ Partea 0 = Rândul inferior (partea dreaptă)
 Partea 1 = Rândul superior (partea stângă)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1983"/>
+        <location filename="../src/mainwindow.cpp" line="1984"/>
         <source>Simulation Complete</source>
         <translation>Simulare completă</translation>
     </message>

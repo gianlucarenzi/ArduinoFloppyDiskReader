@@ -598,12 +598,35 @@ void MainWindow::toggleSkipWriteError(void)
     settings.sync();
 }
 
+void MainWindow::resizeErrorWidget(QPushButton* widget)
+{
+    if (!widget) return;
+    
+    // Calculate size based on text and font
+    QFontMetrics fm(widget->font());
+    int maxWidth = 600; // Maximum desired width for the error message
+    QRect textRect = fm.boundingRect(0, 0, maxWidth, 1000, 
+                                     Qt::AlignCenter | Qt::TextWordWrap, widget->text());
+    
+    int newHeight = textRect.height() + 20; // +20 for padding
+    int newWidth = textRect.width() + 40;   // +40 for padding
+    if (newWidth < 311) newWidth = 311;     // Maintain a minimum width
+
+    // Center the widget relative to the MainWindow
+    int newX = (this->width() - newWidth) / 2;
+    int newY = (this->height() - newHeight) / 2;
+
+    widget->setGeometry(newX, newY, newWidth, newHeight);
+}
+
 void MainWindow::doneWork(void)
 {
     DebugMsg::print(__func__, "doneWork status:" + QString::number(status));
     if (status != 0) {
         if (!ui->copyError->isVisible())
             ui->copyError->setText(errorMessageForFile(ui->setADFFileName->text()));
+        
+        resizeErrorWidget(ui->copyError);
         ui->copyError->show();
         ui->copyError->raise();
     } else {
@@ -912,28 +935,9 @@ void MainWindow::checkStartWrite(void)
 void MainWindow::showSetupError(QString err)
 {
     ui->showError->setText(err);
-    
-    // Imposta il wrapping del testo per permettere l'espansione verticale
-    // Poiché showError è un QPushButton, usiamo un trucco o ci assicuriamo che il testo vada a capo.
-    // Se fosse una QLabel sarebbe più facile, ma per QPushButton possiamo provare a forzare il resize.
-    
-    QFontMetrics fm(ui->showError->font());
-    QRect textRect = fm.boundingRect(0, 0, ui->showError->width(), 1000, 
-                                     Qt::AlignCenter | Qt::TextWordWrap, err);
-    
-    int newHeight = textRect.height() + 20; // +20 per padding
-    int newWidth = ui->showError->width();
-    
-    // Centra il widget rispetto alla MainWindow
-    int newX = (this->width() - newWidth) / 2;
-    int newY = (this->height() - newHeight) / 2;
-    
-    ui->showError->setGeometry(newX, newY, newWidth, newHeight);
+    resizeErrorWidget(ui->showError);
     ui->showError->show();
     ui->showError->raise();
-
-    // Rimuoviamo il timer e il loop processEvents per lasciare il messaggio visibile
-    // finché l'utente non preme il pulsante (gestito da manageError)
 }
 
 void MainWindow::manageError(void)
@@ -1254,10 +1258,12 @@ void MainWindow::manageQtDrawBridgeSignal(int sig)
     case 26: ui->copyError->setText(tr("CTS Failure")); break;
     case 27: ui->copyError->setText(tr("Rewind Failure")); break;
     case 28: ui->copyError->setText(tr("Media Type Mismatch or No Disk in Drive")); break;
+    case 29: ui->copyError->setText(tr("HD requires Firmware V1.8 or newer. Please update your firmware.")); break;
     default: ui->copyError->setText(tr("Unknown Error")); break;
     }
 
     if (toShow) {
+        resizeErrorWidget(ui->copyError);
         ui->copyError->show();
         ui->copyError->raise();
         // When it's halted for an error, sometimes the LED (motor) is spinning

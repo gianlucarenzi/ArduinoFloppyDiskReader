@@ -35,6 +35,15 @@ void QtDrawBridge::run()
     }
 
     // If opening succeeded, proceed with wmain
+    if (m_command.contains("HD")) {
+        ArduinoFloppyReader::FirmwareVersion version = ArduinoFloppyReader::ADFWriterManager::getInstance().getFirwareVersion();
+        if (version.major < 1 || (version.major == 1 && version.minor < 8)) {
+             DebugMsg::print(__func__, "HD mode requires firmware V1.8 or newer. Current version: " + QString::number(version.major) + "." + QString::number(version.minor));
+             emit QtDrawBridgeSignal(29); // 29 is Firmware v1.8+ required for HD
+             return;
+        }
+    }
+
     QStringList list;
     list << m_port;
     list << m_filename;

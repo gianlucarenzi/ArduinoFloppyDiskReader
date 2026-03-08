@@ -22,6 +22,7 @@
 #include "vumeterwidget.h"
 #include <QLineEdit>
 #include <QTranslator>
+#include <QPushButton>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -68,6 +69,7 @@ private:
     void startWrite(void);
     void startRead(void);
     void showSetupError(QString err);
+    void resizeErrorWidget(QPushButton* widget);
     QString completionMessageForFile(const QString& filename);
     QString errorMessageForFile(const QString& filename);
     QString m_track;
