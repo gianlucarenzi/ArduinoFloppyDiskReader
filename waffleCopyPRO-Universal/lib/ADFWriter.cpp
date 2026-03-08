@@ -588,19 +588,27 @@ ADFWriter::~ADFWriter()
 // Open the device we want to use.  Returns TRUE if it worked
 bool ADFWriter::openDevice(const std::wstring& portName)
 {
-    if (m_device.openPort(portName) != DiagnosticResponse::drOK) return false;
+    DEBUGMSG("ENTER");
+    if (m_device.openPort(portName) != DiagnosticResponse::drOK)
+    {
+        DEBUGMSG("openPort FAILED");
+        return false;
+    }
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     if (m_device.enableReading(true, true) != DiagnosticResponse::drOK)
     {
+        DEBUGMSG("enableReading FAILED");
         m_device.closePort();
         return false;
     }
+    DEBUGMSG("OK");
     return true;
 }
 
 // Close the device when we've finished
 void ADFWriter::closeDevice()
 {
+    DEBUGMSG("ENTER");
     m_device.closePort();
 }
 
@@ -1493,6 +1501,7 @@ public:
 
 ADFResult ADFWriter::runClean(std::function<bool(const uint16_t position, const uint16_t maxPos)>  onProgress)
 {
+    DEBUGMSG("ENTER");
     const uint16_t repeatCount = 5;
     const uint16_t steps = 8;
     const uint16_t maxCyl = 80;
@@ -1548,6 +1557,7 @@ ADFResult ADFWriter::runClean(std::function<bool(const uint16_t position, const 
 // Writes an IMG, IMA or ST file to disk. Return FALSE in the callback to abort this operation.  If verify is set then the track isread back and and sector checksums are checked for 11 valid sectors
 ADFResult ADFWriter::sectorFileToDisk(const std::wstring& inputFile, const bool inHDMode, bool verify, bool usePrecompMode, bool eraseFirst, bool useAtariSTTiming, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const bool isVerifyError, const CallbackOperation operation) > callback)
 {
+    DEBUGMSG("ENTER hdMode=%d verify=%d preComp=%d eraseFirst=%d atariST=%d", inHDMode, verify, usePrecompMode, eraseFirst, useAtariSTTiming);
     if (!m_device.isOpen()) return ADFResult::adfrDriveError;
 
     if (callback)
@@ -1756,6 +1766,7 @@ ADFResult ADFWriter::sectorFileToDisk(const std::wstring& inputFile, const bool 
 // Attempt to read a PC or Atari ST disk as a disk sector-based file
 ADFResult ADFWriter::diskToIBMST(const std::wstring& outputFile, const bool inHDMode, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound, const int maxSectors, const CallbackOperation operation)> callback)
 {
+    DEBUGMSG("ENTER hdMode=%d", inHDMode);
     if (!m_device.isOpen()) return ADFResult::adfrDriveError;
 
     if (callback)
@@ -1846,9 +1857,10 @@ ADFResult ADFWriter::diskToIBMST(const std::wstring& outputFile, const bool inHD
         uint32_t failureTotal = 0;
 
         bool ignoreChecksums = false;
+        bool breakOut = false;
 
-        // Repeat until we have all 11 sectors
-        while ((decodedTrack.sectors.size() < sectorsPerTrack) || (decodedTrack.sectorsWithErrors))
+        // Repeat until we have all sectors
+        while (!breakOut && ((decodedTrack.sectors.size() < sectorsPerTrack) || (decodedTrack.sectorsWithErrors)))
         {
 
             if (callback)
@@ -1874,7 +1886,8 @@ ADFResult ADFWriter::diskToIBMST(const std::wstring& outputFile, const bool inHD
                 case WriteResponse::wrSkipBadChecksums:
                     if (ignoreChecksums)
                     {
-                        for (uint32_t i=0; i< sectorsPerTrack; i++)
+                        // Second skip: fill any remaining missing sectors with zeros and exit
+                        for (uint32_t i = 0; i < sectorsPerTrack; i++)
                             if (decodedTrack.sectors.find(i) == decodedTrack.sectors.end())
                             {
                                 IBM::DecodedSector sec;
@@ -1883,12 +1896,15 @@ ADFResult ADFWriter::diskToIBMST(const std::wstring& outputFile, const bool inHD
                                 decodedTrack.sectors.insert({ i, sec });
                             }
                         decodedTrack.sectorsWithErrors = 0;
+                        breakOut = true;
                     }
                     ignoreChecksums = true;
                     failureTotal = 0;
                     break;
                 }
             }
+
+            if (breakOut) break;
 
             if (m_device.readCurrentTrack(data, readSize, false) == DiagnosticResponse::drOK)
             {
@@ -1919,6 +1935,7 @@ ADFResult ADFWriter::diskToIBMST(const std::wstring& outputFile, const bool inHD
 // IF using precomp mode then DO NOT connect the Arduino via a USB hub, and try to plug it into a USB2 port
 ADFResult ADFWriter::ADFToDisk(const std::wstring& inputFile, bool mediaIsHD, bool verify, bool usePrecompMode, bool eraseFirst, bool writeFromIndex, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const bool isVerifyError, const CallbackOperation operation) > callback)
 {
+    DEBUGMSG("ENTER hdMode=%d verify=%d preComp=%d eraseFirst=%d", mediaIsHD, verify, usePrecompMode, eraseFirst);
     if (!m_device.isOpen()) return ADFResult::adfrDriveError;
 
     if (callback)
@@ -2250,6 +2267,7 @@ struct SCPTrackInMemory {
 // SCP files are a low level flux record of the disk and usually can backup copy protected disks to.  Without special hardware they can't usually be written back to disks.
 ADFResult ADFWriter::DiskToSCP(const std::wstring& outputFile, bool isHDMode, const unsigned int numTracks, const unsigned char revolutions, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound, const int maxSectors, const CallbackOperation operation)> callback, bool useNewFluxReader)
 {
+    DEBUGMSG("ENTER hdMode=%d numTracks=%u revolutions=%d newFlux=%d", isHDMode, numTracks, revolutions, useNewFluxReader);
     if (!m_device.isOpen()) return ADFResult::adfrDriveError;
 
     if (callback)
@@ -2538,6 +2556,7 @@ ADFResult ADFWriter::DiskToSCP(const std::wstring& outputFile, bool isHDMode, co
 // Writes an SCP file back to a floppy disk.  Return FALSE in the callback to abort this operation.  
 ADFResult ADFWriter::SCPToDisk(const std::wstring& inputFile, bool extraErases, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const bool isVerifyError, const CallbackOperation operation) > callback)
 {
+    DEBUGMSG("ENTER extraErases=%d", extraErases);
     if (!m_device.isOpen()) return ADFResult::adfrDriveError;
     ArduinoFloppyReader::FirmwareVersion version = m_device.getFirwareVersion();
     if ((version.major == 1) && ((version.minor < 9) || ((version.minor == 9) && (version.buildNumber < 22)))) return ADFResult::adfrFirmwareTooOld;
@@ -2712,6 +2731,7 @@ ADFResult ADFWriter::SCPToDisk(const std::wstring& inputFile, bool extraErases, 
 // Reads the disk and write the data to the ADF file supplied.  The callback is for progress, and you can returns FALSE to abort the process
 ADFResult ADFWriter::DiskToADF(const std::wstring& outputFile, const bool inHDMode, const unsigned int numTracks, std::function < WriteResponse(const int currentTrack, const DiskSurface currentSide, const int retryCounter, const int sectorsFound, const int badSectorsFound, const int maxSectors, const CallbackOperation operation)> callback)
 {
+    DEBUGMSG("ENTER hdMode=%d numTracks=%u", inHDMode, numTracks);
     if (!m_device.isOpen()) return ADFResult::adfrDriveError;
 
     if (callback)
@@ -2810,7 +2830,7 @@ ADFResult ADFWriter::DiskToADF(const std::wstring& outputFile, const bool inHDMo
                             if (ignoreChecksums)
                             {
                                 // Already been here, so we'll create blank sectors just to get this going
-                                for (unsigned char sectornumber = 0; sectornumber <= maxSectorsPerTrack; sectornumber++)
+                                for (unsigned char sectornumber = 0; sectornumber < maxSectorsPerTrack; sectornumber++)
                                 {
                                     auto index = std::find_if(track.validSectors.begin(), track.validSectors.end(), [sectornumber](const DecodedSector& sector) -> bool {
                                         return (sector.sectorNumber == sectornumber);
@@ -3229,6 +3249,7 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
 // Attempt to work out what the density of the currently inserted disk is
 ADFResult ADFWriter::GuessDiskDensity(bool& isHD)
 {
+    DEBUGMSG("ENTER");
     if (!m_device.isOpen()) return ADFResult::adfrDriveError;
 
     if (m_device.selectSurface(ArduinoFloppyReader::DiskSurface::dsLower) != DiagnosticResponse::drOK) return ADFResult::adfrAborted;

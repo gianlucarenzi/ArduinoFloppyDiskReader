@@ -602,6 +602,8 @@ void MainWindow::doneWork(void)
 {
     DebugMsg::print(__func__, "doneWork status:" + QString::number(status));
     if (status != 0) {
+        if (!ui->copyError->isVisible())
+            ui->copyError->setText(errorMessageForFile(ui->setADFFileName->text()));
         ui->copyError->show();
         ui->copyError->raise();
     } else {
@@ -827,6 +829,20 @@ QString MainWindow::completionMessageForFile(const QString& filename)
         return tr("PC-DOS COPY COMPLETED");
     // Fallback for ADF files
     return tr("AMIGA DISK COPY COMPLETED");
+}
+
+QString MainWindow::errorMessageForFile(const QString& filename)
+{
+    QString ext = QFileInfo(filename).suffix().toLower();
+    if (ext == "scp")
+        return tr("SCP COPY ERROR");
+    if (ext == "ipf")
+        return tr("IPF COPY ERROR");
+    if (ext == "st")
+        return tr("ST COPY ERROR");
+    if (ext == "img" || ext == "ima")
+        return tr("PC-DOS COPY ERROR");
+    return tr("AMIGA DISK COPY ERROR");
 }
 
 void MainWindow::checkStartWrite(void)

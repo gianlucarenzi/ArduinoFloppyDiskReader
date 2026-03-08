@@ -201,6 +201,7 @@ ArduinoInterface::~ArduinoInterface()
 // Checks if the disk is write protected.  If forceCheck=false then the last cached version is returned.  This is also updated by checkForDisk() as well as this function
 DiagnosticResponse ArduinoInterface::checkIfDiskIsWriteProtected(bool forceCheck)
 {
+    DEBUGMSG("forceCheck=%d", forceCheck);
     // Test manually
     m_lastCommand = LastCommand::lcCheckDiskWriteProtected;
 
@@ -558,6 +559,7 @@ void releaseVirtualDrives(bool release, int controllerType)
 // Attempts to open the reader running on the COM port number provided.  Port MUST support 2M baud
 DiagnosticResponse ArduinoInterface::openPort(const std::wstring& portName, bool enableCTSflowcontrol)
 {
+    DEBUGMSG("ENTER enableCTS=%d", enableCTSflowcontrol);
     m_lastCommand = LastCommand::lcOpenPort;
     closePort();
 
@@ -640,6 +642,7 @@ void ArduinoInterface::applyCommTimeouts(bool shortTimeouts)
 // Closes the port down
 void ArduinoInterface::closePort()
 {
+    DEBUGMSG("ENTER");
     LastCommand old = m_lastCommand;
     if (m_comPort.isPortOpen())
     {
@@ -688,7 +691,7 @@ bool ArduinoInterface::trackContainsData(const RawTrackDataDD& trackData) const 
 // Turns on and off the writing interface.  If irError is returned the disk is write protected
 DiagnosticResponse ArduinoInterface::enableWriting(const bool enable, const bool reset)
 {
-
+    DEBUGMSG("enable=%d reset=%d", enable, reset);
     if (enable)
     {
         m_lastCommand = LastCommand::lcEnableWrite;
@@ -732,6 +735,7 @@ DiagnosticResponse ArduinoInterface::enableWriting(const bool enable, const bool
 // Seek to track 0
 DiagnosticResponse ArduinoInterface::findTrack0()
 {
+    DEBUGMSG("ENTER");
     m_lastCommand = LastCommand::lcRewind;
 
     // And rewind to the first track
@@ -747,6 +751,7 @@ DiagnosticResponse ArduinoInterface::findTrack0()
 // Turns on and off the reading interface
 DiagnosticResponse ArduinoInterface::enableReading(const bool enable, const bool reset, const bool dontWait)
 {
+    DEBUGMSG("enable=%d reset=%d dontWait=%d", enable, reset, dontWait);
     m_inWriteMode = false;
     if (enable)
     {
@@ -783,6 +788,7 @@ DiagnosticResponse ArduinoInterface::enableReading(const bool enable, const bool
 // Query the RPM of the drive
 DiagnosticResponse ArduinoInterface::measureDriveRPM(float& rpm)
 {
+    DEBUGMSG("ENTER");
     m_lastCommand = LastCommand::lcMeasureRPM;
 
     bool isV19 = (m_version.major > 1) || ((m_version.major == 1) && (m_version.minor >= 9));
@@ -879,6 +885,7 @@ DiagnosticResponse ArduinoInterface::checkDiskCapacity(bool& isHD)
 // Check and switch to HD disk
 DiagnosticResponse ArduinoInterface::setDiskCapacity(bool switchToHD_Disk)
 {
+    DEBUGMSG("switchToHD=%d", switchToHD_Disk);
     m_lastCommand = LastCommand::lcSwitchDiskMode;
 
     m_lastError = runCommand(switchToHD_Disk ? COMMAND_SWITCHTO_HD : COMMAND_SWITCHTO_DD);
@@ -926,6 +933,7 @@ DiagnosticResponse ArduinoInterface::performNoClickSeek()
 // Select the track, this makes the motor seek to this position
 DiagnosticResponse ArduinoInterface::selectTrack(const unsigned char trackIndex, const TrackSearchSpeed searchSpeed, bool ignoreDiskInsertCheck)
 {
+    DEBUGMSG("track=%d speed=%d ignoreInsert=%d", trackIndex, (int)searchSpeed, ignoreDiskInsertCheck);
     m_lastCommand = LastCommand::lcGotoTrack;
 
     if (trackIndex > 83)
@@ -1008,6 +1016,7 @@ DiagnosticResponse ArduinoInterface::selectTrack(const unsigned char trackIndex,
 // Erases the current track by writing 0xAA to it
 DiagnosticResponse ArduinoInterface::eraseCurrentTrack()
 {
+    DEBUGMSG("ENTER");
     m_lastCommand = LastCommand::lcEraseTrack;
     m_lastError = runCommand(COMMAND_ERASETRACK);
     if (m_lastError != DiagnosticResponse::drOK) return m_lastError;
@@ -1045,6 +1054,7 @@ DiagnosticResponse ArduinoInterface::eraseCurrentTrack()
 // Choose which surface of the disk to read from
 DiagnosticResponse ArduinoInterface::selectSurface(const DiskSurface side)
 {
+    DEBUGMSG("side=%d", (int)side);
     m_lastCommand = LastCommand::lcSelectSurface;
 
     m_lastError = runCommand(side == DiskSurface::dsUpper ? COMMAND_HEAD0 : COMMAND_HEAD1);
@@ -1334,6 +1344,7 @@ DiagnosticResponse ArduinoInterface::readData(PLL::BridgePLL& pll)
 // Read RAW data from the current track and surface HD mode
 DiagnosticResponse ArduinoInterface::readCurrentTrack(void* trackData, const int dataLength, const bool readFromIndexPulse)
 {
+    DEBUGMSG("dataLength=%d fromIndex=%d", dataLength, readFromIndexPulse);
     m_lastCommand = LastCommand::lcReadTrack;
 
     // Length must be one of the two types
@@ -2247,6 +2258,7 @@ DiagnosticResponse ArduinoInterface::writeCurrentTrackPrecomp(const unsigned cha
 // Writes RAW data onto the current track
 DiagnosticResponse ArduinoInterface::writeCurrentTrack(const unsigned char* data, const unsigned short numBytes, const bool writeFromIndexPulse)
 {
+    DEBUGMSG("numBytes=%d fromIndex=%d", numBytes, writeFromIndexPulse);
     // recomp not supported for HD currently
     if (m_isHDMode) return writeCurrentTrackHD(data, numBytes, writeFromIndexPulse);
 

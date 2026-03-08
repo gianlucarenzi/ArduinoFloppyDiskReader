@@ -293,6 +293,22 @@
         <translation>ERREUR DE COPIE DE DISQUE AMIGA</translation>
     </message>
     <message>
+        <source>ST COPY ERROR</source>
+        <translation>ERREUR DE COPIE DISQUE ST</translation>
+    </message>
+    <message>
+        <source>PC-DOS COPY ERROR</source>
+        <translation>ERREUR DE COPIE PC-DOS</translation>
+    </message>
+    <message>
+        <source>SCP COPY ERROR</source>
+        <translation>ERREUR DE COPIE SCP</translation>
+    </message>
+    <message>
+        <source>IPF COPY ERROR</source>
+        <translation>ERREUR DE COPIE IPF</translation>
+    </message>
+    <message>
         <source>PCW</source>
         <translation>PCW</translation>
     </message>
@@ -643,9 +659,8 @@ Waffle can only read disks into ADF, SCP, IMG/IMA, or ST formats.
 IPF files can be written to disk, but not created from one.</source>
         <translation>ERREUR : Impossible de créer des fichiers IPF !
 
-Waffle ne peut lire les disques qu'aux formats ADF, SCP, IMG/IMA ou ST.
+Waffle ne peut lire les disques qu&apos;aux formats ADF, SCP, IMG/IMA ou ST.
 Les fichiers IPF peuvent être écrits sur disque, mais pas créés à partir de celui-ci.</translation>
     </message>
 </context>
 </TS>
-

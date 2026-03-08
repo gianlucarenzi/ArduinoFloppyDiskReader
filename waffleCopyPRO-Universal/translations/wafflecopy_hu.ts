@@ -293,6 +293,22 @@
         <translation>AMIGA LEMEZ MÁSOLÁSI HIBA</translation>
     </message>
     <message>
+        <source>ST COPY ERROR</source>
+        <translation>ST LEMEZ MÁSOLÁSI HIBA</translation>
+    </message>
+    <message>
+        <source>PC-DOS COPY ERROR</source>
+        <translation>PC-DOS MÁSOLÁSI HIBA</translation>
+    </message>
+    <message>
+        <source>SCP COPY ERROR</source>
+        <translation>SCP MÁSOLÁSI HIBA</translation>
+    </message>
+    <message>
+        <source>IPF COPY ERROR</source>
+        <translation>IPF MÁSOLÁSI HIBA</translation>
+    </message>
+    <message>
         <source>PCW</source>
         <translation>PCW</translation>
     </message>
@@ -648,4 +664,3 @@ Az IPF fájlok lemezre írkhahatók, ma lemezről nem hozhatók létre.</transla
     </message>
 </context>
 </TS>
-

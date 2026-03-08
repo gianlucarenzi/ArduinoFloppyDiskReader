@@ -293,6 +293,22 @@
         <translation>ΣΦΑΛΜΑ ΑΝΤΙΓΡΑΦΗΣ ΔΙΣΚΟΥ AMIGA</translation>
     </message>
     <message>
+        <source>ST COPY ERROR</source>
+        <translation>ΣΦΑΛΜΑ ΑΝΤΙΓΡΑΦΗΣ ΔΙΣΚΟΥ ST</translation>
+    </message>
+    <message>
+        <source>PC-DOS COPY ERROR</source>
+        <translation>ΣΦΑΛΜΑ ΑΝΤΙΓΡΑΦΗΣ PC-DOS</translation>
+    </message>
+    <message>
+        <source>SCP COPY ERROR</source>
+        <translation>ΣΦΑΛΜΑ ΑΝΤΙΓΡΑΦΗΣ SCP</translation>
+    </message>
+    <message>
+        <source>IPF COPY ERROR</source>
+        <translation>ΣΦΑΛΜΑ ΑΝΤΙΓΡΑΦΗΣ IPF</translation>
+    </message>
+    <message>
         <source>PCW</source>
         <translation>PCW</translation>
     </message>
@@ -648,4 +664,3 @@ IPF files can be written to disk, but not created from one.</source>
     </message>
 </context>
 </TS>
-

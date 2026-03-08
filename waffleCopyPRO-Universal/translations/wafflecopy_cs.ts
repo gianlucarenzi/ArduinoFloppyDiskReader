@@ -291,34 +291,55 @@
     </message>
     <message>
         <location filename="../src/mainwindow.ui" line="379"/>
-        <location filename="../src/mainwindow.cpp" line="829"/>
+        <location filename="../src/mainwindow.cpp" line="831"/>
         <source>AMIGA DISK COPY COMPLETED</source>
         <translation>Dokončeno</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="821"/>
+        <location filename="../src/mainwindow.cpp" line="823"/>
         <source>SCP COPY COMPLETED</source>
         <translation>KOPÍROVÁNÍ SCP DOKONČENO</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="823"/>
+        <location filename="../src/mainwindow.cpp" line="825"/>
         <source>IPF COPY COMPLETED</source>
         <translation>KOPÍROVÁNÍ IPF DOKONČENO</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="825"/>
+        <location filename="../src/mainwindow.cpp" line="827"/>
         <source>ST COPY COMPLETED</source>
         <translation>KOPÍROVÁNÍ ST DOKONČENO</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="827"/>
+        <location filename="../src/mainwindow.cpp" line="829"/>
         <source>PC-DOS COPY COMPLETED</source>
         <translation>KOPÍROVÁNÍ PC-DOS DOKONČENO</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.ui" line="404"/>
+        <location filename="../src/mainwindow.cpp" line="845"/>
         <source>AMIGA DISK COPY ERROR</source>
         <translation>Chyba</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="842"/>
+        <source>ST COPY ERROR</source>
+        <translation>Chyba kopírování ST</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="844"/>
+        <source>PC-DOS COPY ERROR</source>
+        <translation>Chyba kopírování PC-DOS</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="838"/>
+        <source>SCP COPY ERROR</source>
+        <translation>Chyba kopírování SCP</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="840"/>
+        <source>IPF COPY ERROR</source>
+        <translation>Chyba kopírování IPF</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.ui" line="451"/>
@@ -387,7 +408,7 @@
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="299"/>
-        <location filename="../src/mainwindow.cpp" line="1711"/>
+        <location filename="../src/mainwindow.cpp" line="1727"/>
         <source>Language Settings</source>
         <translation>Jazyk</translation>
     </message>
@@ -416,7 +437,7 @@
         <translation type="vanished">Simulovat čtení/zápis</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="629"/>
+        <location filename="../src/mainwindow.cpp" line="631"/>
         <source>OPERATION TERMINATED BY USER</source>
         <translation>Přerušeno</translation>
     </message>
@@ -451,9 +472,9 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="846"/>
-        <location filename="../src/mainwindow.cpp" line="956"/>
-        <location filename="../src/mainwindow.cpp" line="1333"/>
+        <location filename="../src/mainwindow.cpp" line="862"/>
+        <location filename="../src/mainwindow.cpp" line="972"/>
+        <location filename="../src/mainwindow.cpp" line="1349"/>
         <source>ERROR: No serial port selected!
 
 Please select a serial port from the dropdown menu.</source>
@@ -462,12 +483,12 @@ Please select a serial port from the dropdown menu.</source>
 Vyberte</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="853"/>
+        <location filename="../src/mainwindow.cpp" line="869"/>
         <source>NEED VALID IMAGE FILENAME FIRST TO WRITE TO FLOPPY</source>
         <translation>Soubor nutný</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="967"/>
+        <location filename="../src/mainwindow.cpp" line="983"/>
         <source>ERROR: Cannot create IPF files!
 
 Waffle can only read disks into ADF, SCP, IMG/IMA, or ST formats.
@@ -478,250 +499,250 @@ Waffle umí číst disky pouze ve formátech ADF, SCP, IMG/IMA nebo ST.
 Soubory IPF lze na disk zapsat, ale nelze je z něj vytvořit.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1143"/>
+        <location filename="../src/mainwindow.cpp" line="1159"/>
         <source>Select Disk Image File</source>
         <translation>Výběr</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1145"/>
+        <location filename="../src/mainwindow.cpp" line="1161"/>
         <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST *.ipf *.IPF);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST);;IPF Files (*.ipf *.IPF)</source>
         <translation>Obrazy (*.adf *.scp *.ima *.img *.st *.ipf)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1152"/>
+        <location filename="../src/mainwindow.cpp" line="1168"/>
         <source>Write Disk Image File to be written on hard disk</source>
         <translation>Uložit</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1154"/>
+        <location filename="../src/mainwindow.cpp" line="1170"/>
         <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST)</source>
         <translation>Obrazy (*.adf *.scp *.ima *.img *.st)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1207"/>
+        <location filename="../src/mainwindow.cpp" line="1223"/>
         <source>Port In Use</source>
         <translation>Používán</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1208"/>
+        <location filename="../src/mainwindow.cpp" line="1224"/>
         <source>Port Not Found</source>
         <translation>Nenalezen</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1209"/>
+        <location filename="../src/mainwindow.cpp" line="1225"/>
         <source>Port Error</source>
         <translation>Port chyba</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1210"/>
+        <location filename="../src/mainwindow.cpp" line="1226"/>
         <source>Access Denied</source>
         <translation>Odepřen</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1211"/>
+        <location filename="../src/mainwindow.cpp" line="1227"/>
         <source>Comport Config Error</source>
         <translation>Config chyba</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1212"/>
+        <location filename="../src/mainwindow.cpp" line="1228"/>
         <source>BaudRate Not Supported</source>
         <translation>Baud chyba</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1213"/>
+        <location filename="../src/mainwindow.cpp" line="1229"/>
         <source>Error Reading Version</source>
         <translation>Ver chyba</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1214"/>
+        <location filename="../src/mainwindow.cpp" line="1230"/>
         <source>Error Malformed Version</source>
         <translation>Ver špatná</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1215"/>
+        <location filename="../src/mainwindow.cpp" line="1231"/>
         <source>Old Firmware</source>
         <translation>FW starý</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1217"/>
+        <location filename="../src/mainwindow.cpp" line="1233"/>
         <source>Send Failed</source>
         <translation>Odesílání selhalo</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1218"/>
+        <location filename="../src/mainwindow.cpp" line="1234"/>
         <source>Send Parameter Failed</source>
         <translation>Param selhání</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1219"/>
+        <location filename="../src/mainwindow.cpp" line="1235"/>
         <source>Read Response Failed or No Disk in Drive</source>
         <translation>Selhání/Chybí</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1220"/>
+        <location filename="../src/mainwindow.cpp" line="1236"/>
         <source>Write Timeout</source>
         <translation>Timeout</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1221"/>
+        <location filename="../src/mainwindow.cpp" line="1237"/>
         <source>Serial Overrun</source>
         <translation>Overrun</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1222"/>
+        <location filename="../src/mainwindow.cpp" line="1238"/>
         <source>Framing Error</source>
         <translation>Rámec chyba</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1223"/>
+        <location filename="../src/mainwindow.cpp" line="1239"/>
         <source>Error</source>
         <translation>Chyba</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1226"/>
+        <location filename="../src/mainwindow.cpp" line="1242"/>
         <source>Track Range Error</source>
         <translation>Rozsah chyba</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1227"/>
+        <location filename="../src/mainwindow.cpp" line="1243"/>
         <source>Select Track Error</source>
         <translation>Výběr chyba</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1228"/>
+        <location filename="../src/mainwindow.cpp" line="1244"/>
         <source>Write Protected</source>
         <translation>Chráněno</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1229"/>
+        <location filename="../src/mainwindow.cpp" line="1245"/>
         <source>Status Error</source>
         <translation>Status chyba</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1230"/>
+        <location filename="../src/mainwindow.cpp" line="1246"/>
         <source>Send Data Failed</source>
         <translation>Data selhání</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1231"/>
+        <location filename="../src/mainwindow.cpp" line="1247"/>
         <source>Track Write Response Error</source>
         <translation>Odpověď chyba</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1234"/>
+        <location filename="../src/mainwindow.cpp" line="1250"/>
         <source>No Disk In Drive</source>
         <translation>Chybí disk</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1236"/>
+        <location filename="../src/mainwindow.cpp" line="1252"/>
         <source>Diagnostic Not Available</source>
         <translation>Diagnostika N/A</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1237"/>
+        <location filename="../src/mainwindow.cpp" line="1253"/>
         <source>USB Serial Bad</source>
         <translation>USB vadný</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1238"/>
+        <location filename="../src/mainwindow.cpp" line="1254"/>
         <source>CTS Failure</source>
         <translation>CTS selhání</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1239"/>
+        <location filename="../src/mainwindow.cpp" line="1255"/>
         <source>Rewind Failure</source>
         <translation>Rewind selhání</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1240"/>
+        <location filename="../src/mainwindow.cpp" line="1256"/>
         <source>Media Type Mismatch or No Disk in Drive</source>
         <translation>Typ špatný</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1241"/>
+        <location filename="../src/mainwindow.cpp" line="1257"/>
         <source>Unknown Error</source>
         <translation>Neznámá</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1365"/>
+        <location filename="../src/mainwindow.cpp" line="1381"/>
         <source>=== Waffle Copy Pro - Diagnostic Test ===
 </source>
         <translation>=== Diagnostika ===
 </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1366"/>
+        <location filename="../src/mainwindow.cpp" line="1382"/>
         <source>Starting diagnostic on port: %1
 </source>
         <translation>Start: %1
 </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1424"/>
+        <location filename="../src/mainwindow.cpp" line="1440"/>
         <source>
 === ALL TESTS PASSED ===</source>
         <translation>
 === Vše OK ===</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1426"/>
+        <location filename="../src/mainwindow.cpp" line="1442"/>
         <source>
 === SOME TESTS FAILED ===</source>
         <translation>
 === Selhání ===</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1428"/>
+        <location filename="../src/mainwindow.cpp" line="1444"/>
         <source>
 Click anywhere on this window to close.</source>
         <translation>
 Klik = zavřít</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1712"/>
+        <location filename="../src/mainwindow.cpp" line="1728"/>
         <source>Select language:</source>
         <translation>Jazyk:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1805"/>
+        <location filename="../src/mainwindow.cpp" line="1821"/>
         <source>Language Changed</source>
         <translation>Změněno</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1806"/>
+        <location filename="../src/mainwindow.cpp" line="1822"/>
         <source>Language has been changed. The application will now close. Please restart it.</source>
         <translation>Restart</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1814"/>
+        <location filename="../src/mainwindow.cpp" line="1830"/>
         <source>About Waffle Copy Pro</source>
         <translation>About</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1815"/>
+        <location filename="../src/mainwindow.cpp" line="1831"/>
         <source>&lt;h3&gt;Waffle Copy Professional v%1&lt;/h3&gt;&lt;p&gt;The essential USB floppy drive solution for the real Amiga user.&lt;/p&gt;&lt;p&gt;&lt;b&gt;Original Concept:&lt;/b&gt; Rob Smith&lt;br&gt;&lt;b&gt;Modified version by:&lt;/b&gt; Gianluca Renzi&lt;br&gt;&lt;b&gt;Product by:&lt;/b&gt; RetroBit Lab and RetroGiovedi&lt;/p&gt;&lt;p&gt;IPF support powered by CAPS image library.&lt;br&gt;Music playback powered by libmikmod.&lt;/p&gt;</source>
         <translation>&lt;h3&gt;Waffle v%1&lt;/h3&gt;&lt;p&gt;USB floppy pro Amigu&lt;/p&gt;&lt;p&gt;Rob Smith, Gianluca Renzi&lt;br&gt;RetroBit Lab&lt;/p&gt;&lt;p&gt;IPF: CAPS, Hudba: libmikmod&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1828"/>
-        <location filename="../src/mainwindow.cpp" line="1873"/>
+        <location filename="../src/mainwindow.cpp" line="1844"/>
+        <location filename="../src/mainwindow.cpp" line="1889"/>
         <source>Simulation</source>
         <translation>Simulace</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1828"/>
-        <location filename="../src/mainwindow.cpp" line="1873"/>
+        <location filename="../src/mainwindow.cpp" line="1844"/>
+        <location filename="../src/mainwindow.cpp" line="1889"/>
         <source>Simulation already running</source>
         <translation>Simulace již běží</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1860"/>
-        <location filename="../src/mainwindow.cpp" line="1905"/>
+        <location filename="../src/mainwindow.cpp" line="1876"/>
+        <location filename="../src/mainwindow.cpp" line="1921"/>
         <source>Simulation Starting</source>
         <translation>Spouštění simulace</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1861"/>
+        <location filename="../src/mainwindow.cpp" line="1877"/>
         <source>Read simulation will process all %1 tracks:
 
 Track 0: Side 0 (Lower) then Side 1 (Upper)
@@ -733,7 +754,7 @@ Side 1 = Upper row (left side)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1906"/>
+        <location filename="../src/mainwindow.cpp" line="1922"/>
         <source>Write simulation will process all %1 tracks:
 
 Track 0: Side 0 (Lower) then Side 1 (Upper)
@@ -745,19 +766,19 @@ Side 1 = Upper row (left side)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1968"/>
+        <location filename="../src/mainwindow.cpp" line="1984"/>
         <source>%1 simulation completed successfully.
 
 %2 tracks processed (both sides: lower and upper)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1969"/>
+        <location filename="../src/mainwindow.cpp" line="1985"/>
         <source>Write</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1969"/>
+        <location filename="../src/mainwindow.cpp" line="1985"/>
         <source>Read</source>
         <translation type="unfinished"></translation>
     </message>
@@ -780,7 +801,7 @@ Strana 0 = Dolní řada (pravá strana)
 Strana 1 = Horní řada (levá strana)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1967"/>
+        <location filename="../src/mainwindow.cpp" line="1983"/>
         <source>Simulation Complete</source>
         <translation>Simulace dokončena</translation>
     </message>
@@ -794,4 +815,3 @@ Strana 1 = Horní řada (levá strana)</translation>
     </message>
 </context>
 </TS>
-

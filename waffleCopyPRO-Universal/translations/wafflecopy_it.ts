@@ -293,6 +293,22 @@
         <translation>ERRORE COPIA DISCO AMIGA</translation>
     </message>
     <message>
+        <source>ST COPY ERROR</source>
+        <translation>ERRORE COPIA DISCO ST</translation>
+    </message>
+    <message>
+        <source>PC-DOS COPY ERROR</source>
+        <translation>ERRORE COPIA PC-DOS</translation>
+    </message>
+    <message>
+        <source>SCP COPY ERROR</source>
+        <translation>ERRORE COPIA SCP</translation>
+    </message>
+    <message>
+        <source>IPF COPY ERROR</source>
+        <translation>ERRORE COPIA IPF</translation>
+    </message>
+    <message>
         <source>PCW</source>
         <translation>PCW</translation>
     </message>

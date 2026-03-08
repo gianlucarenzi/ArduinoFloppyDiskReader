@@ -293,6 +293,22 @@
         <translation>ПОМИЛКА КОПІЮВАННЯ ДИСКА AMIGA</translation>
     </message>
     <message>
+        <source>ST COPY ERROR</source>
+        <translation>ПОМИЛКА КОПІЮВАННЯ ДИСКА ST</translation>
+    </message>
+    <message>
+        <source>PC-DOS COPY ERROR</source>
+        <translation>ПОМИЛКА КОПІЮВАННЯ PC-DOS</translation>
+    </message>
+    <message>
+        <source>SCP COPY ERROR</source>
+        <translation>ПОМИЛКА КОПІЮВАННЯ SCP</translation>
+    </message>
+    <message>
+        <source>IPF COPY ERROR</source>
+        <translation>ПОМИЛКА КОПІЮВАННЯ IPF</translation>
+    </message>
+    <message>
         <source>PCW</source>
         <translation>PCW</translation>
     </message>
@@ -648,4 +664,3 @@ Waffle може читати диски тільки у форматах ADF, SC
     </message>
 </context>
 </TS>
-

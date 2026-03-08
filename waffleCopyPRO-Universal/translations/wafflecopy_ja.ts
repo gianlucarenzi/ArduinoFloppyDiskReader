@@ -291,34 +291,55 @@
     </message>
     <message>
         <location filename="../src/mainwindow.ui" line="379"/>
-        <location filename="../src/mainwindow.cpp" line="829"/>
+        <location filename="../src/mainwindow.cpp" line="831"/>
         <source>AMIGA DISK COPY COMPLETED</source>
         <translation>完了</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="821"/>
+        <location filename="../src/mainwindow.cpp" line="823"/>
         <source>SCP COPY COMPLETED</source>
         <translation>SCPコピー完了</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="823"/>
+        <location filename="../src/mainwindow.cpp" line="825"/>
         <source>IPF COPY COMPLETED</source>
         <translation>IPFコピー完了</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="825"/>
+        <location filename="../src/mainwindow.cpp" line="827"/>
         <source>ST COPY COMPLETED</source>
         <translation>STコピー完了</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="827"/>
+        <location filename="../src/mainwindow.cpp" line="829"/>
         <source>PC-DOS COPY COMPLETED</source>
         <translation>PC-DOSコピー完了</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.ui" line="404"/>
+        <location filename="../src/mainwindow.cpp" line="845"/>
         <source>AMIGA DISK COPY ERROR</source>
         <translation>エラー</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="842"/>
+        <source>ST COPY ERROR</source>
+        <translation>STコピーエラー</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="844"/>
+        <source>PC-DOS COPY ERROR</source>
+        <translation>PC-DOSコピーエラー</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="838"/>
+        <source>SCP COPY ERROR</source>
+        <translation>SCPコピーエラー</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="840"/>
+        <source>IPF COPY ERROR</source>
+        <translation>IPFコピーエラー</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.ui" line="451"/>
@@ -387,7 +408,7 @@
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="299"/>
-        <location filename="../src/mainwindow.cpp" line="1711"/>
+        <location filename="../src/mainwindow.cpp" line="1727"/>
         <source>Language Settings</source>
         <translation>言語</translation>
     </message>
@@ -416,7 +437,7 @@
         <translation type="vanished">読み取り/書き込みをシミュレート</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="629"/>
+        <location filename="../src/mainwindow.cpp" line="631"/>
         <source>OPERATION TERMINATED BY USER</source>
         <translation>中止</translation>
     </message>
@@ -451,9 +472,9 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="846"/>
-        <location filename="../src/mainwindow.cpp" line="956"/>
-        <location filename="../src/mainwindow.cpp" line="1333"/>
+        <location filename="../src/mainwindow.cpp" line="862"/>
+        <location filename="../src/mainwindow.cpp" line="972"/>
+        <location filename="../src/mainwindow.cpp" line="1349"/>
         <source>ERROR: No serial port selected!
 
 Please select a serial port from the dropdown menu.</source>
@@ -462,12 +483,12 @@ Please select a serial port from the dropdown menu.</source>
 ポート選択してください</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="853"/>
+        <location filename="../src/mainwindow.cpp" line="869"/>
         <source>NEED VALID IMAGE FILENAME FIRST TO WRITE TO FLOPPY</source>
         <translation>有効ファイル名必要</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="967"/>
+        <location filename="../src/mainwindow.cpp" line="983"/>
         <source>ERROR: Cannot create IPF files!
 
 Waffle can only read disks into ADF, SCP, IMG/IMA, or ST formats.
@@ -478,250 +499,250 @@ WaffleはディスクをADF、SCP、IMG / IMA、またはST形式でしか読み
 IPFファイルはディスクに書き込むことはできますが、ディスクから作成することはできません。</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1143"/>
+        <location filename="../src/mainwindow.cpp" line="1159"/>
         <source>Select Disk Image File</source>
         <translation>イメージ選択</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1145"/>
+        <location filename="../src/mainwindow.cpp" line="1161"/>
         <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST *.ipf *.IPF);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST);;IPF Files (*.ipf *.IPF)</source>
         <translation>ディスクイメージ (*.adf *.scp *.ima *.img *.st *.ipf);;ADFファイル (*.adf);;SCPファイル (*.scp);;IMAファイル (*.ima);;IMGファイル (*.img);;STファイル (*.st);;IPFファイル (*.ipf)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1152"/>
+        <location filename="../src/mainwindow.cpp" line="1168"/>
         <source>Write Disk Image File to be written on hard disk</source>
         <translation>保存先選択</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1154"/>
+        <location filename="../src/mainwindow.cpp" line="1170"/>
         <source>Disk Images (*.adf *.ADF *.scp *.SCP *.ima *.IMA *.img *.IMG *.st *.ST);;ADF Files (*.adf *.ADF);;SCP Files (*.scp *.SCP);;IMA Files (*.ima *.IMA);;IMG Files (*.img *.IMG);;ST Files (*.st *.ST)</source>
         <translation>ディスクイメージ (*.adf *.scp *.ima *.img *.st);;ADFファイル (*.adf);;SCPファイル (*.scp);;IMAファイル (*.ima);;IMGファイル (*.img);;STファイル (*.st)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1207"/>
+        <location filename="../src/mainwindow.cpp" line="1223"/>
         <source>Port In Use</source>
         <translation>使用中</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1208"/>
+        <location filename="../src/mainwindow.cpp" line="1224"/>
         <source>Port Not Found</source>
         <translation>未検出</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1209"/>
+        <location filename="../src/mainwindow.cpp" line="1225"/>
         <source>Port Error</source>
         <translation>Port失敗</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1210"/>
+        <location filename="../src/mainwindow.cpp" line="1226"/>
         <source>Access Denied</source>
         <translation>拒否</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1211"/>
+        <location filename="../src/mainwindow.cpp" line="1227"/>
         <source>Comport Config Error</source>
         <translation>設定エラー</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1212"/>
+        <location filename="../src/mainwindow.cpp" line="1228"/>
         <source>BaudRate Not Supported</source>
         <translation>Baud未対応</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1213"/>
+        <location filename="../src/mainwindow.cpp" line="1229"/>
         <source>Error Reading Version</source>
         <translation>Ver読取失敗</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1214"/>
+        <location filename="../src/mainwindow.cpp" line="1230"/>
         <source>Error Malformed Version</source>
         <translation>Ver形式エラー</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1215"/>
+        <location filename="../src/mainwindow.cpp" line="1231"/>
         <source>Old Firmware</source>
         <translation>FW旧</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1217"/>
+        <location filename="../src/mainwindow.cpp" line="1233"/>
         <source>Send Failed</source>
         <translation>送信失敗</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1218"/>
+        <location filename="../src/mainwindow.cpp" line="1234"/>
         <source>Send Parameter Failed</source>
         <translation>送信失敗</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1219"/>
+        <location filename="../src/mainwindow.cpp" line="1235"/>
         <source>Read Response Failed or No Disk in Drive</source>
         <translation>失敗/未挿入</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1220"/>
+        <location filename="../src/mainwindow.cpp" line="1236"/>
         <source>Write Timeout</source>
         <translation>Timeout</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1221"/>
+        <location filename="../src/mainwindow.cpp" line="1237"/>
         <source>Serial Overrun</source>
         <translation>Overrun</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1222"/>
+        <location filename="../src/mainwindow.cpp" line="1238"/>
         <source>Framing Error</source>
         <translation>Frame失敗</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1223"/>
+        <location filename="../src/mainwindow.cpp" line="1239"/>
         <source>Error</source>
         <translation>エラー</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1226"/>
+        <location filename="../src/mainwindow.cpp" line="1242"/>
         <source>Track Range Error</source>
         <translation>Track範囲外</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1227"/>
+        <location filename="../src/mainwindow.cpp" line="1243"/>
         <source>Select Track Error</source>
         <translation>Track選択失敗</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1228"/>
+        <location filename="../src/mainwindow.cpp" line="1244"/>
         <source>Write Protected</source>
         <translation>保護中</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1229"/>
+        <location filename="../src/mainwindow.cpp" line="1245"/>
         <source>Status Error</source>
         <translation>Status失敗</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1230"/>
+        <location filename="../src/mainwindow.cpp" line="1246"/>
         <source>Send Data Failed</source>
         <translation>Data送信失敗</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1231"/>
+        <location filename="../src/mainwindow.cpp" line="1247"/>
         <source>Track Write Response Error</source>
         <translation>書込応答失敗</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1234"/>
+        <location filename="../src/mainwindow.cpp" line="1250"/>
         <source>No Disk In Drive</source>
         <translation>未挿入</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1236"/>
+        <location filename="../src/mainwindow.cpp" line="1252"/>
         <source>Diagnostic Not Available</source>
         <translation>診断機能は利用できません</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1237"/>
+        <location filename="../src/mainwindow.cpp" line="1253"/>
         <source>USB Serial Bad</source>
         <translation>USBシリアル不良</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1238"/>
+        <location filename="../src/mainwindow.cpp" line="1254"/>
         <source>CTS Failure</source>
         <translation>CTS故障</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1239"/>
+        <location filename="../src/mainwindow.cpp" line="1255"/>
         <source>Rewind Failure</source>
         <translation>巻戻失敗</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1240"/>
+        <location filename="../src/mainwindow.cpp" line="1256"/>
         <source>Media Type Mismatch or No Disk in Drive</source>
         <translation>不一致/未挿入</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1241"/>
+        <location filename="../src/mainwindow.cpp" line="1257"/>
         <source>Unknown Error</source>
         <translation>不明エラー</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1365"/>
+        <location filename="../src/mainwindow.cpp" line="1381"/>
         <source>=== Waffle Copy Pro - Diagnostic Test ===
 </source>
         <translation>=== Waffle Copy Pro - 診断テスト ===
 </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1366"/>
+        <location filename="../src/mainwindow.cpp" line="1382"/>
         <source>Starting diagnostic on port: %1
 </source>
         <translation>ポート%1で診断を開始: 
 </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1424"/>
+        <location filename="../src/mainwindow.cpp" line="1440"/>
         <source>
 === ALL TESTS PASSED ===</source>
         <translation>
 === 全テスト成功 ===</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1426"/>
+        <location filename="../src/mainwindow.cpp" line="1442"/>
         <source>
 === SOME TESTS FAILED ===</source>
         <translation>
 === 一部テスト失敗 ===</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1428"/>
+        <location filename="../src/mainwindow.cpp" line="1444"/>
         <source>
 Click anywhere on this window to close.</source>
         <translation>
 クリックで閉じる</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1712"/>
+        <location filename="../src/mainwindow.cpp" line="1728"/>
         <source>Select language:</source>
         <translation>言語:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1805"/>
+        <location filename="../src/mainwindow.cpp" line="1821"/>
         <source>Language Changed</source>
         <translation>変更済</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1806"/>
+        <location filename="../src/mainwindow.cpp" line="1822"/>
         <source>Language has been changed. The application will now close. Please restart it.</source>
         <translation>再起動必要</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1814"/>
+        <location filename="../src/mainwindow.cpp" line="1830"/>
         <source>About Waffle Copy Pro</source>
         <translation>About</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1815"/>
+        <location filename="../src/mainwindow.cpp" line="1831"/>
         <source>&lt;h3&gt;Waffle Copy Professional v%1&lt;/h3&gt;&lt;p&gt;The essential USB floppy drive solution for the real Amiga user.&lt;/p&gt;&lt;p&gt;&lt;b&gt;Original Concept:&lt;/b&gt; Rob Smith&lt;br&gt;&lt;b&gt;Modified version by:&lt;/b&gt; Gianluca Renzi&lt;br&gt;&lt;b&gt;Product by:&lt;/b&gt; RetroBit Lab and RetroGiovedi&lt;/p&gt;&lt;p&gt;IPF support powered by CAPS image library.&lt;br&gt;Music playback powered by libmikmod.&lt;/p&gt;</source>
         <translation>&lt;h3&gt;Waffle Copy Professional v%1&lt;/h3&gt;&lt;p&gt;本格的なAmigaユーザー向けの必須USBフロッピードライブソリューション。&lt;/p&gt;&lt;p&gt;&lt;b&gt;オリジナルコンセプト:&lt;/b&gt; Rob Smith&lt;br&gt;&lt;b&gt;改良版:&lt;/b&gt; Gianluca Renzi&lt;br&gt;&lt;b&gt;製品:&lt;/b&gt; RetroBit Lab and RetroGiovedi&lt;/p&gt;&lt;p&gt;IPFサポート: CAPS image library提供。&lt;br&gt;音楽再生: libmikmod提供。&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1828"/>
-        <location filename="../src/mainwindow.cpp" line="1873"/>
+        <location filename="../src/mainwindow.cpp" line="1844"/>
+        <location filename="../src/mainwindow.cpp" line="1889"/>
         <source>Simulation</source>
         <translation>シミュレーション</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1828"/>
-        <location filename="../src/mainwindow.cpp" line="1873"/>
+        <location filename="../src/mainwindow.cpp" line="1844"/>
+        <location filename="../src/mainwindow.cpp" line="1889"/>
         <source>Simulation already running</source>
         <translation>シミュレーションは既に実行中です</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1860"/>
-        <location filename="../src/mainwindow.cpp" line="1905"/>
+        <location filename="../src/mainwindow.cpp" line="1876"/>
+        <location filename="../src/mainwindow.cpp" line="1921"/>
         <source>Simulation Starting</source>
         <translation>シミュレーション開始</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1861"/>
+        <location filename="../src/mainwindow.cpp" line="1877"/>
         <source>Read simulation will process all %1 tracks:
 
 Track 0: Side 0 (Lower) then Side 1 (Upper)
@@ -733,7 +754,7 @@ Side 1 = Upper row (left side)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1906"/>
+        <location filename="../src/mainwindow.cpp" line="1922"/>
         <source>Write simulation will process all %1 tracks:
 
 Track 0: Side 0 (Lower) then Side 1 (Upper)
@@ -745,19 +766,19 @@ Side 1 = Upper row (left side)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1968"/>
+        <location filename="../src/mainwindow.cpp" line="1984"/>
         <source>%1 simulation completed successfully.
 
 %2 tracks processed (both sides: lower and upper)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1969"/>
+        <location filename="../src/mainwindow.cpp" line="1985"/>
         <source>Write</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1969"/>
+        <location filename="../src/mainwindow.cpp" line="1985"/>
         <source>Read</source>
         <translation type="unfinished"></translation>
     </message>
@@ -780,7 +801,7 @@ Side 1 = Upper row (left side)</source>
 サイド1 = 上の行（左側）</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="1967"/>
+        <location filename="../src/mainwindow.cpp" line="1983"/>
         <source>Simulation Complete</source>
         <translation>シミュレーション完了</translation>
     </message>
@@ -794,4 +815,3 @@ Side 1 = Upper row (left side)</source>
     </message>
 </context>
 </TS>
-

@@ -13,6 +13,7 @@ int main(int argc, char *argv[])
 {
     bool useVNC = false;
     bool useDebug = false;
+    bool useVerboseDebug = false;
     qreal forceScaleFactor = -1.0; // -1 means auto-detect
     
     for (int i=0; i < argc; i++)
@@ -25,6 +26,11 @@ int main(int argc, char *argv[])
         if (arg == "-debug")
         {
             useDebug = true;
+        }
+        if (arg == "-vdebug")
+        {
+            useDebug = true;
+            useVerboseDebug = true;
         }
         if (arg.startsWith("-scale="))
         {
@@ -41,6 +47,7 @@ int main(int argc, char *argv[])
     }
 
     DebugMsg::init(useDebug);
+    DebugMsg::initVerbose(useVerboseDebug);
 
     // Start an external Xorg based viewer
     if (useVNC)

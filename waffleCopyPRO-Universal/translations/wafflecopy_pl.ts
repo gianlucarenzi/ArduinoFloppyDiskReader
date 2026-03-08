@@ -293,6 +293,22 @@
         <translation>BŁĄD KOPIOWANIA DYSKU AMIGA</translation>
     </message>
     <message>
+        <source>ST COPY ERROR</source>
+        <translation>BŁĄD KOPIOWANIA DYSKU ST</translation>
+    </message>
+    <message>
+        <source>PC-DOS COPY ERROR</source>
+        <translation>BŁĄD KOPIOWANIA PC-DOS</translation>
+    </message>
+    <message>
+        <source>SCP COPY ERROR</source>
+        <translation>BŁĄD KOPIOWANIA SCP</translation>
+    </message>
+    <message>
+        <source>IPF COPY ERROR</source>
+        <translation>BŁĄD KOPIOWANIA IPF</translation>
+    </message>
+    <message>
         <source>PCW</source>
         <translation>PCW</translation>
     </message>
@@ -648,4 +664,3 @@ Pliki IPF można zapisać na dysku, ale nie można ich z niego utworzyć.</trans
     </message>
 </context>
 </TS>
-

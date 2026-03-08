@@ -293,6 +293,22 @@
         <translation>ERRO DE CÓPIA DE DISCO AMIGA</translation>
     </message>
     <message>
+        <source>ST COPY ERROR</source>
+        <translation>ERRO DE CÓPIA DE DISCO ST</translation>
+    </message>
+    <message>
+        <source>PC-DOS COPY ERROR</source>
+        <translation>ERRO DE CÓPIA PC-DOS</translation>
+    </message>
+    <message>
+        <source>SCP COPY ERROR</source>
+        <translation>ERRO DE CÓPIA SCP</translation>
+    </message>
+    <message>
+        <source>IPF COPY ERROR</source>
+        <translation>ERRO DE CÓPIA IPF</translation>
+    </message>
+    <message>
         <source>PCW</source>
         <translation>PCW</translation>
     </message>
@@ -648,4 +664,3 @@ Os ficheiros IPF podem ser escritos no disco, mas não criados a partir dele.</t
     </message>
 </context>
 </TS>
-
