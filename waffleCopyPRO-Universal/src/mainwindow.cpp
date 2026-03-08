@@ -945,12 +945,12 @@ void MainWindow::checkStartRead(void)
     // To have the correct text on the copyCompleted.
     ui->copyCompleted->setText(completionMessageForFile(ui->setADFFileName->text()));
     QString port = ui->serialPortComboBox->currentText();
-    DebugMsg::print(__func__, "checkStartRead: UI portName before modification =" + port);
+    DebugMsg::print(__func__, "checkStartRead: UI portName before modification =" + port + "\n");
 #ifndef _WIN32
     if (!port.startsWith("/dev/"))
         port.prepend("/dev/");
 #endif
-    DebugMsg::print(__func__, "checkStartRead: UI portName after modification =" + port);
+    DebugMsg::print(__func__, "checkStartRead: UI portName after modification =" + port + "\n");
 
     if (port.isEmpty()) {
         showSetupError(tr("ERROR: No serial port selected!\n\nPlease select a serial port from the dropdown menu."));
@@ -963,7 +963,7 @@ void MainWindow::checkStartRead(void)
     QFileInfo fileInfo(filename);
 
     if (fileInfo.suffix().toLower() == "ipf") {
-        DebugMsg::print(__func__, "ERROR: Cannot CREATE IPF files from disk.");
+        DebugMsg::print(__func__, "ERROR: Cannot CREATE IPF files from disk.\n");
         showSetupError(tr("ERROR: Cannot create IPF files!\n\nWaffle can only read disks into ADF, SCP, IMG/IMA, or ST formats.\nIPF files can be written to disk, but not created from one."));
         return;
     }
@@ -988,7 +988,7 @@ void MainWindow::checkStartRead(void)
 
     DebugMsg::print(__func__, "Track: " + QString::number(track));
     DebugMsg::print(__func__, "Side: " + QString::number(side));
-    DebugMsg::print(__func__, "Status: " + QString::number(status) + "NEED TO READ");
+    DebugMsg::print(__func__, "Status: " + QString::number(status) + " NEED TO READ");
 
     prepareTracksPosition();
     amigaBridge->setup(port, filename, command);

@@ -18,6 +18,6 @@ void ClickLabel::clicked(void)
 void ClickLabel::mouseReleaseEvent(QMouseEvent* event)
 {
     Q_UNUSED(event);
-    DebugMsg::print(__func__, "MOUSE RELEASE EVENT" + this->objectName());
+    DebugMsg::print(__func__, "MOUSE RELEASE EVENT" + this->objectName() + "\n");
     emit emitClick();
 }
