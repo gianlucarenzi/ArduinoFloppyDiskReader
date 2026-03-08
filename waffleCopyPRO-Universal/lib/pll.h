@@ -44,70 +44,70 @@
 
 namespace PLL {
 
-	class BridgePLL {
-	private:
+    class BridgePLL {
+    private:
 #ifdef ENABLE_REPLY
-		struct ReplayData {
-			uint32_t fluxTime;
-			bool isIndex;
-		};
+        struct ReplayData {
+            uint32_t fluxTime;
+            bool isIndex;
+        };
 #endif
-		const bool m_enabled;
+        const bool m_enabled;
 
-		// Rotation extractor
-		MFMExtractionTarget* m_extractor = nullptr;
+        // Rotation extractor
+        MFMExtractionTarget* m_extractor = nullptr;
 
-		// Clock
-		int32_t m_clock = 0;
-		int32_t m_latency = 0;
-		int32_t m_prevLatency = 0;
-		int32_t m_totalRealFlux = 0;
+        // Clock
+        int32_t m_clock = 0;
+        int32_t m_latency = 0;
+        int32_t m_prevLatency = 0;
+        int32_t m_totalRealFlux = 0;
 
-		// Current flux total in nanoseconds
-		int32_t m_nFluxSoFar = 0;
+        // Current flux total in nanoseconds
+        int32_t m_nFluxSoFar = 0;
 
 #ifdef ENABLE_REPLY
-		// If re-play is enabled
-		bool m_useReplay;
+        // If re-play is enabled
+        bool m_useReplay;
 
-		// For storing all flux data so far for "reply with jitter"
-		std::vector<ReplayData> m_fluxReplayData;
+        // For storing all flux data so far for "reply with jitter"
+        std::vector<ReplayData> m_fluxReplayData;
 #endif
-		// If the index was discovered
-		bool m_indexFound = false;
+        // If the index was discovered
+        bool m_indexFound = false;
 
-		// Add data to the Rotation Extractor
-		void addToExtractor(int numZeros, unsigned int pllTimeInNS, unsigned int realTimeInNS);
+        // Add data to the Rotation Extractor
+        void addToExtractor(int numZeros, unsigned int pllTimeInNS, unsigned int realTimeInNS);
 
-	public:
-		// Make me - if disabled this behaves very basic which might be useful for extraction of flux to SCP
-		BridgePLL(bool enabled, bool enableReplay);
+    public:
+        // Make me - if disabled this behaves very basic which might be useful for extraction of flux to SCP
+        BridgePLL(bool enabled, bool enableReplay);
 
-		// Submit flux to the PLL
-		void submitFlux(uint32_t timeInNanoSeconds, bool isAtIndex);
+        // Submit flux to the PLL
+        void submitFlux(uint32_t timeInNanoSeconds, bool isAtIndex);
 
-		// Reset the PLL
-		void reset();
+        // Reset the PLL
+        void reset();
 
-		// Prepare this to be used, by preparing the rotation extractor
-		void prepareExtractor(bool isHD, const RotationExtractor::IndexSequenceMarker& indexSequence);
+        // Prepare this to be used, by preparing the rotation extractor
+        void prepareExtractor(bool isHD, const RotationExtractor::IndexSequenceMarker& indexSequence);
 
-		// Change the rotation extractor
-		void setRotationExtractor(MFMExtractionTarget* extractor) { m_extractor = extractor; }
+        // Change the rotation extractor
+        void setRotationExtractor(MFMExtractionTarget* extractor) { m_extractor = extractor; }
 
-		// Re-plays the data back into the rotation extractor but with (random) +/- 64ns of jitter
-		void rePlayData(const unsigned int maxBufferSize, RotationExtractor::MFMSample* buffer, RotationExtractor::IndexSequenceMarker& indexMarker,
-			std::function<bool(RotationExtractor::MFMSample* mfmData, const unsigned int dataLengthInBits)> onRotation);
+        // Re-plays the data back into the rotation extractor but with (random) +/- 64ns of jitter
+        void rePlayData(const unsigned int maxBufferSize, RotationExtractor::MFMSample* buffer, RotationExtractor::IndexSequenceMarker& indexMarker,
+            std::function<bool(RotationExtractor::MFMSample* mfmData, const unsigned int dataLengthInBits)> onRotation);
 
-		// Return the active rotation extractor
-		MFMExtractionTarget* rotationExtractor() { return m_extractor; }
+        // Return the active rotation extractor
+        MFMExtractionTarget* rotationExtractor() { return m_extractor; }
 
-		// Pass on some functions from the extractor
-		bool canExtract() { return m_extractor->canExtract(); }
-		bool extractRotation(RotationExtractor::MFMSample* output, unsigned int& outputBits, const unsigned int maxBufferSizeBytes, const bool usePLLTime = false) { return m_extractor->extractRotation(output, outputBits, maxBufferSizeBytes, usePLLTime); }
-		void getIndexSequence(RotationExtractor::IndexSequenceMarker& sequence) const { m_extractor->getIndexSequence(sequence); }
-		unsigned int totalTimeReceived() const { return m_extractor->totalTimeReceived(); }
-	};
+        // Pass on some functions from the extractor
+        bool canExtract() { return m_extractor->canExtract(); }
+        bool extractRotation(RotationExtractor::MFMSample* output, unsigned int& outputBits, const unsigned int maxBufferSizeBytes, const bool usePLLTime = false) { return m_extractor->extractRotation(output, outputBits, maxBufferSizeBytes, usePLLTime); }
+        void getIndexSequence(RotationExtractor::IndexSequenceMarker& sequence) const { m_extractor->getIndexSequence(sequence); }
+        unsigned int totalTimeReceived() const { return m_extractor->totalTimeReceived(); }
+    };
 };
 
 

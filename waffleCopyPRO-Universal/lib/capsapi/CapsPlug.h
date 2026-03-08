@@ -4,8 +4,8 @@
 
 // library function pointers
 struct CapsProc {
-	const char* name;
-	void* proc;
+    const char* name;
+    void* proc;
 };
 
 #ifdef _WIN32

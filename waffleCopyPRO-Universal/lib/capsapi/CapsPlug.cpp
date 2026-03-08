@@ -61,21 +61,21 @@ void* capi = NULL;
 
 
 CapsProc cpr[]= {
-	"CAPSInit", NULL,
-	"CAPSExit", NULL,
-	"CAPSAddImage", NULL,
-	"CAPSRemImage", NULL,
-	"CAPSLockImage", NULL,
-	"CAPSUnlockImage", NULL,
-	"CAPSLoadImage", NULL,
-	"CAPSGetImageInfo", NULL,
-	"CAPSLockTrack", NULL,
-	"CAPSUnlockTrack", NULL,
-	"CAPSUnlockAllTracks", NULL,
-	"CAPSGetPlatformName", NULL,
-	"CAPSLockImageMemory", NULL,
-	"CAPSGetInfo", NULL,
-	NULL, NULL
+    "CAPSInit", NULL,
+    "CAPSExit", NULL,
+    "CAPSAddImage", NULL,
+    "CAPSRemImage", NULL,
+    "CAPSLockImage", NULL,
+    "CAPSUnlockImage", NULL,
+    "CAPSLoadImage", NULL,
+    "CAPSGetImageInfo", NULL,
+    "CAPSLockTrack", NULL,
+    "CAPSUnlockTrack", NULL,
+    "CAPSUnlockAllTracks", NULL,
+    "CAPSGetPlatformName", NULL,
+    "CAPSLockImageMemory", NULL,
+    "CAPSGetInfo", NULL,
+    NULL, NULL
 };
 
 
@@ -83,217 +83,217 @@ CapsProc cpr[]= {
 // start caps image support
 SDWORD CapsInit()
 {
-	DebugMsg::print(__func__, QString("ENTER"));
-	if (capi)
-		return imgeOk;
+    DebugMsg::print(__func__, QString("ENTER"));
+    if (capi)
+        return imgeOk;
 
 #ifdef CAPS_USER
-	// when linking capsimg sources directly, map function pointers to the library functions
-	cpr[0].proc = (void*)CAPSInit;
-	cpr[1].proc = (void*)CAPSExit;
-	cpr[2].proc = (void*)CAPSAddImage;
-	cpr[3].proc = (void*)CAPSRemImage;
-	cpr[4].proc = (void*)CAPSLockImage;
-	cpr[5].proc = (void*)CAPSUnlockImage;
-	cpr[6].proc = (void*)CAPSLoadImage;
-	cpr[7].proc = (void*)CAPSGetImageInfo;
-	cpr[8].proc = (void*)CAPSLockTrack;
-	cpr[9].proc = (void*)CAPSUnlockTrack;
-	cpr[10].proc = (void*)CAPSUnlockAllTracks;
-	cpr[11].proc = (void*)CAPSGetPlatformName;
-	cpr[12].proc = (void*)CAPSLockImageMemory;
-	cpr[13].proc = (void*)CAPSGetInfo;
-	// mark capi to indicate library available
-	#ifdef _WIN32
-		capi = (HMODULE)1;
-	#else
-		capi = (void*)1;
-	#endif
-	SDWORD res = cpr[0].proc ? CAPSHOOKN(cpr[0].proc)() : imgeUnsupported;
-	return res;
+    // when linking capsimg sources directly, map function pointers to the library functions
+    cpr[0].proc = (void*)CAPSInit;
+    cpr[1].proc = (void*)CAPSExit;
+    cpr[2].proc = (void*)CAPSAddImage;
+    cpr[3].proc = (void*)CAPSRemImage;
+    cpr[4].proc = (void*)CAPSLockImage;
+    cpr[5].proc = (void*)CAPSUnlockImage;
+    cpr[6].proc = (void*)CAPSLoadImage;
+    cpr[7].proc = (void*)CAPSGetImageInfo;
+    cpr[8].proc = (void*)CAPSLockTrack;
+    cpr[9].proc = (void*)CAPSUnlockTrack;
+    cpr[10].proc = (void*)CAPSUnlockAllTracks;
+    cpr[11].proc = (void*)CAPSGetPlatformName;
+    cpr[12].proc = (void*)CAPSLockImageMemory;
+    cpr[13].proc = (void*)CAPSGetInfo;
+    // mark capi to indicate library available
+    #ifdef _WIN32
+        capi = (HMODULE)1;
+    #else
+        capi = (void*)1;
+    #endif
+    SDWORD res = cpr[0].proc ? CAPSHOOKN(cpr[0].proc)() : imgeUnsupported;
+    return res;
 #else
 #ifdef _WIN32
-	capi = LoadLibrary(L"CAPSImg.dll");
+    capi = LoadLibrary(L"CAPSImg.dll");
 #else
 #ifdef __APPLE__
-	capi = dlopen("@rpath/CAPSImage.framework/Versions/Current/CAPSImage", RTLD_NOW);
-	if (!capi) capi = dlopen("CAPSImage.framework/Versions/Current/CAPSImage", RTLD_NOW);
-	if (!capi) capi = dlopen("CAPSImage.framework/CAPSImage", RTLD_NOW);
-	if (!capi) capi = dlopen("libcapsimage.dylib", RTLD_NOW);
-	if (!capi) capi = dlopen("libcapsimage.5.dylib", RTLD_NOW);
-	if (!capi) capi = dlopen("libcapsimage.5.1.dylib", RTLD_NOW);
-	if (!capi) capi = dlopen("libcapsimage.4.dylib", RTLD_NOW);
-	if (!capi) capi = dlopen("libcapsimage.4.2.dylib", RTLD_NOW);
+    capi = dlopen("@rpath/CAPSImage.framework/Versions/Current/CAPSImage", RTLD_NOW);
+    if (!capi) capi = dlopen("CAPSImage.framework/Versions/Current/CAPSImage", RTLD_NOW);
+    if (!capi) capi = dlopen("CAPSImage.framework/CAPSImage", RTLD_NOW);
+    if (!capi) capi = dlopen("libcapsimage.dylib", RTLD_NOW);
+    if (!capi) capi = dlopen("libcapsimage.5.dylib", RTLD_NOW);
+    if (!capi) capi = dlopen("libcapsimage.5.1.dylib", RTLD_NOW);
+    if (!capi) capi = dlopen("libcapsimage.4.dylib", RTLD_NOW);
+    if (!capi) capi = dlopen("libcapsimage.4.2.dylib", RTLD_NOW);
 #endif
-	capi = dlopen("libcapsimage.so.5", RTLD_NOW);
-	if (!capi) capi = dlopen("libcapsimage.so.5", RTLD_NOW);
-	if (!capi) capi = dlopen("libcapsimage.so.5.1", RTLD_NOW);
-	if (!capi) capi = dlopen("libcapsimage.so.4", RTLD_NOW);
-	if (!capi) capi = dlopen("libcapsimage.so.4.2", RTLD_NOW);
-	if (!capi) capi = dlopen("libcapsimage.so", RTLD_NOW);
+    capi = dlopen("libcapsimage.so.5", RTLD_NOW);
+    if (!capi) capi = dlopen("libcapsimage.so.5", RTLD_NOW);
+    if (!capi) capi = dlopen("libcapsimage.so.5.1", RTLD_NOW);
+    if (!capi) capi = dlopen("libcapsimage.so.4", RTLD_NOW);
+    if (!capi) capi = dlopen("libcapsimage.so.4.2", RTLD_NOW);
+    if (!capi) capi = dlopen("libcapsimage.so", RTLD_NOW);
 #endif
-	if (!capi)
-		return imgeUnsupported;
+    if (!capi)
+        return imgeUnsupported;
 
-	for (int prc=0; cpr[prc].name; prc++)
-		cpr[prc].proc= GETFUNC(capi, cpr[prc].name);
+    for (int prc=0; cpr[prc].name; prc++)
+        cpr[prc].proc= GETFUNC(capi, cpr[prc].name);
 
-	SDWORD res=cpr[0].proc ? CAPSHOOKN(cpr[0].proc)() : imgeUnsupported;
+    SDWORD res=cpr[0].proc ? CAPSHOOKN(cpr[0].proc)() : imgeUnsupported;
 
-	return res;
+    return res;
 #endif
 }
 
 // stop caps image support
 SDWORD CapsExit()
 {
-	SDWORD res=cpr[1].proc ? CAPSHOOKN(cpr[1].proc)() : imgeUnsupported;
+    SDWORD res=cpr[1].proc ? CAPSHOOKN(cpr[1].proc)() : imgeUnsupported;
 
 #ifndef CAPS_USER
-	if (capi)
-{
+    if (capi)
+    {
 #ifdef _WIN32
-		FreeLibrary(capi);
+        FreeLibrary(capi);
 #else
-		dlclose(capi);
+        dlclose(capi);
 #endif
-		capi=NULL;
-	}
+        capi=NULL;
+    }
 #else
-	// if CAPS_USER, do not attempt to free dynamic lib handle
-	capi = NULL;
+    // if CAPS_USER, do not attempt to free dynamic lib handle
+    capi = NULL;
 #endif
 
-	for (int prc=0; cpr[prc].name; prc++)
-		cpr[prc].proc=NULL;
+    for (int prc=0; cpr[prc].name; prc++)
+        cpr[prc].proc=NULL;
 
-	return res;
+    return res;
 }
 
 // add image container
 SDWORD CapsAddImage()
 {
-	DebugMsg::print(__func__, QString("ENTER"));
-	SDWORD res=cpr[2].proc ? CAPSHOOKN(cpr[2].proc)() : -1;
+    DebugMsg::print(__func__, QString("ENTER"));
+    SDWORD res=cpr[2].proc ? CAPSHOOKN(cpr[2].proc)() : -1;
 
-	return res;
+    return res;
 }
 
 // delete image container
 SDWORD CapsRemImage(SDWORD id)
 {
-	DebugMsg::print(__func__, QString("ENTER"));
+    DebugMsg::print(__func__, QString("ENTER"));
 #ifdef CAPS_USER
-	SDWORD res = CAPSRemImage(id);
+    SDWORD res = CAPSRemImage(id);
 #else
-	SDWORD res=cpr[3].proc ? CAPSHOOKN(cpr[3].proc)(id) : -1;
+    SDWORD res=cpr[3].proc ? CAPSHOOKN(cpr[3].proc)(id) : -1;
 #endif
 
-	return res;
+    return res;
 }
 
 // lock image
 SDWORD CapsLockImage(SDWORD id, PCHAR name)
 {
-	DebugMsg::print(__func__, QString("ENTER"));
-	SDWORD res=cpr[4].proc ? CAPSHOOKN(cpr[4].proc)(id, name) : imgeUnsupported;
+    DebugMsg::print(__func__, QString("ENTER"));
+    SDWORD res=cpr[4].proc ? CAPSHOOKN(cpr[4].proc)(id, name) : imgeUnsupported;
 
-	return res;
+    return res;
 }
 
 // unlock image
 SDWORD CapsUnlockImage(SDWORD id)
 {
-	DebugMsg::print(__func__, QString("ENTER"));
+    DebugMsg::print(__func__, QString("ENTER"));
 #ifdef CAPS_USER
-	SDWORD res = CAPSUnlockImage(id);
+    SDWORD res = CAPSUnlockImage(id);
 #else
-	SDWORD res=cpr[5].proc ? CAPSHOOKN(cpr[5].proc)(id) : imgeUnsupported;
+    SDWORD res=cpr[5].proc ? CAPSHOOKN(cpr[5].proc)(id) : imgeUnsupported;
 #endif
 
-	return res;
+    return res;
 }
 
 // load and decode complete image
 SDWORD CapsLoadImage(SDWORD id, UDWORD flag)
 {
-	DebugMsg::print(__func__, QString("ENTER"));
+    DebugMsg::print(__func__, QString("ENTER"));
 #ifdef CAPS_USER
-	SDWORD res = CAPSLoadImage(id, flag);
+    SDWORD res = CAPSLoadImage(id, flag);
 #else
-	SDWORD res=cpr[6].proc ? CAPSHOOKN(cpr[6].proc)(id, flag) : imgeUnsupported;
+    SDWORD res=cpr[6].proc ? CAPSHOOKN(cpr[6].proc)(id, flag) : imgeUnsupported;
 #endif
 
-	return res;
+    return res;
 }
 
 // get image information
 SDWORD CapsGetImageInfo(PCAPSIMAGEINFO pi, SDWORD id)
 {
-	DebugMsg::print(__func__, QString("ENTER"));
+    DebugMsg::print(__func__, QString("ENTER"));
 #ifdef CAPS_USER
-	SDWORD res = CAPSGetImageInfo(pi, id);
+    SDWORD res = CAPSGetImageInfo(pi, id);
 #else
-	SDWORD res=cpr[7].proc ? CAPSHOOKN(cpr[7].proc)(pi, id) : imgeUnsupported;
+    SDWORD res=cpr[7].proc ? CAPSHOOKN(cpr[7].proc)(pi, id) : imgeUnsupported;
 #endif
 
-	return res;
+    return res;
 }
 
 SDWORD CapsGetInfo(void* si, SDWORD id, UDWORD cylinder, UDWORD head, UDWORD inftype, UDWORD infid)
 {
-	DebugMsg::print(__func__, QString("ENTER"));
-	SDWORD res = cpr[13].proc ? CAPSHOOKN(cpr[13].proc)(si, id, cylinder, head, inftype, infid) : imgeUnsupported;
+    DebugMsg::print(__func__, QString("ENTER"));
+    SDWORD res = cpr[13].proc ? CAPSHOOKN(cpr[13].proc)(si, id, cylinder, head, inftype, infid) : imgeUnsupported;
 
-	return res;
+    return res;
 }
 
 // load and decode track, or return with the cache
 SDWORD CapsLockTrack(PCAPSTRACKINFO pi, SDWORD id, UDWORD cylinder, UDWORD head, UDWORD flag)
 {
-	DebugMsg::print(__func__, QString("ENTER"));
+    DebugMsg::print(__func__, QString("ENTER"));
 #ifdef CAPS_USER
-	SDWORD res = CAPSLockTrack(pi, id, cylinder, head, flag);
+    SDWORD res = CAPSLockTrack(pi, id, cylinder, head, flag);
 #else
-	SDWORD res=cpr[8].proc ? CAPSHOOKN(cpr[8].proc)(pi, id, cylinder, head, flag) : imgeUnsupported;
+    SDWORD res=cpr[8].proc ? CAPSHOOKN(cpr[8].proc)(pi, id, cylinder, head, flag) : imgeUnsupported;
 #endif
 
-	return res;
+    return res;
 }
 
 // remove track from cache
 SDWORD CapsUnlockTrack(SDWORD id, UDWORD cylinder, UDWORD head)
 {
-	DebugMsg::print(__func__, QString("ENTER"));
-	SDWORD res=cpr[9].proc ? CAPSHOOKN(cpr[9].proc)(id, cylinder, head) : imgeUnsupported;
+    DebugMsg::print(__func__, QString("ENTER"));
+    SDWORD res=cpr[9].proc ? CAPSHOOKN(cpr[9].proc)(id, cylinder, head) : imgeUnsupported;
 
-	return res;
+    return res;
 }
 
 // remove all tracks from cache
 SDWORD CapsUnlockAllTracks(SDWORD id)
 {
-	DebugMsg::print(__func__, QString("ENTER"));
-	SDWORD res=cpr[10].proc ? CAPSHOOKN(cpr[10].proc)(id) : imgeUnsupported;
+    DebugMsg::print(__func__, QString("ENTER"));
+    SDWORD res=cpr[10].proc ? CAPSHOOKN(cpr[10].proc)(id) : imgeUnsupported;
 
-	return res;
+    return res;
 }
 
 // get platform name
 PCHAR CapsGetPlatformName(UDWORD pid)
 {
-	DebugMsg::print(__func__, QString("ENTER"));
-	PCHAR res=cpr[11].proc ? CAPSHOOKS(cpr[11].proc)(pid) : NULL;
+    DebugMsg::print(__func__, QString("ENTER"));
+    PCHAR res=cpr[11].proc ? CAPSHOOKS(cpr[11].proc)(pid) : NULL;
 
-	return res;
+    return res;
 }
 
 // lock memory mapped image
 SDWORD CapsLockImageMemory(SDWORD id, PUBYTE buffer, UDWORD length, UDWORD flag)
 {
-	DebugMsg::print(__func__, QString("ENTER"));
-	SDWORD res=cpr[12].proc ? CAPSHOOKN(cpr[12].proc)(id, buffer, length, flag) : imgeUnsupported;
+    DebugMsg::print(__func__, QString("ENTER"));
+    SDWORD res=cpr[12].proc ? CAPSHOOKN(cpr[12].proc)(id, buffer, length, flag) : imgeUnsupported;
 
-	return res;
+    return res;
 }
 

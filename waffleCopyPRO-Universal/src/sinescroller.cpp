@@ -15,7 +15,7 @@ SineScroller::SineScroller(QWidget* parent)
     , m_textColor(Qt::white)
     , m_sineIndex(0)
     , m_baseY(0)
-{
+    {
     m_scrollTimer->setInterval(60);
     m_scrollTimer->setSingleShot(false);
     connect(m_scrollTimer, &QTimer::timeout, this, &SineScroller::doScroll);

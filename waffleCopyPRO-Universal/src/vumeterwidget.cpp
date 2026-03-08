@@ -11,7 +11,7 @@ VuMeterWidget::VuMeterWidget(QWidget *parent)
       m_yellow(255, 255, 0),
       m_green(0, 255, 0),
       m_peakDecayFactor(0.1f) // Initialize peak decay factor to 0.1f (500ms decay from 1.0)
-{
+      {
     // Set a fixed height for the widget (each bar 24px wide, total height 48px)
     setFixedHeight(48);
     // Initial minimum width, will be adjusted dynamically based on actual channels

@@ -68,7 +68,7 @@ MainWindow::MainWindow(QWidget *parent)
   m_simulationMode(false),
   m_simulationSkipped(false),
   m_simulationIsWrite(false)
-{
+  {
     ui->setupUi(this);
 
     // Check if scale factor was forced via QApplication property (from main.cpp)
@@ -818,13 +818,13 @@ QString MainWindow::completionMessageForFile(const QString& filename)
 {
     QString ext = QFileInfo(filename).suffix().toLower();
     if (ext == "scp")
-    	return tr("SCP COPY COMPLETED");
+        return tr("SCP COPY COMPLETED");
     if (ext == "ipf")
-    	return tr("IPF COPY COMPLETED");
+        return tr("IPF COPY COMPLETED");
     if (ext == "st")
-    	return tr("ST COPY COMPLETED");
+        return tr("ST COPY COMPLETED");
     if (ext == "img" || ext == "ima")
-    	return tr("PC-DOS COPY COMPLETED");
+        return tr("PC-DOS COPY COMPLETED");
     // Fallback for ADF files
     return tr("AMIGA DISK COPY COMPLETED");
 }
@@ -1551,17 +1551,17 @@ void MainWindow::refreshSerialPorts()
 #endif
             if (seen.contains(key))
             {
-            	ui->serialPortComboBox->removeItem(i);
-            	removedAny = true;
+                ui->serialPortComboBox->removeItem(i);
+                removedAny = true;
             }
             else
             {
-            	seen.insert(key);
+                seen.insert(key);
             }
         }
         if (removedAny)
         {
-        	DebugMsg::print(__func__, QString("Removed duplicate serial port entries"));
+            DebugMsg::print(__func__, QString("Removed duplicate serial port entries"));
         }
     }
 

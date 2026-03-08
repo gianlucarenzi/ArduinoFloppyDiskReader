@@ -41,10 +41,10 @@
 #ifndef _wcsupr
 #include <wctype.h>
 void _wcsupr(wchar_t* str) {
-	while (*str) {
-		*str = towupper(*str);
-		str++;
-	}
+    while (*str) {
+        *str = towupper(*str);
+        str++;
+    }
 }
 #endif
 static struct termios old, current;
@@ -79,9 +79,9 @@ char _getChar()
 }
 
 std::wstring atw(const std::string& str) {
-	std::wstring ws(str.size(), L' '); 
-	ws.resize(::mbstowcs((wchar_t*)ws.data(), str.c_str(), str.size())); 
-	return ws;
+    std::wstring ws(str.size(), L' '); 
+    ws.resize(::mbstowcs((wchar_t*)ws.data(), str.c_str(), str.size())); 
+    return ws;
 }
 #endif
 
@@ -560,11 +560,11 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 #pragma warning(pop)
 #endif
 
-	switch (result) {
-    case ADFResult::adfrBadSCPFile:				    printf("\nBad, invalid or unsupported SCP file                                               "); lastResponse = DiagnosticResponse::drError; break;
-    case ADFResult::adfrComplete:					printf("\rADF file written to disk                                                           "); lastResponse = DiagnosticResponse::drOK; break;
-    case ADFResult::adfrExtendedADFNotSupported:	printf("\nExtended ADF files are not currently supported.                                    "); lastResponse = DiagnosticResponse::drMediaTypeMismatch; break;
-    case ADFResult::adfrMediaSizeMismatch:			if (isIPF)
+    switch (result) {
+    case ADFResult::adfrBadSCPFile:                 printf("\nBad, invalid or unsupported SCP file                                               "); lastResponse = DiagnosticResponse::drError; break;
+    case ADFResult::adfrComplete:                   printf("\rADF file written to disk                                                           "); lastResponse = DiagnosticResponse::drOK; break;
+    case ADFResult::adfrExtendedADFNotSupported:    printf("\nExtended ADF files are not currently supported.                                    "); lastResponse = DiagnosticResponse::drMediaTypeMismatch; break;
+    case ADFResult::adfrMediaSizeMismatch:          if (isIPF)
                                                         printf("\nIPF writing is only supported for DD disks and images                          "); else
                                                     if (isSCP)
                                                         printf("\nSCP writing is only supported for DD disks and images                             "); else
@@ -578,15 +578,15 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
                                                     lastResponse = DiagnosticResponse::drMediaTypeMismatch;
                                                     break;
     case ADFResult::adfrFirmwareTooOld:             printf("\nCannot write this file, you need to upgrade the firmware first.                    "); lastResponse = DiagnosticResponse::drOldFirmware; break;
-    case ADFResult::adfrCompletedWithErrors:		printf("\rADF file written to disk but there were errors during verification                 "); lastResponse = DiagnosticResponse::drOK; break;
-    case ADFResult::adfrAborted:					printf("\rWriting ADF file to disk                                                           "); lastResponse = DiagnosticResponse::drOK; break;
-    case ADFResult::adfrFileError:					printf("\rError opening ADF file.                                                            "); lastResponse = DiagnosticResponse::drError; break;
-    case ADFResult::adfrIPFLibraryNotAvailable:		printf("\nIPF CAPSImg from Software Preservation Society Library Missing                     "); lastResponse = DiagnosticResponse::drErrorMalformedVersion; break;
-    case ADFResult::adfrDriveError:					printf("\rError communicating with the Arduino interface.                                    ");
+    case ADFResult::adfrCompletedWithErrors:        printf("\rADF file written to disk but there were errors during verification                 "); lastResponse = DiagnosticResponse::drOK; break;
+    case ADFResult::adfrAborted:                    printf("\rWriting ADF file to disk                                                           "); lastResponse = DiagnosticResponse::drOK; break;
+    case ADFResult::adfrFileError:                  printf("\rError opening ADF file.                                                            "); lastResponse = DiagnosticResponse::drError; break;
+    case ADFResult::adfrIPFLibraryNotAvailable:     printf("\nIPF CAPSImg from Software Preservation Society Library Missing                     "); lastResponse = DiagnosticResponse::drErrorMalformedVersion; break;
+    case ADFResult::adfrDriveError:                 printf("\rError communicating with the Arduino interface.                                    ");
                                                     printf("\n%s                                                  ", ArduinoFloppyReader::ADFWriterManager::getInstance().getLastError().c_str()); lastResponse = DiagnosticResponse::drError; break;
-    case ADFResult::adfrDiskWriteProtected:			printf("\rError, disk is write protected!                                                    "); lastResponse = DiagnosticResponse::drWriteProtected; break;
+    case ADFResult::adfrDiskWriteProtected:         printf("\rError, disk is write protected!                                                    "); lastResponse = DiagnosticResponse::drWriteProtected; break;
         default:                                       printf("\rAn unknown error occured                                                           "); lastResponse = DiagnosticResponse::drError; break;
-    	}
+        }
         ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice();
 }
 
@@ -594,37 +594,37 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 // Read a disk and save it to ADF or SCP files
 void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool skipReadError) {
 //    qDebug() << __func__ << "START";
-	const wchar_t* extension = wcsrchr(filename.c_str(), L'.');
-	bool isIMG = false;
-	bool isST = false;
-	bool isADF = true;
+    const wchar_t* extension = wcsrchr(filename.c_str(), L'.');
+    bool isIMG = false;
+    bool isST = false;
+    bool isADF = true;
 
-	if (extension) {
-		extension++;
-		isIMG = iequals(extension, L"IMG") || iequals(extension, L"IMA");
-		isST = iequals(extension, L"ST");
-		isADF = !iequals(extension, L"SCP") && !isIMG && !isST;
-	}
+    if (extension) {
+        extension++;
+        isIMG = iequals(extension, L"IMG") || iequals(extension, L"IMA");
+        isST = iequals(extension, L"ST");
+        isADF = !iequals(extension, L"SCP") && !isIMG && !isST;
+    }
 
-	if (isADF) printf("\nCreate ADF from disk mode\n\n"); else
-	if (isIMG) printf("\nCreate IMG/IMA (PC) file from disk mode\n\n"); else
-	if (isST) printf("\nCreate ST (Atari ST) file from disk mode\n\n"); else
-	printf("\nCreate SCP file from disk mode\n\n");
+    if (isADF) printf("\nCreate ADF from disk mode\n\n"); else
+    if (isIMG) printf("\nCreate IMG/IMA (PC) file from disk mode\n\n"); else
+    if (isST) printf("\nCreate ST (Atari ST) file from disk mode\n\n"); else
+    printf("\nCreate SCP file from disk mode\n\n");
 
-	// Get the current firmware version.  Only valid if openDevice is successful
-	const ArduinoFloppyReader::FirmwareVersion v = ArduinoFloppyReader::ADFWriterManager::getInstance().getFirwareVersion();
-	if ((v.major == 1) && (v.minor < 8)) {
-		if (!isADF && !isIMG && !isST) {
-			printf("This requires firmware V1.8 or newer.\n");
+    // Get the current firmware version.  Only valid if openDevice is successful
+    const ArduinoFloppyReader::FirmwareVersion v = ArduinoFloppyReader::ADFWriterManager::getInstance().getFirwareVersion();
+    if ((v.major == 1) && (v.minor < 8)) {
+        if (!isADF && !isIMG && !isST) {
+            printf("This requires firmware V1.8 or newer.\n");
             lastResponse = DiagnosticResponse::drOldFirmware;
-			return;
-		}
-		else {
-			// improved disk timings in 1.8, so make them aware
-			printf("Rob strongly recommends updating the firmware on your Arduino to at least V1.8.\n");
-			printf("That version is even better at reading old disks.\n");
-		}
-	}
+            return;
+        }
+        else {
+            // improved disk timings in 1.8, so make them aware
+            printf("Rob strongly recommends updating the firmware on your Arduino to at least V1.8.\n");
+            printf("That version is even better at reading old disks.\n");
+        }
+    }
 
 //    bool hdMode = false;
 
@@ -634,13 +634,13 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool ski
 #endif
     auto callback = [isADF, isIMG, isST, hdMode, skipReadError](const int32_t currentTrack, const DiskSurface currentSide, const int32_t retryCounter, const int32_t sectorsFound, const int32_t badSectorsFound, const int totalSectors, const CallbackOperation operation) ->WriteResponse {
         //qDebug() << __func__ << "Callback entered. Track:" << currentTrack << "Side:" << (int)currentSide << "Retry:" << retryCounter << "Bad Sectors:" << badSectorsFound;
-		if (retryCounter > 20) {
+        if (retryCounter > 20) {
             if (skipReadError) {
                 //qDebug() << __func__ << "skipReadError is true, returning wrSkipBadChecksums for Track:" << currentTrack;
                 return WriteResponse::wrSkipBadChecksums;
             }
-			char input;
-			do {
+            char input;
+            do {
 #ifdef __USE_GUI__
                     // Now we have to inform the GUI Thread we have an error, and we need to decide how to proceed
                     update_error_file(1); // set error flag
@@ -658,12 +658,12 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool ski
 #endif
 
             } while ((input != 'R') && (input != 'S') && (input != 'A'));
-			switch (input) {
-			case 'R': return WriteResponse::wrRetry;
+            switch (input) {
+            case 'R': return WriteResponse::wrRetry;
             case 'S': return WriteResponse::wrSkipBadChecksums;
-			case 'A': return WriteResponse::wrAbort;
-			}
-		}
+            case 'A': return WriteResponse::wrAbort;
+            }
+        }
 
 #ifdef __USE_GUI__
         update_gui( currentTrack, currentSide, badSectorsFound );
@@ -680,17 +680,17 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool ski
 #endif
 
 #ifndef _WIN32
-		fflush(stdout);		
-#endif		
+        fflush(stdout);     
+#endif      
         //qDebug() << __func__ << "Returning wrContinue for Track:" << currentTrack;
-		return WriteResponse::wrContinue;
-	};
+        return WriteResponse::wrContinue;
+    };
 #ifdef _WIN32
 #pragma warning(pop)
 #endif
 
-	ADFResult result;
-	
+    ADFResult result;
+    
     if (numTracks > 83)
         numTracks = 83;
 
@@ -705,48 +705,48 @@ void disk2ADF(const std::wstring& filename, int numTracks, bool hdMode, bool ski
     }
     //qDebug() << __func__ << "Disk read operation finished with result:" << (int)result;
 
-	switch (result) {
-    case ADFResult::adfrComplete:					printf("\rFile created successfully.                                                     "); lastResponse = DiagnosticResponse::drOK; break;
-    case ADFResult::adfrAborted:					printf("\rFile aborted.                                                                  "); lastResponse = DiagnosticResponse::drOK; break;
-    case ADFResult::adfrFileError:					printf("\rError creating file.                                                           "); lastResponse = DiagnosticResponse::drError; break;
-    case ADFResult::adfrFileIOError:				printf("\rError writing to file.                                                         "); lastResponse = DiagnosticResponse::drError; break;
-    case ADFResult::adfrFirmwareTooOld:			    printf("\rThis requires firmware V1.8 or newer.                                          "); lastResponse = DiagnosticResponse::drOldFirmware; break;
-    case ADFResult::adfrCompletedWithErrors:		printf("\rFile created with partial success.                                             "); lastResponse = DiagnosticResponse::drOK; break;
-	    case ADFResult::adfrDriveError:					printf("\rError communicating with the Arduino interface.                                ");
-	                                                    printf("\n%s                                                  ", ArduinoFloppyReader::ADFWriterManager::getInstance().getLastError().c_str()); lastResponse = DiagnosticResponse::drError; break;    default: 										printf("\rAn unknown error occured.                                                      "); lastResponse = DiagnosticResponse::drError; break;
-	}
+    switch (result) {
+    case ADFResult::adfrComplete:                   printf("\rFile created successfully.                                                     "); lastResponse = DiagnosticResponse::drOK; break;
+    case ADFResult::adfrAborted:                    printf("\rFile aborted.                                                                  "); lastResponse = DiagnosticResponse::drOK; break;
+    case ADFResult::adfrFileError:                  printf("\rError creating file.                                                           "); lastResponse = DiagnosticResponse::drError; break;
+    case ADFResult::adfrFileIOError:                printf("\rError writing to file.                                                         "); lastResponse = DiagnosticResponse::drError; break;
+    case ADFResult::adfrFirmwareTooOld:             printf("\rThis requires firmware V1.8 or newer.                                          "); lastResponse = DiagnosticResponse::drOldFirmware; break;
+    case ADFResult::adfrCompletedWithErrors:        printf("\rFile created with partial success.                                             "); lastResponse = DiagnosticResponse::drOK; break;
+        case ADFResult::adfrDriveError:                 printf("\rError communicating with the Arduino interface.                                ");
+                                                        printf("\n%s                                                  ", ArduinoFloppyReader::ADFWriterManager::getInstance().getLastError().c_str()); lastResponse = DiagnosticResponse::drError; break;    default:                                       printf("\rAn unknown error occured.                                                      "); lastResponse = DiagnosticResponse::drError; break;
+    }
     ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice();
 }
 
 // Run the diagnostics module
 void runDiagnostics(const std::wstring& port) {
-	printf("\rRunning diagnostics on COM port: %ls\n",port.c_str());
+    printf("\rRunning diagnostics on COM port: %ls\n",port.c_str());
 
-	ArduinoFloppyReader::ADFWriterManager::getInstance().runDiagnostics(port, [](bool isError, const std::string message)->void {
-		if (isError)
-			printf("DIAGNOSTICS FAILED: %s\n",message.c_str());
-		else 
-			printf("%s\n", message.c_str());
-	}, [](bool isQuestion, const std::string question)->bool {
-		if (isQuestion) 
-			printf("%s [Y/N]: ", question.c_str());
-		else 
-			printf("%s [Enter/ESC]: ", question.c_str());
+    ArduinoFloppyReader::ADFWriterManager::getInstance().runDiagnostics(port, [](bool isError, const std::string message)->void {
+        if (isError)
+            printf("DIAGNOSTICS FAILED: %s\n",message.c_str());
+        else 
+            printf("%s\n", message.c_str());
+    }, [](bool isQuestion, const std::string question)->bool {
+        if (isQuestion) 
+            printf("%s [Y/N]: ", question.c_str());
+        else 
+            printf("%s [Enter/ESC]: ", question.c_str());
 
-		char c;
-		do {
+        char c;
+        do {
 #ifdef _WIN32
-			c = toupper(_getch());
+            c = toupper(_getch());
 #else
-			c = toupper(_getChar());
-#endif	
-		} while ((c != 'Y') && (c != 'N') && (c != '\n') && (c != '\r') && (c != '\x1B'));
-		printf("%c\n", c);
+            c = toupper(_getChar());
+#endif  
+        } while ((c != 'Y') && (c != 'N') && (c != '\n') && (c != '\r') && (c != '\x1B'));
+        printf("%c\n", c);
 
-		return (c == 'Y') || (c == '\n') || (c == '\r') || (c == '\x1B');
-	});
+        return (c == 'Y') || (c == '\n') || (c == '\r') || (c == '\x1B');
+    });
 
-	ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice();
+    ArduinoFloppyReader::ADFWriterManager::getInstance().closeDevice();
 }
 
 #include <QStringList>
@@ -797,7 +797,7 @@ int wmain(QStringList list)
                 disk2ADF(filename.c_str(), numTracks, isHDMode, skipReadError);
                 lastResponse = ArduinoFloppyReader::ADFWriterManager::getInstance().getLastErrorCode();
             }
-	}
+    }
 
 
     int globalError;
