@@ -296,7 +296,7 @@ struct AffsFs {
             uint8_t raw[512]={}; if(!readBlock(db[bi],raw)) break;
             const uint8_t* data=raw+doff;
             off_t from=std::max(offset-bs,(off_t)0);
-            size_t srcOff=done+(size_t)(bs+from-offset);
+            size_t srcOff=(size_t)(bs+from-offset);  // position in output buf
             size_t avail=(size_t)(bds-from);
             size_t take=std::min(avail,toRead-srcOff);
             memcpy(buf+srcOff,data+from,take); done+=take;
