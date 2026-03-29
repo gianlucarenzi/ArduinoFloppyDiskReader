@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+
+  <!-- Floppy body – square, black, thick WHITE border -->
+  <rect x="3" y="3" width="58" height="58" rx="5" ry="5"
+        fill="#212121" stroke="#000000" stroke-width="3"/>
+
+  <!-- Top-left write-protect slider notch -->
+  <rect x="6" y="6" width="8" height="8" rx="1.5" ry="1.5" fill="#111"/>
+  <!-- Top centre hub/label chip -->
+  <rect x="18" y="6" width="28" height="9" rx="2" ry="2" fill="#111"/>
+
+  <!-- Label area – dark grey -->
+  <rect x="12" y="17" width="40" height="22" rx="2" ry="2" fill="#424242"/>
+
+  <!-- Charlie Chaplin face on label (simplified, high contrast) -->
+  <!-- Face -->
+  <ellipse cx="32" cy="27" rx="8" ry="8.5" fill="#FFECB3"/>
+  <!-- Bowler hat brim -->
+  <ellipse cx="32" cy="19.5" rx="10" ry="2.2" fill="#1a1a1a"/>
+  <!-- Bowler hat dome -->
+  <ellipse cx="32" cy="14.5" rx="6.5" ry="5" fill="#1a1a1a"/>
+  <!-- Hat shine -->
+  <ellipse cx="29.5" cy="13" rx="1.8" ry="1.2" fill="rgba(255,255,255,0.18)"/>
+  <!-- Eyes -->
+  <ellipse cx="28.5" cy="26.5" rx="1.3" ry="1.6" fill="#111"/>
+  <ellipse cx="35.5" cy="26.5" rx="1.3" ry="1.6" fill="#111"/>
+  <!-- Toothbrush moustache -->
+  <rect x="29.5" y="31" width="5" height="2.2" rx="1" ry="1" fill="#111"/>
+  <!-- Smile -->
+  <path d="M28 33.5 Q32 36.5 36 33.5" stroke="#8D6E63" stroke-width="1"
+        fill="none" stroke-linecap="round"/>
+  <!-- Ears -->
+  <ellipse cx="24" cy="27" rx="1.4" ry="2" fill="#FFECB3"/>
+  <ellipse cx="40" cy="27" rx="1.4" ry="2" fill="#FFECB3"/>
+
+  <!-- Metal shutter -->
+  <rect x="3"  y="43" width="58" height="18" rx="5" ry="5" fill="#455A64"/>
+  <rect x="3"  y="43" width="58" height="5"  fill="#37474F"/>
+  <!-- Shutter slot -->
+  <rect x="19" y="43" width="26" height="18" rx="2" ry="2" fill="#607D8B"/>
+  <!-- Re-draw white border on top -->
+  <rect x="3" y="3" width="58" height="58" rx="5" ry="5"
+        fill="none" stroke="#000000" stroke-width="3"/>
+</svg>

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Amiga Floppy (HD 1.76MB)
+Name[it]=Floppy Amiga (HD 1.76MB)
+Comment=Mount an Amiga OFS/FFS HD floppy via DrawBridge/Waffle
+Comment[it]=Monta un floppy Amiga OFS/FFS HD tramite DrawBridge/Waffle
+Exec=sh -c 'SCRIPT_DIR=$(dirname $(readlink -f %k)); "$SCRIPT_DIR/scripts/waffle-mount.sh" amiga hd'
+Icon=ICON_PATH_PLACEHOLDER/amiga-floppy.svg
+Terminal=false
+Categories=System;FileManager;
+Keywords=amiga;floppy;drawbridge;waffle;adf;ofs;ffs;hd;
+StartupNotify=false

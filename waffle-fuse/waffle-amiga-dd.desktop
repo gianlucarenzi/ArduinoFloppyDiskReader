@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Amiga Floppy (DD 880K)
+Name[it]=Floppy Amiga (DD 880K)
+Comment=Mount an Amiga OFS/FFS DD floppy via DrawBridge/Waffle
+Comment[it]=Monta un floppy Amiga OFS/FFS DD tramite DrawBridge/Waffle
+Exec=sh -c 'SCRIPT_DIR=$(dirname $(readlink -f %k)); "$SCRIPT_DIR/scripts/waffle-mount.sh" amiga dd'
+Icon=ICON_PATH_PLACEHOLDER/amiga-floppy.svg
+Terminal=false
+Categories=System;FileManager;
+Keywords=amiga;floppy;drawbridge;waffle;adf;ofs;ffs;
+StartupNotify=false

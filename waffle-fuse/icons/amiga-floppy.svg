@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="amigaRainbow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#F44336"/>
+      <stop offset="25%"  stop-color="#FF9800"/>
+      <stop offset="50%"  stop-color="#FFEB3B"/>
+      <stop offset="75%"  stop-color="#4CAF50"/>
+      <stop offset="100%" stop-color="#2196F3"/>
+    </linearGradient>
+    <clipPath id="labelClip">
+      <rect x="12" y="17" width="40" height="22" rx="2" ry="2"/>
+    </clipPath>
+  </defs>
+
+  <!-- Floppy body – square, azure/blue, thick BLACK border -->
+  <rect x="3" y="3" width="58" height="58" rx="5" ry="5"
+        fill="#1565C0" stroke="#000000" stroke-width="3"/>
+
+  <!-- Top-left write-protect slider notch -->
+  <rect x="6" y="6" width="8" height="8" rx="1.5" ry="1.5" fill="#0D47A1"/>
+  <!-- Top centre hub/label chip -->
+  <rect x="18" y="6" width="28" height="9" rx="2" ry="2" fill="#0D47A1"/>
+
+  <!-- Label area -->
+  <rect x="12" y="17" width="40" height="22" rx="2" ry="2" fill="#F5F5F5"/>
+
+  <!-- Amiga rainbow checkmark on label -->
+  <g clip-path="url(#labelClip)">
+    <polyline points="15,30  23,39  52,19"
+      stroke="url(#amigaRainbow)" stroke-width="6.5"
+      stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <polyline points="15,30  23,39  52,19"
+      stroke="rgba(255,255,255,0.35)" stroke-width="2.5"
+      stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+
+  <!-- Metal shutter (bottom ~1/5 of disk) -->
+  <rect x="3"  y="43" width="58" height="18" rx="0" ry="0" fill="#607D8B"
+        clip-path="inset(0 0 0 0 round 0 0 5px 5px)"/>
+  <!-- Clip bottom corners of shutter to match body radius -->
+  <rect x="3"  y="43" width="58" height="18" rx="5" ry="5" fill="#607D8B"/>
+  <rect x="3"  y="43" width="58" height="5"  fill="#546E7A"/>
+  <!-- Shutter slot -->
+  <rect x="19" y="43" width="26" height="18" rx="2" ry="2" fill="#90A4AE"/>
+  <!-- Re-draw the thick black border on top of the shutter so it's continuous -->
+  <rect x="3" y="3" width="58" height="58" rx="5" ry="5"
+        fill="none" stroke="#000000" stroke-width="3"/>
+</svg>
