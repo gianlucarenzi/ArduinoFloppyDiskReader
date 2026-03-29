@@ -46,17 +46,17 @@ for desktop in "$WAFFLE_DIR"/waffle-amiga-dd.desktop \
 done
 
 # Install DiskFlashback daemon launcher
-DAEMON_DST="$APP_DST/waffle-diskflashback.desktop"
-chmod +x "$WAFFLE_DIR/scripts/waffle-diskflashback.py"
-sed \
-    -e "s|ICON_PATH_PLACEHOLDER|$ICON_DST|g" \
-    -e "s|WAFFLE_DIR_PLACEHOLDER|$WAFFLE_DIR|g" \
-    "$WAFFLE_DIR/waffle-diskflashback.desktop" > "$DAEMON_DST"
-echo "Installed $DAEMON_DST"
+#DAEMON_DST="$APP_DST/waffle-diskflashback.desktop"
+#chmod +x "$WAFFLE_DIR/scripts/waffle-diskflashback.py"
+#sed \
+#    -e "s|ICON_PATH_PLACEHOLDER|$ICON_DST|g" \
+#    -e "s|WAFFLE_DIR_PLACEHOLDER|$WAFFLE_DIR|g" \
+#    "$WAFFLE_DIR/waffle-diskflashback.desktop" > "$DAEMON_DST"
+#echo "Installed $DAEMON_DST"
 
 # Autostart entry – start DiskFlashback at login
-cp "$DAEMON_DST" "$AUTOSTART_DST/waffle-diskflashback.desktop"
-echo "Autostart entry installed to $AUTOSTART_DST/waffle-diskflashback.desktop"
+#cp "$DAEMON_DST" "$AUTOSTART_DST/waffle-diskflashback.desktop"
+#echo "Autostart entry installed to $AUTOSTART_DST/waffle-diskflashback.desktop"
 
 # Refresh desktop database
 if command -v update-desktop-database >/dev/null 2>&1; then
@@ -69,11 +69,11 @@ fi
 echo ""
 echo "Done. Launchers are in the application menu under 'System'."
 echo "  - Per-format launchers: waffle-amiga-dd/hd, waffle-dos-dd/hd"
-echo "  - Auto-detect daemon:   Waffle DiskFlashback (also set to autostart)"
+#echo "  - Auto-detect daemon:   Waffle DiskFlashback (also set to autostart)"
 echo ""
 echo "To place launchers on the Desktop:"
 echo "  cp $APP_DST/waffle-*.desktop ~/Desktop/"
 echo "  chmod +x ~/Desktop/waffle-*.desktop"
 echo ""
-echo "To start the daemon now:"
-echo "  $WAFFLE_DIR/scripts/waffle-diskflashback.py &"
+#echo "To start the daemon now:"
+#echo "  $WAFFLE_DIR/scripts/waffle-diskflashback.py &"
