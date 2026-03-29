@@ -51,6 +51,12 @@ public:
     void close();
     bool isOpen() const { return m_open; }
 
+    // Lightweight probe: open port, check disk presence, close (no head movement).
+    // Returns:  0 = disk present
+    //           1 = no disk in drive
+    //           2 = port error / hardware not found
+    static int probe(const std::string& portName);
+
     // IDiskImage
     bool     readSector(uint32_t lba, uint8_t* buf512)        override;
     bool     writeSector(uint32_t lba, const uint8_t* buf512) override;

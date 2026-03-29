@@ -153,6 +153,9 @@ static void usage(const char* progname)
 {
     std::cerr <<
         "Usage: " << progname << " <serial-port> <mountpoint> [fuse-options]\n"
+        "       " << progname << " --probe <serial-port>\n"
+        "\n"
+        "  --probe    Check if a disk is present (exit 0=disk, 1=no disk, 2=error).\n"
         "\n"
         "Extra options (pass with -o):\n"
         "  format=fat|affs   force filesystem type (default: autodetect)\n"
@@ -161,11 +164,24 @@ static void usage(const char* progname)
         "Examples:\n"
         "  " << progname << " /dev/ttyUSB0 /mnt/floppy\n"
         "  " << progname << " /dev/ttyUSB0 /mnt/amiga -o format=affs,ro\n"
-        "  " << progname << " /dev/ttyUSB0 /mnt/floppy -f   # foreground\n";
+        "  " << progname << " /dev/ttyUSB0 /mnt/floppy -f   # foreground\n"
+        "  " << progname << " --probe /dev/ttyUSB0           # disk check\n";
 }
 
 int main(int argc, char* argv[])
 {
+    // --probe <serial-port>: lightweight disk-presence check; no mount.
+    // Exit code: 0 = disk present, 1 = no disk, 2 = port/hardware error.
+    if (argc >= 3 && strcmp(argv[1], "--probe") == 0) {
+        int r = WaffleDisk::probe(argv[2]);
+        switch (r) {
+            case 0: std::cout << "disk\n";   break;
+            case 1: std::cout << "nodisk\n"; break;
+            default:std::cout << "error\n";  break;
+        }
+        return r;
+    }
+
     // We expect at least two non-option arguments: <port> <mountpoint>
     if (argc < 3) {
         usage(argv[0]);

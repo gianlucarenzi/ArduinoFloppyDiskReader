@@ -36,8 +36,8 @@ SERIAL_CANDIDATES = [
     '/dev/ttyACM0', '/dev/ttyACM1',
 ]
 
-POLL_INTERVAL_MS = 2000   # polling when idle
-CHECK_INTERVAL_MS = 3000  # check mount health when mounted
+POLL_INTERVAL_MS  = 500    # probe poll interval (same as waffleCopyPro diagnostics)
+CHECK_INTERVAL_MS = 3000   # check mount health when mounted
 
 # ── Tray icon ─────────────────────────────────────────────────────────────────
 ICONS = {
@@ -164,15 +164,28 @@ class WaffleDaemon:
         menu.popup(None, None, Gtk.StatusIcon.position_menu, icon, button, ts)
 
     # ── Polling ───────────────────────────────────────────────────────────────
+    def _probe_port(self, port):
+        """Run waffle-fuse --probe <port>. Returns True if a disk is present."""
+        try:
+            r = subprocess.run(
+                [WAFFLE_BIN, '--probe', port],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                timeout=10
+            )
+            return r.returncode == 0  # 0 = disk present
+        except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+            return False
+
     def _poll_tick(self):
         """Called every POLL_INTERVAL_MS while idle."""
         if self.state != 'idle':
             return False  # stop this timer; mounting/mounted has its own logic
 
-        port = next((p for p in SERIAL_CANDIDATES if os.path.exists(p)), None)
-        if port:
-            self.port = port
-            self._start_mount()
+        for port in SERIAL_CANDIDATES:
+            if os.path.exists(port) and self._probe_port(port):
+                self.port = port
+                self._start_mount()
+                return False  # stop idle poll; mount thread takes over
         return True  # keep timer alive
 
     def _watch_mounted_tick(self):
@@ -269,7 +282,7 @@ class WaffleDaemon:
         # Parse waffle-fuse output for human-readable info
         info = self._parse_disk_info(raw_output)
         self.disk_info = info
-        self._set_tooltip(f'⏏ Click to eject  –  {info}')
+        self._set_tooltip(f'Disk mounted: {info}  –  right-click for menu')
         notify('waffle-fuse', f'Disk mounted: {info}')
         open_file_manager(MOUNTPOINT)
 

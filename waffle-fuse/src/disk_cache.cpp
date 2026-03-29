@@ -74,6 +74,22 @@ void WaffleDisk::close()
     m_open = false;
 }
 
+// ── Probe (lightweight disk presence check, no head movement) ─────────────────
+
+int WaffleDisk::probe(const std::string& portName)
+{
+    using namespace ArduinoFloppyReader;
+    ADFWriter writer;
+    if (!writer.openDevice(toWide(portName)))
+        return 2;  // port error / hardware not found
+    // checkIfDiskIsWriteProtected(true) internally calls checkForDisk(true),
+    // which sends the COMMAND_CHECKDISKEXISTS ('^') byte and updates isDiskInDrive().
+    writer.checkIfDiskIsWriteProtected(true);
+    bool present = writer.isDiskInDrive();
+    writer.closeDevice();
+    return present ? 0 : 1;
+}
+
 // ── Geometry detection ────────────────────────────────────────────────────────
 
 bool WaffleDisk::detectGeometry()
