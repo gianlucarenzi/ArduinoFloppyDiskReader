@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=DOS Floppy (FAT12 HD 1.44MB)
+Name[it]=Floppy DOS (FAT12 HD 1.44MB)
+Comment=Mount a PC DOS FAT12 HD 1.44MB floppy via DrawBridge/Waffle
+Comment[it]=Monta un floppy PC DOS FAT12 HD 1.44MB tramite DrawBridge/Waffle
+Exec=sh -c 'SCRIPT_DIR=$(dirname $(readlink -f %k)); "$SCRIPT_DIR/scripts/waffle-mount.sh" dos hd'
+Icon=ICON_PATH_PLACEHOLDER/dos-floppy.svg
+Terminal=false
+Categories=System;FileManager;
+Keywords=dos;fat;fat12;floppy;drawbridge;waffle;pc;hd;1.44;
+StartupNotify=false
