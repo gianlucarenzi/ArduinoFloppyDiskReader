@@ -270,10 +270,11 @@ struct AffsFs {
             uint8_t fb[512]={};
             if(!readBlock(hdr,fb)) break;
             int32_t hs=blk_highSeq(fb); if(hs<0) hs=0;
+            if((uint32_t)hs > HT_SIZE) hs=(int32_t)HT_SIZE; // clamp: corrupt high_seq causes OOM
             // Pointer table is reversed: table[0]=last block, table[hs-1]=first block
             for(int i=hs-1;i>=0;i--) {
                 int32_t dp=blk_dataPtr(fb,i);
-                if(dp>0) blocks.push_back((uint32_t)dp);
+                if(dp>0 && (uint32_t)dp<numBlocks) blocks.push_back((uint32_t)dp);
             }
             int32_t ext=blk_ext(fb);
             if(ext<=0) break;

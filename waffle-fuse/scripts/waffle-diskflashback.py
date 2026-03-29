@@ -36,7 +36,7 @@ SERIAL_CANDIDATES = [
     '/dev/ttyACM0', '/dev/ttyACM1',
 ]
 
-POLL_INTERVAL_MS  = 500    # probe poll interval (same as waffleCopyPro diagnostics)
+POLL_INTERVAL_MS  = 2000   # probe poll interval
 CHECK_INTERVAL_MS = 3000   # check mount health when mounted
 
 # ── Tray icon ─────────────────────────────────────────────────────────────────
@@ -103,6 +103,7 @@ class WaffleDaemon:
         self.port       = None
         self.waffle_proc = None
         self.disk_info  = ''      # e.g. "Amiga OFS (read-write)"
+        self._probing   = False   # True while a probe thread is running
 
         self._setup_tray()
         GLib.timeout_add(POLL_INTERVAL_MS, self._poll_tick)
@@ -170,7 +171,7 @@ class WaffleDaemon:
             r = subprocess.run(
                 [WAFFLE_BIN, '--probe', port],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                timeout=10
+                timeout=15
             )
             return r.returncode == 0  # 0 = disk present
         except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
@@ -179,14 +180,36 @@ class WaffleDaemon:
     def _poll_tick(self):
         """Called every POLL_INTERVAL_MS while idle."""
         if self.state != 'idle':
-            return False  # stop this timer; mounting/mounted has its own logic
+            return False  # stop this timer
 
-        for port in SERIAL_CANDIDATES:
-            if os.path.exists(port) and self._probe_port(port):
-                self.port = port
-                self._start_mount()
-                return False  # stop idle poll; mount thread takes over
+        # Don't stack probes – skip tick if a probe thread is already running
+        if self._probing:
+            return True
+
+        ports = [p for p in SERIAL_CANDIDATES if os.path.exists(p)]
+        if ports:
+            self._probing = True
+            threading.Thread(target=self._probe_thread, args=(ports,),
+                             daemon=True).start()
         return True  # keep timer alive
+
+    def _probe_thread(self, ports):
+        """Background thread: probe each candidate port, idle_add result."""
+        for port in ports:
+            if self._probe_port(port):
+                GLib.idle_add(self._on_disk_detected, port)
+                return
+        GLib.idle_add(self._on_probe_done)
+
+    def _on_disk_detected(self, port):
+        self._probing = False
+        self.port = port
+        self._start_mount()
+        return False
+
+    def _on_probe_done(self):
+        self._probing = False
+        return False
 
     def _watch_mounted_tick(self):
         """Called every CHECK_INTERVAL_MS while mounted; detects unexpected unmount."""
@@ -207,7 +230,18 @@ class WaffleDaemon:
         threading.Thread(target=self._mount_thread, daemon=True).start()
 
     def _mount_thread(self):
-        os.makedirs(MOUNTPOINT, exist_ok=True)
+        # Always unmount any stale FUSE mountpoint before (re)creating it.
+        # A broken FUSE connection makes stat() fail, so do this before makedirs.
+        do_unmount(MOUNTPOINT)
+        try:
+            os.rmdir(MOUNTPOINT)
+        except Exception:
+            pass
+        try:
+            os.makedirs(MOUNTPOINT, exist_ok=True)
+        except Exception as e:
+            GLib.idle_add(self._mount_error, f'Cannot create mountpoint: {e}')
+            return
 
         # Launch waffle-fuse with full autodetect (no format/density forced)
         try:
@@ -291,9 +325,10 @@ class WaffleDaemon:
         return False
 
     def _mount_error(self, msg):
-        self.state = 'idle'
-        self.port  = None
+        self.state    = 'idle'
+        self.port     = None
         self.waffle_proc = None
+        self._probing = False
         self._set_icon('idle')
         self._set_tooltip('waffle-fuse: waiting for disk…')
         self.disk_info = ''
@@ -352,10 +387,11 @@ class WaffleDaemon:
         GLib.idle_add(self._ejected)
 
     def _ejected(self):
-        self.state = 'idle'
-        self.port  = None
+        self.state    = 'idle'
+        self.port     = None
         self.waffle_proc = None
         self.disk_info   = ''
+        self._probing    = False
         self._set_icon('idle')
         self._set_tooltip('waffle-fuse: waiting for disk…')
         notify('waffle-fuse', 'Disk ejected. Safe to remove.')
@@ -363,10 +399,11 @@ class WaffleDaemon:
         return False
 
     def _handle_unexpected_unmount(self):
-        self.state = 'idle'
-        self.port  = None
+        self.state    = 'idle'
+        self.port     = None
         self.waffle_proc = None
         self.disk_info   = ''
+        self._probing    = False
         self._set_icon('idle')
         self._set_tooltip('waffle-fuse: waiting for disk…')
         notify('waffle-fuse', 'Disk disconnected unexpectedly.', error=True)
@@ -391,10 +428,37 @@ class WaffleDaemon:
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
+
+def _startup_cleanup():
+    """Kill orphaned waffle-fuse processes and unmount stale mountpoints."""
+    import glob as _glob
+    # Find and kill any waffle-fuse processes holding our candidates
+    for port in SERIAL_CANDIDATES:
+        try:
+            lsof = subprocess.run(
+                ['lsof', '-t', port],
+                capture_output=True, text=True, timeout=5
+            )
+            for pid_str in lsof.stdout.split():
+                try:
+                    pid = int(pid_str)
+                    os.kill(pid, 9)
+                except (ValueError, ProcessLookupError):
+                    pass
+        except Exception:
+            pass
+    # Unmount stale FUSE mountpoint
+    do_unmount(MOUNTPOINT)
+    try:
+        os.rmdir(MOUNTPOINT)
+    except Exception:
+        pass
+
 if __name__ == '__main__':
+    import atexit, fcntl
+
     # Prevent double-start
     LOCK = '/tmp/waffle-daemon.lock'
-    import fcntl
     lockfile = open(LOCK, 'w')
     try:
         fcntl.flock(lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -402,10 +466,30 @@ if __name__ == '__main__':
         print('waffle-daemon is already running.', file=sys.stderr)
         sys.exit(1)
 
+    _startup_cleanup()
+
     daemon = WaffleDaemon()
+
+    def _atexit_cleanup():
+        """Ensure waffle-fuse subprocess is killed on any exit."""
+        if daemon.waffle_proc and daemon.waffle_proc.poll() is None:
+            try:
+                daemon.waffle_proc.kill()
+                daemon.waffle_proc.wait(timeout=3)
+            except Exception:
+                pass
+        do_unmount(MOUNTPOINT)
+        try:
+            os.rmdir(MOUNTPOINT)
+        except Exception:
+            pass
+        try:
+            lockfile.close()
+            os.unlink(LOCK)
+        except Exception:
+            pass
+
+    atexit.register(_atexit_cleanup)
+
     daemon.run()
-    lockfile.close()
-    try:
-        os.unlink(LOCK)
-    except Exception:
-        pass
+    _atexit_cleanup()
