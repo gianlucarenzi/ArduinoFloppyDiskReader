@@ -130,9 +130,40 @@ if ! mountpoint -q "$MNT" 2>/dev/null; then
     exit 1
 fi
 
+# Trigger waffle_init by listing the root – this is where format detection
+# actually runs. Give it up to 60 more seconds (slow serial reads).
+i=0
+LS_OK=0
+while [ $i -lt 60 ]; do
+    if ls "$MNT" >/dev/null 2>&1; then
+        LS_OK=1
+        break
+    fi
+    # If the driver died during init (format mismatch), the mountpoint
+    # becomes inaccessible even though it was briefly registered.
+    if ! kill -0 "$WAFFLE_PID" 2>/dev/null; then
+        break
+    fi
+    sleep 1
+    i=$((i+1))
+done
+
+if [ $LS_OK -eq 0 ]; then
+    # Clean up the dead/broken mount
+    fusermount3 -u "$MNT" 2>/dev/null || fusermount -u "$MNT" 2>/dev/null || umount -l "$MNT" 2>/dev/null || true
+    rmdir "$MNT" 2>/dev/null || true
+    case "$FORMAT" in
+        dos)   HINT="Is there an Amiga disk in the drive? Try the Amiga launcher instead." ;;
+        amiga) HINT="Is there a PC/DOS disk in the drive? Try the DOS launcher instead." ;;
+        *)     HINT="The disk format may not match the selected launcher." ;;
+    esac
+    notify_error "waffle-fuse" "Cannot read the disk as ${LABEL} format. ${HINT}"
+    exit 1
+fi
+
 notify "waffle-fuse" "${LABEL} mounted at $MNT" "media-floppy"
 
-# Open file manager if available
+# Open file manager
 if command -v xdg-open >/dev/null 2>&1; then
     xdg-open "$MNT" &
 elif command -v thunar >/dev/null 2>&1; then

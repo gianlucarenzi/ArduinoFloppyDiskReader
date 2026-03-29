@@ -51,6 +51,11 @@ struct BPB {
 
 static bool parseBPB(const uint8_t* sec0, BPB& bpb)
 {
+    // Must start with a valid x86 jump opcode
+    if (sec0[0] != 0xEB && sec0[0] != 0xE9) return false;
+    // Must have the MBR/VBR signature
+    if (sec0[510] != 0x55 || sec0[511] != 0xAA) return false;
+
     bpb.bytesPerSec  = le16(sec0 + 11);
     bpb.secPerClus   = sec0[13];
     bpb.rsvdSecCnt   = le16(sec0 + 14);
@@ -64,8 +69,16 @@ static bool parseBPB(const uint8_t* sec0, BPB& bpb)
 
     bpb.totSec = totSec16 ? totSec16 : totSec32;
 
-    if (bpb.bytesPerSec == 0 || bpb.secPerClus == 0 || bpb.numFATs == 0)
-        return false;
+    // Sanity-check BPB fields to reject Amiga/other disks that accidentally
+    // pass the signature check
+    if (bpb.bytesPerSec == 0 || bpb.bytesPerSec > 4096) return false;
+    if ((bpb.bytesPerSec & (bpb.bytesPerSec - 1)) != 0) return false; // must be power of 2
+    if (bpb.secPerClus == 0) return false;
+    if ((bpb.secPerClus & (bpb.secPerClus - 1)) != 0) return false;  // must be power of 2
+    if (bpb.numFATs == 0 || bpb.numFATs > 2) return false;
+    if (bpb.rsvdSecCnt == 0) return false;
+    if (bpb.fatSz == 0) return false;
+    if (bpb.totSec == 0) return false;
 
     bpb.rootDirSectors = ((uint32_t)bpb.rootEntCnt * 32 + bpb.bytesPerSec - 1)
                          / bpb.bytesPerSec;
