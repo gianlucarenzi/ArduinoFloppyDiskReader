@@ -2933,6 +2933,8 @@ bool ADFWriter::readAmigaTrack(bool isHD, unsigned int cylinder, DiskSurface sid
                                        : (unsigned int)sizeof(RawTrackDataDD);
     outSectors.assign(maxSect, std::array<uint8_t, 512>{});
 
+    if (m_device.setDiskCapacity(isHD) != DiagnosticResponse::drOK) return false;
+
     DecodedTrack track;
     bool ignoreChecksums = false;
 
@@ -2968,6 +2970,8 @@ bool ADFWriter::readIBMTrack(bool isHD, unsigned int trackNum, uint32_t expected
                                        : (unsigned int)sizeof(RawTrackDataDD);
     IBM::DecodedTrack track;
     bool nonStandard = false;
+
+    if (m_device.setDiskCapacity(isHD) != DiagnosticResponse::drOK) return false;
 
     for (int retry = 0; retry < maxRetries; retry++) {
         RawTrackDataHD data;
