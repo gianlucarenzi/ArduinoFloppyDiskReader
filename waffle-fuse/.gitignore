@@ -1,0 +1,10 @@
+# Build artifacts
+src/*.o
+src/*.d
+lib/*.o
+lib/*.d
+waffle-fuse
+
+# Mountpoint (empty dir kept via .gitkeep)
+mountpoint/*
+!mountpoint/.gitkeep
