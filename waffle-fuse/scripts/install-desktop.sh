@@ -13,32 +13,24 @@ WAFFLE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 ICON_DST="$HOME/.local/share/icons/waffle-fuse"
 APP_DST="$HOME/.local/share/applications"
 
-mkdir -p "$ICON_DST" "$APP_DST"
+AUTOSTART_DST="$HOME/.config/autostart"
+mkdir -p "$ICON_DST" "$APP_DST" "$AUTOSTART_DST"
 
-# Install icons
-cp "$WAFFLE_DIR/icons/amiga-floppy.svg" "$ICON_DST/"
-cp "$WAFFLE_DIR/icons/dos-floppy.svg"   "$ICON_DST/"
-
+# Install icons (launcher + tray)
+for icon in amiga-floppy.svg dos-floppy.svg \
+            tray-idle.svg tray-mounting.svg tray-mounted.svg; do
+    cp "$WAFFLE_DIR/icons/$icon" "$ICON_DST/"
+done
 echo "Icons installed to $ICON_DST"
 
-# Install .desktop files with correct paths substituted
-for desktop in "$WAFFLE_DIR"/waffle-*.desktop; do
-    name="$(basename "$desktop")"
-    sed \
-        -e "s|ICON_PATH_PLACEHOLDER|$ICON_DST|g" \
-        -e "s|Exec=sh -c 'SCRIPT_DIR=\$(dirname \$(readlink -f %k)); \"\$SCRIPT_DIR/scripts/waffle-mount.sh\"|Exec=$WAFFLE_DIR/scripts/waffle-mount.sh|g" \
-        "$desktop" > "$APP_DST/$name"
-    # Fix Exec line properly: replace the whole sh -c trick with direct path
-    sed -i "s|Exec=$WAFFLE_DIR/scripts/waffle-mount.sh|Exec=$WAFFLE_DIR/scripts/waffle-mount.sh|g" "$APP_DST/$name"
-    echo "Installed $APP_DST/$name"
-done
-
-# Simpler approach: regenerate Exec lines directly
-for desktop in "$WAFFLE_DIR"/waffle-*.desktop; do
+# Install per-format launcher .desktop files
+for desktop in "$WAFFLE_DIR"/waffle-amiga-dd.desktop \
+               "$WAFFLE_DIR"/waffle-amiga-hd.desktop \
+               "$WAFFLE_DIR"/waffle-dos-dd.desktop \
+               "$WAFFLE_DIR"/waffle-dos-hd.desktop; do
+    [ -f "$desktop" ] || continue
     name="$(basename "$desktop")"
     dst="$APP_DST/$name"
-
-    # Determine args from filename
     case "$name" in
         waffle-amiga-dd*) ARGS="amiga dd" ;;
         waffle-amiga-hd*) ARGS="amiga hd" ;;
@@ -46,13 +38,25 @@ for desktop in "$WAFFLE_DIR"/waffle-*.desktop; do
         waffle-dos-hd*)   ARGS="dos hd"   ;;
         *)                ARGS=""         ;;
     esac
-
     sed \
         -e "s|ICON_PATH_PLACEHOLDER|$ICON_DST|g" \
         -e "s|Exec=.*|Exec=$WAFFLE_DIR/scripts/waffle-mount.sh $ARGS|g" \
         "$desktop" > "$dst"
     echo "Installed $dst"
 done
+
+# Install DiskFlashback daemon launcher
+DAEMON_DST="$APP_DST/waffle-diskflashback.desktop"
+chmod +x "$WAFFLE_DIR/scripts/waffle-diskflashback.py"
+sed \
+    -e "s|ICON_PATH_PLACEHOLDER|$ICON_DST|g" \
+    -e "s|WAFFLE_DIR_PLACEHOLDER|$WAFFLE_DIR|g" \
+    "$WAFFLE_DIR/waffle-diskflashback.desktop" > "$DAEMON_DST"
+echo "Installed $DAEMON_DST"
+
+# Autostart entry – start DiskFlashback at login
+cp "$DAEMON_DST" "$AUTOSTART_DST/waffle-diskflashback.desktop"
+echo "Autostart entry installed to $AUTOSTART_DST/waffle-diskflashback.desktop"
 
 # Refresh desktop database
 if command -v update-desktop-database >/dev/null 2>&1; then
@@ -63,9 +67,13 @@ if command -v gtk-update-icon-cache >/dev/null 2>&1; then
 fi
 
 echo ""
-echo "Done. You can now find the launchers in your application menu"
-echo "under 'System' or search for 'waffle' / 'Amiga' / 'DOS'."
+echo "Done. Launchers are in the application menu under 'System'."
+echo "  - Per-format launchers: waffle-amiga-dd/hd, waffle-dos-dd/hd"
+echo "  - Auto-detect daemon:   Waffle DiskFlashback (also set to autostart)"
 echo ""
-echo "To also place them on the desktop:"
+echo "To place launchers on the Desktop:"
 echo "  cp $APP_DST/waffle-*.desktop ~/Desktop/"
 echo "  chmod +x ~/Desktop/waffle-*.desktop"
+echo ""
+echo "To start the daemon now:"
+echo "  $WAFFLE_DIR/scripts/waffle-diskflashback.py &"
