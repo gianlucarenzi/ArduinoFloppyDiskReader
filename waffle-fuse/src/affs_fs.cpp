@@ -9,7 +9,6 @@
 //  - Laurent Clevy: http://lclevy.free.fr/adflib/adf_info.html
 //  - adflib by Laurent Clevy (GPL)
 
-#define FUSE_USE_VERSION 31
 #include "affs_fs.h"
 
 #include <cstring>
@@ -604,7 +603,7 @@ static uint32_t parentBlock(AffsFs* fs, const char* path)
 }
 
 // FUSE callbacks
-static int affs_getattr(const char* path, struct stat* st, struct fuse_file_info*)
+static int affs_getattr(const char* path, struct stat* st WF_GETATTR_EXTRA)
 {
     memset(st,0,sizeof(*st));
     AffsFs* fs=getAF();
@@ -627,14 +626,14 @@ static int affs_getattr(const char* path, struct stat* st, struct fuse_file_info
 }
 
 static int affs_readdir(const char* path, void* buf, fuse_fill_dir_t filler,
-                        off_t, struct fuse_file_info*, enum fuse_readdir_flags) 
+                        off_t, struct fuse_file_info* WF_READDIR_FLAGS)
 {
     AffsFs* fs=getAF();
     auto res=fs->lookup(path);
     if(!res.found) return -ENOENT;
     if(res.secType==ST_FILE) return -ENOTDIR;
-    filler(buf,".",nullptr,0,FUSE_FILL_DIR_PLUS);
-    filler(buf,"..",nullptr,0,FUSE_FILL_DIR_PLUS);
+    WF_FILL(filler, buf, ".",  nullptr, 0);
+    WF_FILL(filler, buf, "..", nullptr, 0);
     bool rw=!fs->disk->isWriteProtected();
     for(auto& de:fs->listDir(res.block))
     {
@@ -650,7 +649,7 @@ static int affs_readdir(const char* path, void* buf, fuse_fill_dir_t filler,
 			s.st_nlink=1;
 			s.st_size=de.size;
 		}
-        filler(buf,de.name.c_str(),&s,0,FUSE_FILL_DIR_PLUS);
+        WF_FILL(filler, buf, de.name.c_str(), &s, 0);
     }
     return 0;
 }
@@ -687,7 +686,7 @@ static int affs_write(const char* path, const char* buf, size_t size, off_t offs
     int err=fs->writeFileData(res.block,data.data(),(uint32_t)newSize);
     return err?err:(int)size;
 }
-static int affs_truncate(const char* path, off_t newsz, struct fuse_file_info*)
+static int affs_truncate(const char* path, off_t newsz WF_TRUNCATE_EXTRA)
 {
     AffsFs* fs=getAF();
     if(fs->disk->isWriteProtected()) return -EROFS;
@@ -760,9 +759,9 @@ static int affs_rmdir(const char* path)
     fs->removeFromParent(pb,res.block,parts.back());
     return fs->saveBitmap()?0:-EIO;
 }
-static int affs_rename(const char* from, const char* to, unsigned int flags) 
+static int affs_rename(WF_RENAME_SIG)
 {
-    if(flags) return -EINVAL;
+    WF_RENAME_CHECK
     AffsFs* fs=getAF(); 
     if(fs->disk->isWriteProtected()) return -EROFS;
     auto src=fs->lookup(from); 
@@ -796,7 +795,7 @@ static int affs_rename(const char* from, const char* to, unsigned int flags)
     if(!fs->addToParent(dstParent,src.block,dstName)) return -EIO;
     return fs->saveBitmap()?0:-EIO;
 }
-static int affs_utimens(const char* path, const struct timespec tv[2], struct fuse_file_info*) {
+static int affs_utimens(const char* path, const struct timespec tv[2] WF_UTIMENS_EXTRA) {
     AffsFs* fs=getAF(); if(fs->disk->isWriteProtected()) return -EROFS;
     auto res=fs->lookup(path); if(!res.found) return -ENOENT;
     uint8_t b[512]={}; if(!fs->readBlock(res.block,b)) return -EIO;
@@ -804,8 +803,8 @@ static int affs_utimens(const char* path, const struct timespec tv[2], struct fu
     blk_set_mtime(b,t);
     return fs->writeBlock(res.block,b,20)?0:-EIO;
 }
-static int affs_chmod(const char*, mode_t, struct fuse_file_info*) { return 0; }
-static int affs_chown(const char*, uid_t, gid_t, struct fuse_file_info*) { return 0; }
+static int affs_chmod(const char*, mode_t WF_CHMOD_EXTRA) { return 0; }
+static int affs_chown(const char*, uid_t, gid_t WF_CHOWN_EXTRA) { return 0; }
 static int affs_fsync(const char*, int, struct fuse_file_info*) { return 0; }
 static int affs_statfs(const char*, struct statvfs* sv) {
     AffsFs* fs = getAF();
@@ -825,8 +824,9 @@ static int affs_statfs(const char*, struct statvfs* sv) {
     return 0;
 }
 
-static void* affs_fuse_init(struct fuse_conn_info*, struct fuse_config* cfg) {
-    cfg->kernel_cache=0; cfg->direct_io=1;
+static void* affs_fuse_init(WF_INIT_SIG(/*conn*/)) {
+    WF_CFG_SET(kernel_cache, 0);
+    WF_CFG_SET(direct_io,    1);
     return fuse_get_context()->private_data;
 }
 

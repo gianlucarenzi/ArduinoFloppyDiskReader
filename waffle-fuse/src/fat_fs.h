@@ -1,8 +1,7 @@
 #pragma once
 // waffle-fuse: FAT12 / FAT16 FUSE filesystem driver
 
-#define FUSE_USE_VERSION 31
-#include <fuse3/fuse.h>
+#include "fuse_compat.h"
 #include "disk_cache.h"
 
 // Returns filled fuse_operations for a FAT12/FAT16 disk.

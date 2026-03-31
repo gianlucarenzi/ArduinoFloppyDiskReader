@@ -21,8 +21,7 @@
 //   # For FAT: mount -t msdos -o loop /mnt/floppy/disk.img /mnt/disk
 //   # (or use directly without loop — the FUSE driver IS the filesystem)
 
-#define FUSE_USE_VERSION 31
-#include <fuse3/fuse.h>
+#include "fuse_compat.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -70,11 +69,11 @@ static const struct fuse_opt waffle_opts[] = {
 };
 
 // ── Initialisation (called from FUSE after fork) ──────────────────────────────
-static void* waffle_init(struct fuse_conn_info* conn, struct fuse_config* cfg)
+static void* waffle_init(WF_INIT_SIG(conn))
 {
     (void)conn;
-    cfg->kernel_cache = 0;
-    cfg->direct_io    = 1;
+    WF_CFG_SET(kernel_cache, 0);
+    WF_CFG_SET(direct_io,    1);
 
     WaffleState* st = g_state;
 
@@ -152,6 +151,10 @@ static void waffle_destroy(void* data)
 static void usage(const char* progname)
 {
     std::cerr <<
+        progname << "  [platform: " WF_PLATFORM_STR
+                    "  FUSE API: " WF_FUSE_API_STR
+                    "  FUSE runtime: " << wf_fuse_runtime_version() << "]\n"
+        "\n"
         "Usage: " << progname << " <serial-port> <mountpoint> [fuse-options]\n"
         "       " << progname << " --probe <serial-port>\n"
         "\n"

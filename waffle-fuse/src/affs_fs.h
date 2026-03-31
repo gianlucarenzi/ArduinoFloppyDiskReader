@@ -1,8 +1,7 @@
 #pragma once
 // waffle-fuse: Amiga OFS/FFS FUSE filesystem driver (read-only)
 
-#define FUSE_USE_VERSION 31
-#include <fuse3/fuse.h>
+#include "fuse_compat.h"
 #include "disk_cache.h"
 
 struct fuse_operations affs_get_operations();

@@ -1,0 +1,42 @@
+name: Build waffle-fuse on Linux
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y g++ make libfuse3-dev
+
+      - name: Build waffle-fuse
+        run: |
+          cd waffle-fuse
+          make
+
+      - name: Show build info
+        run: waffle-fuse/waffle-fuse 2>&1 | head -1 || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: waffle-fuse-linux
+          path: waffle-fuse/waffle-fuse
+
+      - name: Create Release and Upload Asset
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: waffle-fuse/waffle-fuse
+          draft: false
+          prerelease: false

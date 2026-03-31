@@ -1,7 +1,6 @@
 // waffle-fuse: FAT12 / FAT16 FUSE filesystem driver
 // Supports read + write, LFN (long filenames) read, 8.3 create.
 
-#define FUSE_USE_VERSION 31
 #include "fat_fs.h"
 
 #include <cstring>
@@ -494,7 +493,7 @@ static FatFs* getFS() {
     return static_cast<FatFs*>(fuse_get_context()->private_data);
 }
 
-static int fat_getattr(const char* path, struct stat* st, struct fuse_file_info*)
+static int fat_getattr(const char* path, struct stat* st WF_GETATTR_EXTRA)
 {
     memset(st, 0, sizeof(*st));
     FatFs* fs = getFS();
@@ -523,11 +522,11 @@ static int fat_getattr(const char* path, struct stat* st, struct fuse_file_info*
 }
 
 static int fat_readdir(const char* path, void* buf, fuse_fill_dir_t filler,
-                       off_t, struct fuse_file_info*, enum fuse_readdir_flags)
+                       off_t, struct fuse_file_info* WF_READDIR_FLAGS)
 {
     FatFs* fs = getFS();
-    filler(buf, ".",  nullptr, 0, FUSE_FILL_DIR_PLUS);
-    filler(buf, "..", nullptr, 0, FUSE_FILL_DIR_PLUS);
+    WF_FILL(filler, buf, ".",  nullptr, 0);
+    WF_FILL(filler, buf, "..", nullptr, 0);
 
     std::vector<uint32_t> secs;
     if (strcmp(path, "/") == 0) {
@@ -547,7 +546,7 @@ static int fat_readdir(const char* path, void* buf, fuse_fill_dir_t filler,
             st.st_mode = S_IFREG | 0644;
             st.st_size = item.entry.fileSize();
         }
-        filler(buf, item.name.c_str(), &st, 0, FUSE_FILL_DIR_PLUS);
+        WF_FILL(filler, buf, item.name.c_str(), &st, 0);
     }
     return 0;
 }
@@ -673,7 +672,7 @@ static int fat_write(const char* path, const char* buf, size_t size, off_t offse
     return (int)written;
 }
 
-static int fat_truncate(const char* path, off_t size, struct fuse_file_info*)
+static int fat_truncate(const char* path, off_t size WF_TRUNCATE_EXTRA)
 {
     FatFs* fs = getFS();
     if (fs->disk->isWriteProtected()) return -EROFS;
@@ -841,9 +840,9 @@ static int fat_rmdir(const char* path)
     return fs->writeDirEntry(e) ? 0 : -EIO;
 }
 
-static int fat_rename(const char* from, const char* to, unsigned int flags)
+static int fat_rename(WF_RENAME_SIG)
 {
-    if (flags) return -EINVAL; // RENAME_EXCHANGE / RENAME_NOREPLACE not supported
+    WF_RENAME_CHECK
     FatFs* fs = getFS();
     if (fs->disk->isWriteProtected()) return -EROFS;
 
@@ -871,11 +870,10 @@ static int fat_rename(const char* from, const char* to, unsigned int flags)
     return fs->writeDirEntry(e) ? 0 : -EIO;
 }
 
-static int fat_chmod(const char*, mode_t, struct fuse_file_info*) { return 0; }
-static int fat_chown(const char*, uid_t, gid_t, struct fuse_file_info*) { return 0; }
+static int fat_chmod(const char*, mode_t WF_CHMOD_EXTRA) { return 0; }
+static int fat_chown(const char*, uid_t, gid_t WF_CHOWN_EXTRA) { return 0; }
 
-static int fat_fsync(const char*, int, struct fuse_file_info*)
-{
+static int fat_fsync(const char*, int, struct fuse_file_info*){
     getFS()->disk->flush();
     return 0;
 }
@@ -898,10 +896,10 @@ static int fat_statfs(const char*, struct statvfs* sv)
     return 0;
 }
 
-static void* fat_init(struct fuse_conn_info*, struct fuse_config* cfg)
+static void* fat_init(WF_INIT_SIG(/*conn*/))
 {
-    cfg->kernel_cache = 0;
-    cfg->direct_io    = 1;
+    WF_CFG_SET(kernel_cache, 0);
+    WF_CFG_SET(direct_io,    1);
     return fuse_get_context()->private_data;
 }
 

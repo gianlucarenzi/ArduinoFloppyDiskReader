@@ -1,0 +1,61 @@
+name: Build waffle-fuse on Windows
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install MSYS2 + MinGW64
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-make
+
+      - name: Install vcpkg
+        shell: cmd
+        run: |
+          git clone --branch 2025.12.12 https://github.com/microsoft/vcpkg.git
+          .\vcpkg\bootstrap-vcpkg.bat
+
+      - name: Install WinFsp (vcpkg)
+        shell: cmd
+        run: |
+          .\vcpkg\vcpkg install winfsp:x64-mingw-dynamic
+
+      - name: Build waffle-fuse
+        shell: msys2 {0}
+        env:
+          VCPKG_ROOT: ${{ github.workspace }}\vcpkg
+        run: |
+          cd waffle-fuse
+          make VCPKG_ROOT="$(cygpath -u '${{ github.workspace }}')/vcpkg" VCPKG_TRIPLET=x64-mingw-dynamic
+
+      - name: Show build info
+        shell: msys2 {0}
+        run: waffle-fuse/waffle-fuse.exe 2>&1 | head -1 || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: waffle-fuse-windows
+          path: waffle-fuse/waffle-fuse.exe
+
+      - name: Create Release and Upload Asset
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: waffle-fuse/waffle-fuse.exe
+          draft: false
+          prerelease: false
