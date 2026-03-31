@@ -71,7 +71,7 @@ CXXFLAGS := -std=c++17 -O2 -Wall -Wextra \
             -Isrc -Ilib -Ilib/capsapi -Iinc \
             $(_FUSE_CFLAGS)
 
-LDFLAGS  := $(_FUSE_LIBS) -lpthread
+LDFLAGS  := $(_FUSE_LIBS) -lpthread -ldl
 
 # ── Source files ──────────────────────────────────────────────────────────────
 LIB_SRCS := lib/ADFWriter.cpp \
