@@ -27,7 +27,12 @@ ifeq ($(UNAME),Darwin)
         _FUSE_CFLAGS := -I$(BREW_PREFIX)/include/osxfuse
         _FUSE_LIBS   := -L$(BREW_PREFIX)/lib -losxfuse
     endif
-    CXX := clang++
+    CXX          := clang++
+    # dlopen/dlclose are in libSystem on macOS; no -ldl needed
+    _EXTRA_LDFLAGS := -lpthread
+    TARGET_EXT   :=
+    RM_CMD       := rm -f
+    INSTALL_CMD  := install -m 755
 
 else ifeq ($(UNAME),Windows)
     # WinFsp – prefer vcpkg if VCPKG_ROOT is set (env var or make variable).
@@ -52,6 +57,10 @@ else ifeq ($(UNAME),Windows)
         _FUSE_CFLAGS := -I"$(WINFSP_ROOT)/inc/fuse"
         _FUSE_LIBS   := -L"$(WINFSP_ROOT)/lib" -lwinfsp-x64
     endif
+    _EXTRA_LDFLAGS :=
+    TARGET_EXT   := .exe
+    RM_CMD       := del /Q
+    INSTALL_CMD  :=
 
 else
     # Linux: libfuse3-dev by default; USE_FUSE2=1 selects libfuse-dev (FUSE 2)
@@ -62,6 +71,10 @@ else
         _FUSE_CFLAGS := $(shell pkg-config --cflags fuse3)
         _FUSE_LIBS   := $(shell pkg-config --libs   fuse3)
     endif
+    _EXTRA_LDFLAGS := -lpthread -ldl
+    TARGET_EXT   :=
+    RM_CMD       := rm -f
+    INSTALL_CMD  := install -m 755
 
 endif
 
@@ -71,7 +84,7 @@ CXXFLAGS := -std=c++17 -O2 -Wall -Wextra \
             -Isrc -Ilib -Ilib/capsapi -Iinc \
             $(_FUSE_CFLAGS)
 
-LDFLAGS  := $(_FUSE_LIBS) -lpthread
+LDFLAGS  := $(_FUSE_LIBS) $(_EXTRA_LDFLAGS)
 
 # ── Source files ──────────────────────────────────────────────────────────────
 LIB_SRCS := lib/ADFWriter.cpp \
@@ -92,7 +105,7 @@ ALL_SRCS := $(LIB_SRCS) $(SRC_SRCS)
 
 OBJS     := $(ALL_SRCS:.cpp=.o)
 
-TARGET   := waffle-fuse
+TARGET   := waffle-fuse$(TARGET_EXT)
 
 # ── Build rules ───────────────────────────────────────────────────────────────
 .PHONY: all clean install
@@ -110,10 +123,14 @@ lib/capsapi/CapsPlug.o: lib/capsapi/CapsPlug.cpp
 	$(CXX) $(CXXFLAGS) -Iinc -c $< -o $@
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	$(RM_CMD) $(OBJS) $(TARGET)
 
 install: $(TARGET)
-	install -m 755 $(TARGET) /usr/local/bin/$(TARGET)
+ifeq ($(UNAME),Windows)
+	@echo "Install not supported on Windows – copy $(TARGET) manually."
+else
+	$(INSTALL_CMD) $(TARGET) /usr/local/bin/$(TARGET)
+endif
 
 # ── Dependency generation ─────────────────────────────────────────────────────
 -include $(OBJS:.o=.d)
