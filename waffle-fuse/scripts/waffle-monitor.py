@@ -259,6 +259,44 @@ def notify_user(
         log.debug("notify-send failed: %s", exc)
 
 
+# ── NBD kernel module ─────────────────────────────────────────────────────────
+_nbd_module_loaded = False
+_nbd_module_lock   = threading.Lock()
+
+def _ensure_nbd_module() -> bool:
+    """
+    Load the 'nbd' kernel module if not already present.
+    Returns True if /dev/nbd0 is accessible afterwards.
+    """
+    global _nbd_module_loaded
+    with _nbd_module_lock:
+        if _nbd_module_loaded:
+            return True
+        if Path("/dev/nbd0").exists():
+            _nbd_module_loaded = True
+            return True
+        log.info("Loading nbd kernel module...")
+        r = subprocess.run(["modprobe", "nbd"], capture_output=True)
+        if r.returncode != 0:
+            log.error(
+                "modprobe nbd failed: %s",
+                r.stderr.decode(errors="replace").strip(),
+            )
+            return False
+        # Wait up to 2 s for udev to create /dev/nbdN devices
+        for _ in range(20):
+            if Path("/dev/nbd0").exists():
+                break
+            time.sleep(0.1)
+        ok = Path("/dev/nbd0").exists()
+        if ok:
+            log.info("nbd module loaded, /dev/nbd0 is available")
+            _nbd_module_loaded = True
+        else:
+            log.error("nbd module loaded but /dev/nbd0 still not present")
+        return ok
+
+
 # ── Device session ────────────────────────────────────────────────────────────
 class DeviceSession:
     """Full NBD + mount lifecycle for one plugged-in device."""
@@ -294,13 +332,16 @@ class DeviceSession:
         if not self._start_server():
             return
 
+        _ensure_nbd_module()
+
         self.nbd_dev = _alloc_nbd()
         if not self.nbd_dev:
-            log.error("[%s] no free /dev/nbdN (is 'nbd' kernel module loaded?)", tty)
+            log.error("[%s] no free /dev/nbdN available", tty)
             notify_user(
                 self._user,
                 "Waffle: no NBD device",
-                "No free /dev/nbdN found.\nRun:  modprobe nbd",
+                "No free /dev/nbdN found after loading nbd module.\n"
+                "Try: modprobe nbd nbds_max=4",
                 "dialog-error",
             )
             self._stop_server()
