@@ -36,6 +36,119 @@
 #include "affs_fs.h"
 #include "debugmsg.h"
 
+// ── GVfs bookmark helpers (Linux only) ───────────────────────────────────────
+// File managers that use GVfs (Nautilus, Thunar, Nemo, PCManFM-Qt) watch
+// ~/.config/gtk-3.0/bookmarks via inotify and update the sidebar immediately.
+// KDE Dolphin uses Solid which detects fuse.waffle from /proc/mounts directly.
+// A Desktop eject shortcut is also created so the user can unmount with one
+// click from any file manager or the desktop.
+// Not applicable on macOS or Windows, where different desktop mechanisms exist.
+#if !defined(_WIN32) && !defined(__APPLE__)
+
+#include <fstream>
+#include <sys/stat.h>
+#include <unistd.h>
+
+static void gvfs_bookmark_add(const std::string& mountPoint, const std::string& displayName)
+{
+    const char* home = getenv("HOME");
+    if (!home) return;
+
+    std::string dir  = std::string(home) + "/.config/gtk-3.0";
+    std::string path = dir + "/bookmarks";
+    std::string uri  = "file://" + mountPoint;
+    std::string entry = uri + " " + displayName;
+
+    mkdir(dir.c_str(), 0755);   // no-op if already exists
+
+    // Read existing lines, dropping any stale entry for this URI
+    std::vector<std::string> lines;
+    {
+        std::ifstream in(path);
+        std::string line;
+        while (std::getline(in, line))
+            if (line.rfind(uri, 0) != 0)   // keep lines that don't start with our URI
+                lines.push_back(line);
+    }
+    lines.push_back(entry);
+
+    std::ofstream out(path);
+    for (const auto& l : lines)
+        out << l << "\n";
+}
+
+static void gvfs_bookmark_remove(const std::string& mountPoint)
+{
+    const char* home = getenv("HOME");
+    if (!home) return;
+
+    std::string path = std::string(home) + "/.config/gtk-3.0/bookmarks";
+    std::string uri  = "file://" + mountPoint;
+
+    std::vector<std::string> lines;
+    {
+        std::ifstream in(path);
+        if (!in) return;
+        std::string line;
+        while (std::getline(in, line))
+            if (line.rfind(uri, 0) != 0)
+                lines.push_back(line);
+    }
+
+    std::ofstream out(path);
+    for (const auto& l : lines)
+        out << l << "\n";
+}
+
+// Create ~/Desktop/Eject <label>.desktop so the user can unmount from the GUI.
+// fusermount triggers waffle_destroy() which flushes dirty tracks before close.
+static std::string desktop_eject_create(const std::string& mountPoint,
+                                        const std::string& displayName)
+{
+    const char* home = getenv("HOME");
+    if (!home) return {};
+
+    std::string desktop = std::string(home) + "/Desktop";
+    struct stat st{};
+    if (::stat(desktop.c_str(), &st) != 0 || !S_ISDIR(st.st_mode))
+        return {};
+
+    // Build a filesystem-safe filename
+    std::string safe = displayName;
+    for (char& c : safe)
+        if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?') c = '-';
+
+    std::string path = desktop + "/Eject " + safe + ".desktop";
+
+    std::ofstream out(path);
+    out << "[Desktop Entry]\n"
+        << "Version=1.0\n"
+        << "Type=Application\n"
+        << "Name=Eject " << displayName << "\n"
+        << "Comment=Flush and unmount " << displayName << "\n"
+        << "Exec=sh -c 'fusermount3 -u \"" << mountPoint << "\" 2>/dev/null"
+        <<           " || fusermount -u \"" << mountPoint << "\" 2>/dev/null'\n"
+        << "Icon=media-eject\n"
+        << "Terminal=false\n"
+        << "StartupNotify=false\n";
+
+    chmod(path.c_str(), 0755);
+    return path;
+}
+
+static void desktop_eject_remove(const std::string& path)
+{
+    if (!path.empty())
+        unlink(path.c_str());
+}
+
+#else
+static void gvfs_bookmark_add(const std::string&, const std::string&) {}
+static void gvfs_bookmark_remove(const std::string&) {}
+static std::string desktop_eject_create(const std::string&, const std::string&) { return {}; }
+static void desktop_eject_remove(const std::string&) {}
+#endif
+
 // ── Program state (kept alive for the duration of the mount) ─────────────────
 struct WaffleState {
     std::unique_ptr<WaffleDisk> disk;
@@ -43,6 +156,8 @@ struct WaffleState {
     bool  isAFFS = false;
     enum class FSType { Auto, FAT, AFFS } fsType = FSType::Auto;
     std::string serialPort;
+    std::string mountPoint;
+    std::string ejectDesktopFile;   // path of ~/Desktop/Eject *.desktop (Linux)
     bool forceRO = false;
     bool debugHW = false;
     int  forcedHD = -1;   // -1=auto, 0=force DD, 1=force HD
@@ -107,9 +222,14 @@ static void* waffle_init(WF_INIT_SIG(conn))
             useAFFS = false;
         } else {
             st->isAFFS = true;
-            std::cout << "waffle-fuse: mounted as Amiga "
-                      << (affs_is_ffs(st->fsCtx) ? "FFS" : "OFS")
+            bool isFFS = affs_is_ffs(st->fsCtx);
+            bool isHD  = st->disk->geometry().isHD;
+            std::cout << "waffle-fuse: mounted as Amiga " << (isFFS ? "FFS" : "OFS")
                       << (st->disk->isWriteProtected() ? " (read-only)" : " (read-write)") << "\n";
+            std::string label = std::string("Amiga Floppy ") + (isFFS ? "FFS" : "OFS")
+                                + (isHD ? " HD" : " DD");
+            gvfs_bookmark_add(st->mountPoint, label);
+            st->ejectDesktopFile = desktop_eject_create(st->mountPoint, label);
             return st->fsCtx;
         }
     }
@@ -121,9 +241,16 @@ static void* waffle_init(WF_INIT_SIG(conn))
         fuse_exit(fuse_get_context()->fuse);
         return nullptr;
     }
-    std::cout << "waffle-fuse: mounted as FAT"
-              << (fat_is_fat16(st->fsCtx) ? "16" : "12")
+    bool isFAT16 = fat_is_fat16(st->fsCtx);
+    bool isHD    = st->disk->geometry().isHD;
+    std::cout << "waffle-fuse: mounted as FAT" << (isFAT16 ? "16" : "12")
               << (st->disk->isWriteProtected() ? " (read-only)" : " (read-write)") << "\n";
+    {
+        std::string label = std::string("DOS Floppy FAT") + (isFAT16 ? "16" : "12")
+                            + (isHD ? " HD" : " DD");
+        gvfs_bookmark_add(st->mountPoint, label);
+        st->ejectDesktopFile = desktop_eject_create(st->mountPoint, label);
+    }
     return st->fsCtx;
 }
 
@@ -137,6 +264,8 @@ static void waffle_destroy(void* data)
             g_state->fsCtx = nullptr;
         }
         if (g_state->disk) g_state->disk->flush();
+        gvfs_bookmark_remove(g_state->mountPoint);
+        desktop_eject_remove(g_state->ejectDesktopFile);
     }
 }
 
@@ -196,6 +325,7 @@ int main(int argc, char* argv[])
 
     // Extract serial port (first positional arg before fuse args)
     state.serialPort = argv[1];
+    state.mountPoint = argv[2];
 
     // Build a new argv without our serial-port argument for FUSE
     std::vector<char*> fuse_argv;
@@ -245,6 +375,18 @@ int main(int argc, char* argv[])
     // Override init/destroy to open the hardware first
     ops.init    = waffle_init;
     ops.destroy = waffle_destroy;
+
+    // Ensure the mount is visible as "fuse.waffle" in /proc/mounts so that
+    // desktop file managers (Nautilus, Thunar, Dolphin) can identify it.
+    // When invoked via the shell-script wrapper the subtype is already set;
+    // this is a safe no-op in that case because libfuse uses the last value.
+    bool has_subtype = false;
+    for (int i = 0; i < args.argc && !has_subtype; ++i) {
+        if (args.argv[i] && strstr(args.argv[i], "subtype="))
+            has_subtype = true;
+    }
+    if (!has_subtype)
+        fuse_opt_add_arg(&args, "-osubtype=waffle");
 
     int ret = fuse_main(args.argc, args.argv, &ops, nullptr);
 
