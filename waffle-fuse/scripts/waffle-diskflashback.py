@@ -15,6 +15,16 @@ On eject: sync, fusermount3 -u, back to idle.
 
 import gi
 gi.require_version('Gtk', '3.0')
+try:
+    try:
+        gi.require_version('AyatanaAppIndicator3', '0.1')
+        from gi.repository import AyatanaAppIndicator3 as AppIndicator
+    except (ImportError, ValueError):
+        gi.require_version('AppIndicator3', '0.1')
+        from gi.repository import AppIndicator3 as AppIndicator
+    HAS_APP_INDICATOR = True
+except (ImportError, ValueError):
+    HAS_APP_INDICATOR = False
 
 import os
 import sys
@@ -22,6 +32,7 @@ import subprocess
 import threading
 import time
 import signal
+import re
 
 from gi.repository import Gtk, GLib
 
@@ -101,6 +112,7 @@ class WaffleDaemon:
     def __init__(self):
         self.state      = 'idle'
         self.port       = None
+        self.mountpoint = MOUNTPOINT
         self.waffle_proc = None
         self.disk_info  = ''      # e.g. "Amiga OFS (read-write)"
         self._probing   = False   # True while a probe thread is running
@@ -109,24 +121,89 @@ class WaffleDaemon:
         self._setup_tray()
         GLib.timeout_add(POLL_INTERVAL_MS, self._poll_tick)
 
+    # ── Adoption of external mounts ───────────────────────────────────────────
+    def _decode_mount_path(self, path):
+        """Decode octal escapes (\\040) often found in /proc/mounts."""
+        return re.sub(r'\\([0-7]{3})', lambda m: chr(int(m.group(1), 8)), path)
+
+    def _find_existing_mount(self, port):
+        """Check /proc/mounts for an existing waffle mount on this port."""
+        try:
+            with open('/proc/mounts', 'r') as f:
+                for line in f:
+                    if f'waffle:{port} ' in line:
+                        mnt = line.split()[1] # mountpoint
+                        return self._decode_mount_path(mnt)
+        except Exception:
+            pass
+        return None
+
+    def _adopt_mount(self, port, mnt):
+        """Transition to mounted state for a mount we didn't start."""
+        self.state = 'mounted'
+        self.port = port
+        self.mountpoint = mnt
+        self.waffle_proc = None # we don't own the process
+        self.disk_info = 'Mounted (udev/external)'
+        self._set_icon('mounted')
+        self._set_tooltip(f'Disk detected on {port} (mounted at {mnt})')
+        GLib.timeout_add(CHECK_INTERVAL_MS, self._watch_mounted_tick)
+        return False
+
     # ── Tray setup ────────────────────────────────────────────────────────────
     def _setup_tray(self):
-        self.tray = Gtk.StatusIcon()
+        success = False
+        if HAS_APP_INDICATOR:
+            try:
+                print("Attempting to use AppIndicator/Ayatana...")
+                icon_name = os.path.splitext(os.path.basename(ICONS['idle']))[0]
+                self.tray = AppIndicator.Indicator.new(
+                    "waffle-daemon",
+                    icon_name,
+                    AppIndicator.IndicatorCategory.HARDWARE
+                )
+                self.tray.set_icon_theme_path(ICON_DIR)
+                self.tray.set_status(AppIndicator.IndicatorStatus.ACTIVE)
+                self.tray.set_menu(self._make_menu())
+                success = True
+                print("AppIndicator/Ayatana initialized.")
+            except Exception as e:
+                print(f"AppIndicator failed: {e}. Falling back to StatusIcon.")
+
+        if not success:
+            print("Using Gtk.StatusIcon fallback...")
+            self.tray = Gtk.StatusIcon()
+            self.tray.set_visible(True)
+            self.tray.connect('activate',    self._on_activate)
+            self.tray.connect('popup-menu',  self._on_popup)
+            print("StatusIcon initialized.")
+
         self._set_icon('idle')
         self._set_tooltip('waffle-fuse: waiting for disk…')
-        self.tray.set_visible(True)
-        self.tray.connect('activate',    self._on_activate)
-        self.tray.connect('popup-menu',  self._on_popup)
 
     def _set_icon(self, state):
         path = ICONS.get(state, ICONS['idle'])
-        try:
-            self.tray.set_from_file(path)
-        except Exception:
-            pass  # icon file missing – not fatal
+        icon_name = os.path.splitext(os.path.basename(path))[0]
+        
+        if HAS_APP_INDICATOR and hasattr(self.tray, 'set_icon_full'):
+            self.tray.set_icon_full(icon_name, state)
+            # Refresh menu so sensitivity updates
+            self.tray.set_menu(self._make_menu())
+        else:
+            try:
+                self.tray.set_from_file(path)
+            except Exception:
+                pass
 
     def _set_tooltip(self, text):
-        self.tray.set_tooltip_text(text)
+        if HAS_APP_INDICATOR and not hasattr(self.tray, 'set_tooltip_text'):
+            # AppIndicator doesn't have tooltips, we update the menu instead
+            self.tray.set_menu(self._make_menu())
+        else:
+            try:
+                self.tray.set_tooltip_text(text)
+            except Exception:
+                pass
 
     # ── Context menu ─────────────────────────────────────────────────────────
     def _make_menu(self):
@@ -139,7 +216,7 @@ class WaffleDaemon:
         menu.append(Gtk.SeparatorMenuItem())
 
         self._item_open = Gtk.MenuItem(label='📂  Open File Manager')
-        self._item_open.connect('activate', lambda _: open_file_manager(MOUNTPOINT))
+        self._item_open.connect('activate', lambda _: open_file_manager(self.mountpoint))
         self._item_open.set_sensitive(self.state == 'mounted')
         menu.append(self._item_open)
 
@@ -159,7 +236,7 @@ class WaffleDaemon:
 
     def _on_activate(self, icon):
         if self.state == 'mounted':
-            open_file_manager(MOUNTPOINT)
+            open_file_manager(self.mountpoint)
 
     def _on_popup(self, icon, button, ts):
         menu = self._make_menu()
@@ -182,6 +259,20 @@ class WaffleDaemon:
         """Called every POLL_INTERVAL_MS while idle."""
         if self.state != 'idle':
             return False  # stop this timer
+
+        # Check for existing external mounts (e.g., from udev)
+        for port in SERIAL_CANDIDATES:
+            if not os.path.exists(port): continue
+            # If we just ejected this port, don't re-adopt it immediately
+            # even if it's still in /proc/mounts (stale)
+            if port in self.ejected_ports: continue
+
+            mnt = self._find_existing_mount(port)
+            if mnt:
+                # IMPORTANT: return False here to stop the poll timer.
+                # _adopt_mount will start a new health check timer.
+                GLib.idle_add(self._adopt_mount, port, mnt)
+                return False
 
         # Don't stack probes – skip tick if a probe thread is already running
         if self._probing:
@@ -225,7 +316,7 @@ class WaffleDaemon:
         """Called every CHECK_INTERVAL_MS while mounted; detects unexpected unmount."""
         if self.state != 'mounted':
             return False
-        if not is_mounted(MOUNTPOINT) or (
+        if not is_mounted(self.mountpoint) or (
                 self.waffle_proc and self.waffle_proc.poll() is not None):
             # Disk was removed or process crashed
             GLib.idle_add(self._handle_unexpected_unmount)
@@ -235,6 +326,7 @@ class WaffleDaemon:
     # ── Mount flow ────────────────────────────────────────────────────────────
     def _start_mount(self):
         self.state = 'mounting'
+        self.mountpoint = MOUNTPOINT # use default for our own mounts
         self._set_icon('mounting')
         self._set_tooltip(f'Reading disk on {self.port}…')
         threading.Thread(target=self._mount_thread, daemon=True).start()
@@ -242,13 +334,13 @@ class WaffleDaemon:
     def _mount_thread(self):
         # Always unmount any stale FUSE mountpoint before (re)creating it.
         # A broken FUSE connection makes stat() fail, so do this before makedirs.
-        do_unmount(MOUNTPOINT)
+        do_unmount(self.mountpoint)
         try:
-            os.rmdir(MOUNTPOINT)
+            os.rmdir(self.mountpoint)
         except Exception:
             pass
         try:
-            os.makedirs(MOUNTPOINT, exist_ok=True)
+            os.makedirs(self.mountpoint, exist_ok=True)
         except Exception as e:
             GLib.idle_add(self._mount_error, f'Cannot create mountpoint: {e}')
             return
@@ -256,7 +348,7 @@ class WaffleDaemon:
         # Launch waffle-fuse with full autodetect (no format/density forced)
         try:
             proc = subprocess.Popen(
-                [WAFFLE_BIN, self.port, MOUNTPOINT],
+                [WAFFLE_BIN, self.port, self.mountpoint],
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 text=True, bufsize=1
             )
@@ -268,7 +360,7 @@ class WaffleDaemon:
 
         # Wait for mountpoint to become active (up to 90 s)
         for _ in range(90):
-            if is_mounted(MOUNTPOINT):
+            if is_mounted(self.mountpoint):
                 break
             if proc.poll() is not None:
                 output = proc.stdout.read()
@@ -277,7 +369,7 @@ class WaffleDaemon:
                 return
             time.sleep(1)
 
-        if not is_mounted(MOUNTPOINT):
+        if not is_mounted(self.mountpoint):
             proc.kill()
             GLib.idle_add(self._mount_error, 'Timed out waiting for mount.')
             return
@@ -286,7 +378,7 @@ class WaffleDaemon:
         disk_info = ''
         for _ in range(60):
             try:
-                os.listdir(MOUNTPOINT)
+                os.listdir(self.mountpoint)
                 # Collect any output lines waffle-fuse has written so far
                 # (non-blocking peek via a reader thread)
                 disk_info = self._read_proc_output(proc, timeout=2)
@@ -328,7 +420,7 @@ class WaffleDaemon:
         self.disk_info = info
         self._set_tooltip(f'Disk mounted: {info}  –  right-click for menu')
         notify('waffle-fuse', f'Disk mounted: {info}')
-        open_file_manager(MOUNTPOINT)
+        open_file_manager(self.mountpoint)
 
         # Start health-check timer
         GLib.timeout_add(CHECK_INTERVAL_MS, self._watch_mounted_tick)
@@ -343,11 +435,12 @@ class WaffleDaemon:
         self._set_tooltip('waffle-fuse: waiting for disk…')
         self.disk_info = ''
         notify('waffle-fuse: mount failed', msg, error=True)
-        do_unmount(MOUNTPOINT)
+        do_unmount(self.mountpoint)
         try:
-            os.rmdir(MOUNTPOINT)
+            os.rmdir(self.mountpoint)
         except Exception:
             pass
+        self.mountpoint = MOUNTPOINT # restore default
         # Re-arm idle poll
         GLib.timeout_add(POLL_INTERVAL_MS, self._poll_tick)
         return False
@@ -384,9 +477,9 @@ class WaffleDaemon:
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception:
             pass
-        do_unmount(MOUNTPOINT)
+        do_unmount(self.mountpoint)
         try:
-            os.rmdir(MOUNTPOINT)
+            os.rmdir(self.mountpoint)
         except Exception:
             pass
         if self.waffle_proc:
@@ -413,6 +506,10 @@ class WaffleDaemon:
         return False
 
     def _handle_unexpected_unmount(self):
+        # Remember this port was ejected (even if externally) so we don't remount immediately
+        if self.port:
+            self.ejected_ports.add(self.port)
+
         self.state    = 'idle'
         self.port     = None
         self.waffle_proc = None
@@ -420,11 +517,12 @@ class WaffleDaemon:
         self._probing    = False
         self._set_icon('idle')
         self._set_tooltip('waffle-fuse: waiting for disk…')
-        notify('waffle-fuse', 'Disk disconnected unexpectedly.', error=True)
+        notify('waffle-fuse', 'Disk unmounted or disconnected.')
         try:
-            os.rmdir(MOUNTPOINT)
+            os.rmdir(self.mountpoint)
         except Exception:
             pass
+        self.mountpoint = MOUNTPOINT # restore default
         GLib.timeout_add(POLL_INTERVAL_MS, self._poll_tick)
         return False
 
