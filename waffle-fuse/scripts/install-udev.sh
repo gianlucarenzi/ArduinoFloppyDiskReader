@@ -119,7 +119,19 @@ fi
 
 echo ""
 if [ "$LOCAL" = "1" ]; then
-    echo "Done. Make sure ~/.local/bin is in your PATH."
+    # Add ~/.local/bin to PATH in ~/.bashrc if not already present
+    LOCAL_BIN="${XDG_BIN_HOME:-$HOME/.local/bin}"
+    BASHRC="$HOME/.bashrc"
+    PATH_LINE='export PATH="$HOME/.local/bin:$PATH"'
+    if [ -f "$BASHRC" ] && grep -qF '.local/bin' "$BASHRC"; then
+        echo "  ~/.bashrc already contains .local/bin in PATH — skipped."
+    else
+        printf '\n# Added by waffle-fuse install\n%s\n' "$PATH_LINE" >> "$BASHRC"
+        echo "  Added .local/bin to PATH in ~/.bashrc"
+        echo "  Run: source ~/.bashrc  (or open a new terminal)"
+    fi
+    echo ""
+    echo "Done."
     echo "Hotplug (udev) is NOT active — to enable it run:  sudo $0"
     echo "To remove:  $0 --local --uninstall"
 else
