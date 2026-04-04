@@ -26,7 +26,8 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 RULE_SRC="$PROJECT_DIR/rules/99-waffle-fuse.rules"
 UDEV_SH_SRC="$SCRIPT_DIR/waffle-udev.sh"
-WAFFLE_BIN="$PROJECT_DIR/waffle-fuse"
+WAFFLE_FUSE_BIN="$PROJECT_DIR/waffle-fuse"
+WAFFLE_NBD_BIN="$PROJECT_DIR/waffle-nbd"
 ICON_DIR="$PROJECT_DIR/icons"
 
 # ── Parse arguments ───────────────────────────────────────────────────────────
@@ -43,7 +44,8 @@ for arg in "$@"; do
 done
 
 if [ "$LOCAL" = "1" ]; then
-    BIN_DST="${XDG_BIN_HOME:-$HOME/.local/bin}/waffle-fuse"
+    BIN_DST_FUSE="${XDG_BIN_HOME:-$HOME/.local/bin}/waffle-fuse"
+    BIN_DST_NBD="${XDG_BIN_HOME:-$HOME/.local/bin}/waffle-nbd"
     LIB_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/waffle-fuse"
     UDEV_SH_DST="$LIB_DIR/waffle-udev.sh"
     HICOLOR_ICONS="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/devices"
@@ -55,7 +57,8 @@ else
         echo "  $0 --local" >&2
         exit 1
     fi
-    BIN_DST="/usr/local/bin/waffle-fuse"
+    BIN_DST_FUSE="/usr/local/bin/waffle-fuse"
+    BIN_DST_NBD="/usr/local/bin/waffle-nbd"
     LIB_DIR="/usr/local/lib/waffle-fuse"
     UDEV_SH_DST="$LIB_DIR/waffle-udev.sh"
     HICOLOR_ICONS="/usr/share/icons/hicolor/scalable/devices"
@@ -65,7 +68,7 @@ fi
 # ── Uninstall ────────────────────────────────────────────────────────────────
 if [ "$UNINSTALL" = "1" ]; then
     echo "Removing waffle-fuse..."
-    rm -f "$BIN_DST" "$UDEV_SH_DST"
+    rm -f "$BIN_DST_FUSE" "$BIN_DST_NBD" "$UDEV_SH_DST"
     rm -f "$HICOLOR_ICONS/amiga-floppy.svg" "$HICOLOR_ICONS/dos-floppy.svg"
     rmdir "$LIB_DIR" 2>/dev/null || true
     if [ -n "$RULE_DST" ]; then
@@ -81,7 +84,8 @@ fi
 
 # ── Install ──────────────────────────────────────────────────────────────────
 [ -f "$UDEV_SH_SRC" ] || { echo "Error: $UDEV_SH_SRC not found" >&2; exit 1; }
-[ -x "$WAFFLE_BIN" ]  || { echo "Error: $WAFFLE_BIN not found (run 'make' first)" >&2; exit 1; }
+[ -x "$WAFFLE_FUSE_BIN" ] || { echo "Error: $WAFFLE_FUSE_BIN not found (run 'make' first)" >&2; exit 1; }
+[ -x "$WAFFLE_NBD_BIN" ]  || echo "Warning: $WAFFLE_NBD_BIN not found; NBD mode will not work until built."
 
 if [ "$LOCAL" = "1" ]; then
     echo "Installing waffle-fuse locally (user install)..."
@@ -89,10 +93,14 @@ else
     echo "Installing waffle-fuse system-wide..."
 fi
 
-# Binary
-mkdir -p "$(dirname "$BIN_DST")"
-install -m 755 "$WAFFLE_BIN" "$BIN_DST"
-echo "  $BIN_DST"
+# Binaries
+mkdir -p "$(dirname "$BIN_DST_FUSE")"
+install -m 755 "$WAFFLE_FUSE_BIN" "$BIN_DST_FUSE"
+echo "  $BIN_DST_FUSE"
+if [ -x "$WAFFLE_NBD_BIN" ]; then
+    install -m 755 "$WAFFLE_NBD_BIN" "$BIN_DST_NBD"
+    echo "  $BIN_DST_NBD"
+fi
 
 # Helper script
 mkdir -p "$LIB_DIR"
