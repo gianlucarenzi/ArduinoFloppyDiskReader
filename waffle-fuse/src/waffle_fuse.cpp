@@ -165,6 +165,84 @@ struct WaffleState {
 
 static WaffleState* g_state = nullptr;
 
+// ── Runtime dispatch ──────────────────────────────────────────────────────────
+// The disk format (FAT or AFFS) is determined at runtime in waffle_init().
+// We keep both operation tables and dispatch every FUSE callback to the right
+// one based on g_state->isAFFS.  This avoids the UB that results from calling
+// FAT callbacks with an AffsFs* context pointer (or vice-versa).
+
+static struct fuse_operations s_fat_ops;
+static struct fuse_operations s_affs_ops;
+
+#define WF_DISPATCH(field, ...) do { \
+    auto fn = (g_state && g_state->isAFFS) ? s_affs_ops.field : s_fat_ops.field; \
+    return fn ? fn(__VA_ARGS__) : -ENOSYS; \
+} while (0)
+
+static int waffle_getattr (const char* p, struct stat* s WF_GETATTR_EXTRA)
+#if FUSE_USE_VERSION >= 30
+    { WF_DISPATCH(getattr, p, s, fi); }
+#else
+    { WF_DISPATCH(getattr, p, s); }
+#endif
+static int waffle_readdir (const char* p, void* b, fuse_fill_dir_t f, off_t o,
+                           struct fuse_file_info* fi WF_READDIR_FLAGS)
+#if FUSE_USE_VERSION >= 30
+    { WF_DISPATCH(readdir, p, b, f, o, fi, FUSE_READDIR_NORMAL); }
+#else
+    { WF_DISPATCH(readdir, p, b, f, o, fi); }
+#endif
+static int waffle_open    (const char* p, struct fuse_file_info* fi)
+    { WF_DISPATCH(open, p, fi); }
+static int waffle_read    (const char* p, char* b, size_t sz, off_t o,
+                           struct fuse_file_info* fi)
+    { WF_DISPATCH(read, p, b, sz, o, fi); }
+static int waffle_write   (const char* p, const char* b, size_t sz, off_t o,
+                           struct fuse_file_info* fi)
+    { WF_DISPATCH(write, p, b, sz, o, fi); }
+static int waffle_create  (const char* p, mode_t m, struct fuse_file_info* fi)
+    { WF_DISPATCH(create, p, m, fi); }
+static int waffle_unlink  (const char* p)
+    { WF_DISPATCH(unlink, p); }
+static int waffle_mkdir   (const char* p, mode_t m)
+    { WF_DISPATCH(mkdir, p, m); }
+static int waffle_rmdir   (const char* p)
+    { WF_DISPATCH(rmdir, p); }
+static int waffle_rename  (WF_RENAME_SIG)
+#if FUSE_USE_VERSION >= 30
+    { WF_RENAME_CHECK; WF_DISPATCH(rename, from, to, flags); }
+#else
+    { WF_DISPATCH(rename, from, to); }
+#endif
+static int waffle_truncate(const char* p, off_t o WF_TRUNCATE_EXTRA)
+#if FUSE_USE_VERSION >= 30
+    { WF_DISPATCH(truncate, p, o, fi); }
+#else
+    { WF_DISPATCH(truncate, p, o); }
+#endif
+static int waffle_chmod   (const char* p, mode_t m WF_CHMOD_EXTRA)
+#if FUSE_USE_VERSION >= 30
+    { WF_DISPATCH(chmod, p, m, fi); }
+#else
+    { WF_DISPATCH(chmod, p, m); }
+#endif
+static int waffle_chown   (const char* p, uid_t u, gid_t g WF_CHOWN_EXTRA)
+#if FUSE_USE_VERSION >= 30
+    { WF_DISPATCH(chown, p, u, g, fi); }
+#else
+    { WF_DISPATCH(chown, p, u, g); }
+#endif
+static int waffle_utimens (const char* p, const struct timespec t[2] WF_UTIMENS_EXTRA)
+#if FUSE_USE_VERSION >= 30
+    { WF_DISPATCH(utimens, p, t, fi); }
+#else
+    { WF_DISPATCH(utimens, p, t); }
+#endif
+static int waffle_fsync   (const char* p, int d, struct fuse_file_info* fi)
+    { WF_DISPATCH(fsync, p, d, fi); }
+static int waffle_statfs  (const char* p, struct statvfs* sv)
+    { WF_DISPATCH(statfs, p, sv); }
+
 // ── FUSE option handling ──────────────────────────────────────────────────────
 struct WaffleOptions {
     char* format    = nullptr;
@@ -197,13 +275,14 @@ static void* waffle_init(WF_INIT_SIG(conn))
 
     // Open the hardware
     st->disk = std::make_unique<WaffleDisk>(st->serialPort, st->forceRO, st->forcedHD);
+    std::cerr << "waffle-fuse: calling open()\n";
     if (!st->disk->open()) {
         std::cerr << "waffle-fuse: cannot open device " << st->serialPort << "\n";
         fuse_exit(fuse_get_context()->fuse);
         return nullptr;
     }
 
-    std::cout << "waffle-fuse: disk opened  "
+    std::cerr << "waffle-fuse: disk opened  "
               << "format=" << (st->disk->geometry().format == DiskFormat::IBM_FAT ? "IBM/FAT" :
                                 st->disk->geometry().format == DiskFormat::Amiga_ADF ? "Amiga/ADF" : "Unknown")
               << "  HD=" << (st->disk->geometry().isHD ? "yes" : "no")
@@ -224,7 +303,7 @@ static void* waffle_init(WF_INIT_SIG(conn))
             st->isAFFS = true;
             bool isFFS = affs_is_ffs(st->fsCtx);
             bool isHD  = st->disk->geometry().isHD;
-            std::cout << "waffle-fuse: mounted as Amiga " << (isFFS ? "FFS" : "OFS")
+            std::cerr << "waffle-fuse: mounted as Amiga " << (isFFS ? "FFS" : "OFS")
                       << (st->disk->isWriteProtected() ? " (read-only)" : " (read-write)") << "\n";
             std::string label = std::string("Amiga Floppy ") + (isFFS ? "FFS" : "OFS")
                                 + (isHD ? " HD" : " DD");
@@ -363,14 +442,29 @@ int main(int argc, char* argv[])
     state.forceRO = state.forceRO || opts.ro;
     state.debugHW = opts.debug_hw;
 
-    // Choose operations based on forced format; for Auto we decide in init().
-    // We pick FAT ops as default; affs ops are used when AFFS is forced.
-    struct fuse_operations ops;
-    if (state.fsType == WaffleState::FSType::AFFS) {
-        ops = affs_get_operations();
-    } else {
-        ops = fat_get_operations();
-    }
+    // Initialise both operation tables (done once; these are globals)
+    s_fat_ops  = fat_get_operations();
+    s_affs_ops = affs_get_operations();
+
+    // Build a single dispatch ops struct that forwards every call at runtime
+    // to the right driver based on g_state->isAFFS (set in waffle_init).
+    struct fuse_operations ops{};
+    ops.getattr  = waffle_getattr;
+    ops.readdir  = waffle_readdir;
+    ops.open     = waffle_open;
+    ops.read     = waffle_read;
+    ops.write    = waffle_write;
+    ops.create   = waffle_create;
+    ops.unlink   = waffle_unlink;
+    ops.mkdir    = waffle_mkdir;
+    ops.rmdir    = waffle_rmdir;
+    ops.rename   = waffle_rename;
+    ops.truncate = waffle_truncate;
+    ops.chmod    = waffle_chmod;
+    ops.chown    = waffle_chown;
+    ops.utimens  = waffle_utimens;
+    ops.fsync    = waffle_fsync;
+    ops.statfs   = waffle_statfs;
 
     // Override init/destroy to open the hardware first
     ops.init    = waffle_init;

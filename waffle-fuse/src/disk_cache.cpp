@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <locale>
 #include <codecvt>
+#include <iostream>
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -110,67 +111,99 @@ bool WaffleDisk::detectGeometry()
     if (m_impl->writer.selectTrack(0)            != DiagnosticResponse::drOK) return false;
     if (m_impl->writer.selectSurface(DiskSurface::dsLower) != DiagnosticResponse::drOK) return false;
 
-    // ── Try IBM / FAT first ───────────────────────────────────────────────────
+    // ── Try Amiga ADF first ───────────────────────────────────────────────────
+    // Strategy: try DD first (most Amiga disks are DD), then HD.  The retry
+    // trigger is whether sector 0 contains the 'DOS' bootblock signature —
+    // not the sector count — because sector 0 might fail to decode even when
+    // other sectors succeed, giving a misleading count.
+    // If GuessDiskDensity correctly guessed HD, we start there instead.
     {
-        // For detection we try 9 sectors (DD) or 18 (HD)
+        auto hasDos = [](const std::vector<std::array<uint8_t,512>>& s) -> bool {
+            return !s.empty() && s[0][0]=='D' && s[0][1]=='O' && s[0][2]=='S';
+        };
+
+        // First attempt: use guessed density
+        std::vector<std::array<uint8_t, 512>> amigaSectors;
+        m_impl->writer.readAmigaTrack(isHD, 0, DiskSurface::dsLower, amigaSectors, 3);
+        std::cerr << "waffle-detect: Amiga try1 isHD=" << isHD
+                  << " valid=" << [&]{ unsigned n=0; for(auto& s:amigaSectors) for(uint8_t b:s) if(b){++n;break;} return n; }()
+                  << " bb=" << std::hex
+                  << (int)(amigaSectors.empty()?0:amigaSectors[0][0]) << ","
+                  << (int)(amigaSectors.empty()?0:amigaSectors[0][1]) << ","
+                  << (int)(amigaSectors.empty()?0:amigaSectors[0][2]) << ","
+                  << (int)(amigaSectors.empty()?0:amigaSectors[0][3])
+                  << std::dec << "\n";
+
+        if (m_forcedHD < 0 && !hasDos(amigaSectors)) {
+            // Retry with opposite density
+            bool altHD = !isHD;
+            m_impl->writer.selectTrack(0);
+            m_impl->writer.selectSurface(DiskSurface::dsLower);
+            std::vector<std::array<uint8_t, 512>> altSectors;
+            m_impl->writer.readAmigaTrack(altHD, 0, DiskSurface::dsLower, altSectors, 3);
+            std::cerr << "waffle-detect: Amiga try2 isHD=" << altHD
+                      << " valid=" << [&]{ unsigned n=0; for(auto& s:altSectors) for(uint8_t b:s) if(b){++n;break;} return n; }()
+                      << " bb=" << std::hex
+                      << (int)(altSectors.empty()?0:altSectors[0][0]) << ","
+                      << (int)(altSectors.empty()?0:altSectors[0][1]) << ","
+                      << (int)(altSectors.empty()?0:altSectors[0][2]) << ","
+                      << (int)(altSectors.empty()?0:altSectors[0][3])
+                      << std::dec << "\n";
+            if (hasDos(altSectors)) {
+                isHD = altHD;
+                m_geo.isHD = isHD;
+                amigaSectors = std::move(altSectors);
+            }
+        }
+
+        const unsigned int maxSect = isHD ? 22u : 11u;
+        if (hasDos(amigaSectors)) {
+            std::cerr << "waffle-detect: Amiga confirmed isHD=" << isHD << "\n";
+            m_geo.format          = DiskFormat::Amiga_ADF;
+            m_geo.numHeads        = 2;
+            m_geo.sectorsPerTrack = maxSect;
+            m_geo.numCylinders    = 80;
+            m_geo.bytesPerSector  = 512;
+            return true;
+        }
+    }
+
+    // ── Try IBM / FAT ─────────────────────────────────────────────────────────
+    // Only reached if Amiga decoding found no valid bootblock.
+    // Require BOTH the FAT signature (0x55AA) AND a valid jump instruction to
+    // avoid false positives from garbage MFM data.
+    {
+        m_impl->writer.selectTrack(0);
+        m_impl->writer.selectSurface(DiskSurface::dsLower);
+
         uint32_t trySectors = isHD ? 18 : 9;
         std::vector<std::vector<uint8_t>> ibmSectors;
         bool ok = m_impl->writer.readIBMTrack(isHD, 0, trySectors, ibmSectors, 3);
 
         if (ok && !ibmSectors.empty() && !ibmSectors[0].empty()) {
-            // Sector 0 of track 0 is the FAT boot sector
             const uint8_t* boot = ibmSectors[0].data();
 
-            // Quick FAT signature check: bytes 510-511 = 0x55 0xAA
             bool fatSig = (ibmSectors[0].size() >= 512) &&
                           (boot[510] == 0x55) && (boot[511] == 0xAA);
+            bool jmpOk  = (boot[0] == 0xEB || boot[0] == 0xE9);
 
-            // Also check the jump instruction (0xEB xx 0x90 or 0xE9 xx xx)
-            bool jmpOk = (boot[0] == 0xEB || boot[0] == 0xE9);
-
-            if (fatSig || jmpOk) {
-                m_geo.format = DiskFormat::IBM_FAT;
+            // Require both markers to avoid false positives on Amiga data.
+            if (fatSig && jmpOk) {
+                m_geo.format         = DiskFormat::IBM_FAT;
                 m_geo.bytesPerSector = 512;
 
-                // Try to read BPB for geometry
                 uint32_t serialNum, numHeads, totalSectors, sectPerTrack, bytesPerSec;
                 if (IBM::getTrackDetails_IBM(boot, serialNum, numHeads, totalSectors,
                                              sectPerTrack, bytesPerSec)) {
-                    m_geo.numHeads       = numHeads;
-                    m_geo.sectorsPerTrack= sectPerTrack;
-                    m_geo.bytesPerSector = bytesPerSec;
-                    m_geo.numCylinders   = totalSectors / (numHeads * sectPerTrack);
+                    m_geo.numHeads        = numHeads;
+                    m_geo.sectorsPerTrack = sectPerTrack;
+                    m_geo.bytesPerSector  = bytesPerSec;
+                    m_geo.numCylinders    = totalSectors / (numHeads * sectPerTrack);
                 } else {
-                    // Fallback defaults
                     m_geo.numHeads        = 2;
                     m_geo.sectorsPerTrack = isHD ? 18 : 9;
                     m_geo.numCylinders    = 80;
                 }
-                return true;
-            }
-        }
-    }
-
-    // ── Try Amiga ADF ─────────────────────────────────────────────────────────
-    {
-        // Re-select lower surface: IBM detection reads may leave state undefined.
-        m_impl->writer.selectTrack(0);
-        m_impl->writer.selectSurface(DiskSurface::dsLower);
-
-        const unsigned int maxSect = isHD ? 22u : 11u;
-        std::vector<std::array<uint8_t, 512>> amigaSectors;
-        m_impl->writer.readAmigaTrack(isHD, 0, DiskSurface::dsLower, amigaSectors, 3);
-
-        // We only need sector 0 (boot block) to contain 'DOS' — don't require
-        // all 11 sectors to be decoded successfully.
-        if (!amigaSectors.empty()) {
-            const uint8_t* bb = amigaSectors[0].data();
-            if (bb[0] == 'D' && bb[1] == 'O' && bb[2] == 'S') {
-                m_geo.format          = DiskFormat::Amiga_ADF;
-                m_geo.numHeads        = 2;
-                m_geo.sectorsPerTrack = maxSect;
-                m_geo.numCylinders    = 80;
-                m_geo.bytesPerSector  = 512;
                 return true;
             }
         }

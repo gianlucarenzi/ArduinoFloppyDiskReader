@@ -75,6 +75,10 @@ add)
         sleep 2
     done
 
+    # Give the Arduino firmware a moment to settle after the last probe
+    # before waffle-fuse opens the port for full operation.
+    sleep 2
+
     mkdir -p "$MNT"
     chown "${SESSION_USER}:" "$MNT"
 
@@ -85,13 +89,17 @@ add)
     export WFUDEV_HOME="$SESSION_HOME"
     export WFUDEV_DBUS="$DBUS_ADDR"
     export WFUDEV_XDG="$XDG_RT"
+    WFUDEV_LOG="/tmp/waffle-fuse-$(basename "$PORT").log"
+    export WFUDEV_LOG
     su -s /bin/sh "$SESSION_USER" -c '
         export HOME="$WFUDEV_HOME"
         export DBUS_SESSION_BUS_ADDRESS="$WFUDEV_DBUS"
         export XDG_RUNTIME_DIR="$WFUDEV_XDG"
-        # Start the FUSE driver in the background
-        "$WFUDEV_BIN" "$WFUDEV_PORT" "$WFUDEV_MNT" \
-            -o "fsname=waffle:$WFUDEV_PORT,subtype=waffle" &
+        # -f (foreground) impedisce il double-fork interno di FUSE che chiude
+        # stdin/stdout/stderr. setsid + & gestiscono il distacco dalla sessione.
+        setsid "$WFUDEV_BIN" "$WFUDEV_PORT" "$WFUDEV_MNT" \
+            -f -o "fsname=waffle:$WFUDEV_PORT,subtype=waffle" \
+            >"$WFUDEV_LOG" 2>&1 &
         # Wait up to 30 s for the mount to appear, then open the file manager
         i=0
         while [ "$i" -lt 30 ]; do
@@ -100,7 +108,7 @@ add)
         done
         mountpoint -q "$WFUDEV_MNT" 2>/dev/null && \
             xdg-open "$WFUDEV_MNT" >/dev/null 2>&1 &
-    ' &
+    '
     ;;
 
 # ── Unplug: flush → unmount ───────────────────────────────────────────────────
