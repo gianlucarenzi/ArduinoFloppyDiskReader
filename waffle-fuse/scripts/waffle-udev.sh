@@ -73,11 +73,9 @@ case "$ACTION" in
 # ── Plug-in: probe → mount ────────────────────────────────────────────────────
 add)
     # Confirm the device actually speaks the Waffle protocol (not just any
-    # FTDI chip).  Exit code 0=disk present, 1=no disk, 2+=not a Waffle.
-    export WFUDEV_BIN="$WAFFLE_BIN"
-    export WFUDEV_PORT="$PORT"
-    su -s /bin/sh "$SESSION_USER" -c \
-        '$WFUDEV_BIN --probe $WFUDEV_PORT >/dev/null 2>&1'
+    # FTDI chip).  Run as root (we already have full device access).
+    # Exit code 0=disk present, 1=no disk, 2+=not a Waffle.
+    "$WAFFLE_BIN" --probe "$PORT" >/dev/null 2>&1
     PROBE_INIT=$?
     echo "  initial probe exit=$PROBE_INIT"
     case $PROBE_INIT in
@@ -89,8 +87,7 @@ add)
     # Exit code 0=disk present, 1=no disk, 2+=error/disconnected.
     echo "  waiting for disk..."
     while true; do
-        su -s /bin/sh "$SESSION_USER" -c \
-            '$WFUDEV_BIN --probe $WFUDEV_PORT >/dev/null 2>&1'
+        "$WAFFLE_BIN" --probe "$PORT" >/dev/null 2>&1
         PROBE=$?
         [ "$PROBE" -eq 0 ] && break        # disk inserted → proceed
         [ "$PROBE" -gt 1 ] && { echo "  probe error ($PROBE), aborting"; exit 0; }
