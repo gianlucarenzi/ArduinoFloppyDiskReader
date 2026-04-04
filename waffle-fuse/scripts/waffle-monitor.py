@@ -427,7 +427,13 @@ class DeviceSession:
         tty, dev = self.tty, self.nbd_dev
         assert dev is not None
 
-        time.sleep(0.5)  # let kernel settle after nbd-client connect
+        # Give the kernel a moment to settle after nbd-client connects
+        # and to expose the correct block size/geometry via the NBD layer.
+        time.sleep(1.0)
+
+        # Ensure filesystem modules are loaded before attempting mount
+        for mod in ("affs", "vfat"):
+            subprocess.run(["modprobe", mod], capture_output=True)
 
         # Build mount point under /run/media/<user>/waffle-<tty-name>/
         tty_name = Path(self.tty).name
@@ -457,8 +463,9 @@ class DeviceSession:
                 )
                 self._open_fm(str(mp))
                 return
-            log.debug(
-                "[%s] mount -t %s: %s",
+            # Log at INFO level so mount errors are always visible in journald
+            log.info(
+                "[%s] mount -t %s failed: %s",
                 tty, fstype,
                 r.stderr.decode(errors="replace").strip(),
             )
@@ -621,6 +628,8 @@ class WaffleMonitor:
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 def main() -> None:
+    global NBD_PORT_BASE, NBD_CONNECT_RETRIES
+
     if os.geteuid() != 0:
         sys.exit(
             "ERROR: waffle-monitor must run as root.\n"
@@ -653,7 +662,6 @@ def main() -> None:
         datefmt="%H:%M:%S",
     )
 
-    global NBD_PORT_BASE, NBD_CONNECT_RETRIES
     NBD_PORT_BASE       = args.port
     NBD_CONNECT_RETRIES = args.retries
 
