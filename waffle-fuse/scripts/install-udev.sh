@@ -1,5 +1,5 @@
 #!/bin/sh
-# install-udev.sh  –  install the waffle-fuse udev rule and helper script
+# install-udev.sh  –  install waffle-fuse / waffle-nbd and supporting files
 #
 # System install (requires root):
 #   sudo scripts/install-udev.sh [--uninstall]
@@ -8,16 +8,21 @@
 #   scripts/install-udev.sh --local [--uninstall]
 #
 # System install places:
-#   1. waffle-fuse binary  → /usr/local/bin/
-#   2. waffle-udev.sh      → /usr/local/lib/waffle-fuse/
-#   3. udev rule           → /etc/udev/rules.d/
-#   4. SVG icons           → /usr/share/icons/hicolor/scalable/devices/
+#   1. waffle-fuse binary        → /usr/local/bin/
+#   2. waffle-nbd binary         → /usr/local/bin/
+#   3. waffle-udev.sh            → /usr/local/lib/waffle-fuse/
+#   4. waffle-monitor.py         → /usr/local/lib/waffle-fuse/
+#   5. waffle-monitor.service    → /etc/systemd/system/
+#   6. udev rule                 → /etc/udev/rules.d/
+#   7. SVG icons                 → /usr/share/icons/hicolor/scalable/devices/
 #
 # Local install places (XDG user dirs, no sudo needed):
-#   1. waffle-fuse binary  → ~/.local/bin/
-#   2. waffle-udev.sh      → ~/.local/lib/waffle-fuse/
-#   3. SVG icons           → ~/.local/share/icons/hicolor/scalable/devices/
-#   NOTE: udev rule requires root; hotplug will not work without it.
+#   1. waffle-fuse binary        → ~/.local/bin/
+#   2. waffle-nbd binary         → ~/.local/bin/
+#   3. waffle-udev.sh            → ~/.local/lib/waffle-fuse/
+#   4. waffle-monitor.py         → ~/.local/lib/waffle-fuse/
+#   5. SVG icons                 → ~/.local/share/icons/hicolor/scalable/devices/
+#   NOTE: udev rule + systemd service require root; hotplug will not work without them.
 
 set -e
 
@@ -26,6 +31,8 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 RULE_SRC="$PROJECT_DIR/rules/99-waffle-fuse.rules"
 UDEV_SH_SRC="$SCRIPT_DIR/waffle-udev.sh"
+MONITOR_PY_SRC="$SCRIPT_DIR/waffle-monitor.py"
+MONITOR_SVC_SRC="$SCRIPT_DIR/waffle-monitor.service"
 WAFFLE_FUSE_BIN="$PROJECT_DIR/waffle-fuse"
 WAFFLE_NBD_BIN="$PROJECT_DIR/waffle-nbd"
 ICON_DIR="$PROJECT_DIR/icons"
@@ -48,8 +55,10 @@ if [ "$LOCAL" = "1" ]; then
     BIN_DST_NBD="${XDG_BIN_HOME:-$HOME/.local/bin}/waffle-nbd"
     LIB_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/waffle-fuse"
     UDEV_SH_DST="$LIB_DIR/waffle-udev.sh"
+    MONITOR_PY_DST="$LIB_DIR/waffle-monitor.py"
     HICOLOR_ICONS="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/devices"
     RULE_DST=""
+    SYSTEMD_DST=""
 else
     if [ "$(id -u)" -ne 0 ]; then
         echo "Error: system install requires root. Use sudo, or pass --local for a user install." >&2
@@ -61,14 +70,24 @@ else
     BIN_DST_NBD="/usr/local/bin/waffle-nbd"
     LIB_DIR="/usr/local/lib/waffle-fuse"
     UDEV_SH_DST="$LIB_DIR/waffle-udev.sh"
+    MONITOR_PY_DST="$LIB_DIR/waffle-monitor.py"
     HICOLOR_ICONS="/usr/share/icons/hicolor/scalable/devices"
     RULE_DST="/etc/udev/rules.d/99-waffle-fuse.rules"
+    SYSTEMD_DST="/etc/systemd/system/waffle-monitor.service"
 fi
 
 # ── Uninstall ────────────────────────────────────────────────────────────────
 if [ "$UNINSTALL" = "1" ]; then
-    echo "Removing waffle-fuse..."
-    rm -f "$BIN_DST_FUSE" "$BIN_DST_NBD" "$UDEV_SH_DST"
+    echo "Removing waffle-fuse / waffle-nbd / waffle-monitor..."
+    # Stop and disable the systemd service before removing files
+    if [ -n "$SYSTEMD_DST" ] && [ -f "$SYSTEMD_DST" ]; then
+        systemctl stop    waffle-monitor.service 2>/dev/null || true
+        systemctl disable waffle-monitor.service 2>/dev/null || true
+        rm -f "$SYSTEMD_DST"
+        systemctl daemon-reload
+        echo "  $SYSTEMD_DST (removed)"
+    fi
+    rm -f "$BIN_DST_FUSE" "$BIN_DST_NBD" "$UDEV_SH_DST" "$MONITOR_PY_DST"
     rm -f "$HICOLOR_ICONS/amiga-floppy.svg" "$HICOLOR_ICONS/dos-floppy.svg"
     rmdir "$LIB_DIR" 2>/dev/null || true
     if [ -n "$RULE_DST" ]; then
@@ -83,9 +102,10 @@ if [ "$UNINSTALL" = "1" ]; then
 fi
 
 # ── Install ──────────────────────────────────────────────────────────────────
-[ -f "$UDEV_SH_SRC" ] || { echo "Error: $UDEV_SH_SRC not found" >&2; exit 1; }
-[ -x "$WAFFLE_FUSE_BIN" ] || { echo "Error: $WAFFLE_FUSE_BIN not found (run 'make' first)" >&2; exit 1; }
-[ -x "$WAFFLE_NBD_BIN" ]  || echo "Warning: $WAFFLE_NBD_BIN not found; NBD mode will not work until built."
+[ -f "$UDEV_SH_SRC" ]      || { echo "Error: $UDEV_SH_SRC not found" >&2; exit 1; }
+[ -f "$MONITOR_PY_SRC" ]   || { echo "Error: $MONITOR_PY_SRC not found" >&2; exit 1; }
+[ -x "$WAFFLE_FUSE_BIN" ]  || { echo "Error: $WAFFLE_FUSE_BIN not found (run 'make' first)" >&2; exit 1; }
+[ -x "$WAFFLE_NBD_BIN" ]   || echo "Warning: $WAFFLE_NBD_BIN not found; NBD mode will not work until built."
 
 if [ "$LOCAL" = "1" ]; then
     echo "Installing waffle-fuse locally (user install)..."
@@ -102,10 +122,23 @@ if [ -x "$WAFFLE_NBD_BIN" ]; then
     echo "  $BIN_DST_NBD"
 fi
 
-# Helper script
+# Helper script (waffle-udev.sh)
 mkdir -p "$LIB_DIR"
 install -m 755 "$UDEV_SH_SRC" "$UDEV_SH_DST"
 echo "  $UDEV_SH_DST"
+
+# Python monitor (waffle-monitor.py)
+install -m 755 "$MONITOR_PY_SRC" "$MONITOR_PY_DST"
+echo "  $MONITOR_PY_DST"
+
+# systemd service (system only)
+if [ -n "$SYSTEMD_DST" ] && [ -f "$MONITOR_SVC_SRC" ]; then
+    install -m 644 "$MONITOR_SVC_SRC" "$SYSTEMD_DST"
+    echo "  $SYSTEMD_DST"
+    systemctl daemon-reload
+    systemctl enable --now waffle-monitor.service
+    echo "  waffle-monitor.service enabled and started"
+fi
 
 # udev rule (system only)
 if [ -n "$RULE_DST" ]; then
@@ -140,9 +173,12 @@ if [ "$LOCAL" = "1" ]; then
     fi
     echo ""
     echo "Done."
-    echo "Hotplug (udev) is NOT active — to enable it run:  sudo $0"
+    echo "Hotplug (udev + systemd service) is NOT active — to enable it run:  sudo $0"
     echo "To remove:  $0 --local --uninstall"
 else
-    echo "Done. Plug in the DrawBridge / Waffle device to trigger auto-mount."
+    echo "Done."
+    echo "  waffle-monitor.service is running and will auto-start at boot."
+    echo "  Plug in the DrawBridge / Waffle device to start the NBD server."
+    echo "  View logs: journalctl -u waffle-monitor -f"
     echo "To remove:  sudo $0 --uninstall"
 fi

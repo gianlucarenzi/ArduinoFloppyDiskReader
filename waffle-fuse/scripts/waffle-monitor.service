@@ -1,0 +1,26 @@
+[Unit]
+Description=Waffle / DrawBridge NBD monitor
+Documentation=file:/usr/local/lib/waffle-fuse/waffle-monitor.py
+# Start after udev has settled and the login session is available
+After=systemd-udev-settle.service systemd-logind.service
+Wants=systemd-udev-settle.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/lib/waffle-fuse/waffle-monitor.py
+Restart=on-failure
+RestartSec=5s
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=waffle-monitor
+
+# The script needs root to:
+#  - read the udev netlink socket
+#  - run nbd-client (opens /dev/nbdN kernel device)
+#  - mount/umount filesystems
+User=root
+
+[Install]
+WantedBy=multi-user.target
