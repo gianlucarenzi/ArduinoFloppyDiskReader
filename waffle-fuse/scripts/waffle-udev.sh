@@ -108,49 +108,73 @@ add)
     # Launch waffle-fuse as the user.
     # No format= or density= → full auto-detection in waffle_init().
     # waffle_init() adds the GVfs bookmark and a ~/Desktop eject shortcut.
-    # Use double-quoted -c string so the outer shell expands all variables
-    # before su is called (su resets the environment).
-    WFUDEV_LOG="/tmp/waffle-fuse-$(basename "$PORT").log"
-    su -s /bin/sh "$SESSION_USER" -c "
-        export HOME='$SESSION_HOME'
-        export DBUS_SESSION_BUS_ADDRESS='$DBUS_ADDR'
-        export XDG_RUNTIME_DIR='$XDG_RT'
-        setsid '$WAFFLE_BIN' '$PORT' '$MNT' \
-            -f -o 'fsname=waffle:$PORT,subtype=waffle' \
-            >'$WFUDEV_LOG' 2>&1 &
-        i=0
-        while [ \"\$i\" -lt 30 ]; do
-            mountpoint -q '$MNT' 2>/dev/null && break
-            sleep 1; i=\$((i+1))
-        done
-        mountpoint -q '$MNT' 2>/dev/null && \
+    #
+    # systemd-udevd has TWO restrictions that prevent FUSE mounts from child
+    # processes:
+    #   1. PrivateMounts=yes  – private mount namespace (mount invisible to
+    #                           the user's session)
+    #   2. SystemCallFilter   – seccomp whitelist that does NOT include mount(),
+    #                           blocking fusermount even when setuid-root
+    # Both restrictions are inherited by every child process (su, nsenter, …).
+    # The only escape is systemd-run, which asks systemd to start a brand-new
+    # transient unit outside udevd's cgroup/seccomp context and in the global
+    # mount namespace.
+    SESSION_GID=$(id -g "$SESSION_USER" 2>/dev/null)
+
+    # Stop any leftover unit from a previous run (ignore errors).
+    systemctl stop "waffle-fuse-${PORT_BASE}.service" 2>/dev/null || true
+    systemctl reset-failed "waffle-fuse-${PORT_BASE}.service" 2>/dev/null || true
+
+    systemd-run \
+        --unit="waffle-fuse-${PORT_BASE}" \
+        --uid="$SESSION_UID" \
+        --gid="$SESSION_GID" \
+        --setenv="HOME=$SESSION_HOME" \
+        --setenv="DBUS_SESSION_BUS_ADDRESS=$DBUS_ADDR" \
+        --setenv="XDG_RUNTIME_DIR=$XDG_RT" \
+        -- \
+        "$WAFFLE_BIN" "$PORT" "$MNT" \
+            -f -o "fsname=waffle:${PORT},subtype=waffle"
+    echo "  systemd-run exit=$?"
+
+    # Wait for the mount to become active (up to 30 s), then open the file
+    # manager as the session user.
+    i=0
+    while [ "$i" -lt 30 ]; do
+        mountpoint -q "$MNT" 2>/dev/null && break
+        sleep 1; i=$((i+1))
+    done
+    if mountpoint -q "$MNT" 2>/dev/null; then
+        su -s /bin/sh "$SESSION_USER" -c "
+            export HOME='$SESSION_HOME'
+            export DBUS_SESSION_BUS_ADDRESS='$DBUS_ADDR'
+            export XDG_RUNTIME_DIR='$XDG_RT'
             xdg-open '$MNT' >/dev/null 2>&1 &
-    "
+        "
+    else
+        echo "  WARNING: mount not active after 30 s"
+    fi
     ;;
 
 # ── Unplug: flush → unmount ───────────────────────────────────────────────────
 remove)
-    # Identify the mount by its fsname (set at mount time as waffle:/dev/ttyUSBx).
-    # fusermount triggers waffle_destroy() which flushes all dirty tracks to
-    # hardware before the serial port disappears, then removes the GVfs bookmark
-    # and the ~/Desktop eject shortcut.
+    # Stop the transient service unit started by the add) action.
+    # systemd sends SIGTERM to waffle-fuse, which runs inside the unit's own
+    # context (outside udevd's seccomp filter), so libfuse teardown works:
+    #   SIGTERM → fuse_exit() → waffle_destroy() (flush + GVfs/desktop cleanup)
+    #           → fuse_unmount() → fusermount -u  (succeeds in the unit context)
+    systemctl stop "waffle-fuse-${PORT_BASE}.service" 2>/dev/null || true
+    sleep 1   # allow waffle_destroy() to complete the flush
+
+    # If the unit was already dead (e.g. daemon crashed), the mount may still
+    # be stale.  Use systemd-run to escape the seccomp filter for umount too.
     grep "waffle:${PORT} " /proc/mounts 2>/dev/null | awk '{ print $2 }' | \
     while read -r MNT_FOUND; do
-        export WFUDEV_MNT="$MNT_FOUND"
-        export WFUDEV_HOME="$SESSION_HOME"
-        export WFUDEV_DBUS="$DBUS_ADDR"
-        export WFUDEV_XDG="$XDG_RT"
-        su -s /bin/sh "$SESSION_USER" -c '
-            export HOME="$WFUDEV_HOME"
-            export DBUS_SESSION_BUS_ADDRESS="$WFUDEV_DBUS"
-            export XDG_RUNTIME_DIR="$WFUDEV_XDG"
-            fusermount3 -u "$WFUDEV_MNT" 2>/dev/null \
-                || fusermount -u "$WFUDEV_MNT" 2>/dev/null \
-                || true
-        '
-        sleep 1   # allow waffle_destroy() to complete the flush
+        systemd-run --scope -- umount -l "$MNT_FOUND" 2>/dev/null || true
         rmdir "$MNT_FOUND" 2>/dev/null || true
     done
+
+    rmdir "$MNT" 2>/dev/null || true
     ;;
 
 esac

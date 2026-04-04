@@ -508,8 +508,8 @@ DiagnosticResponse ArduinoInterface::internalOpenPort(const std::wstring& portNa
     }
 
     port.setBufferSizes(16, 16);
-    port.setReadTimeouts(10, 250);
-    port.setWriteTimeouts(2000, 200);
+    port.setReadTimeouts(10, 5);
+    port.setWriteTimeouts(2000, 2);
 
     // Try to get the version
     DiagnosticResponse response = attemptToSync(versionString, port);
@@ -634,9 +634,9 @@ void ArduinoInterface::applyCommTimeouts(bool shortTimeouts)
         m_comPort.setReadTimeouts(5, 12);
     }
     else {
-        m_comPort.setReadTimeouts(2000, 200);
+        m_comPort.setReadTimeouts(2000, 2);
     }
-    m_comPort.setWriteTimeouts(2000, 200);
+    m_comPort.setWriteTimeouts(2000, 2);
 }
 
 // Closes the port down

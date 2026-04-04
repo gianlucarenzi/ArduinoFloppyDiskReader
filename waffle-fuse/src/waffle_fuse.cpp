@@ -30,6 +30,8 @@
 #include <vector>
 #include <memory>
 #include <iostream>
+#include <thread>
+#include <chrono>
 
 #include "disk_cache.h"
 #include "fat_fs.h"
@@ -332,9 +334,13 @@ static void* waffle_init(WF_INIT_SIG(conn))
                       << (st->disk->isWriteProtected() ? " (read-only)" : " (read-write)") << "\n";
             std::string label = std::string("Amiga Floppy ") + (isFFS ? "FFS" : "OFS")
                                 + (isHD ? " HD" : " DD");
-            gvfs_bookmark_add(st->mountPoint, label);
-            xdg_volume_info_create(st->mountPoint, label, "amiga-floppy");
-            st->ejectDesktopFile = desktop_eject_create(st->mountPoint, label, "amiga-floppy");
+            std::string icon = "amiga-floppy";
+            std::thread([mountPoint = st->mountPoint, label, icon]() {
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                gvfs_bookmark_add(mountPoint, label);
+                xdg_volume_info_create(mountPoint, label, icon);
+                if (g_state) g_state->ejectDesktopFile = desktop_eject_create(mountPoint, label, icon);
+            }).detach();
             return st->fsCtx;
         }
     }
@@ -353,9 +359,13 @@ static void* waffle_init(WF_INIT_SIG(conn))
     {
         std::string label = std::string("DOS Floppy FAT") + (isFAT16 ? "16" : "12")
                             + (isHD ? " HD" : " DD");
-        gvfs_bookmark_add(st->mountPoint, label);
-        xdg_volume_info_create(st->mountPoint, label, "dos-floppy");
-        st->ejectDesktopFile = desktop_eject_create(st->mountPoint, label, "dos-floppy");
+        std::string icon = "dos-floppy";
+        std::thread([mountPoint = st->mountPoint, label, icon]() {
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            gvfs_bookmark_add(mountPoint, label);
+            xdg_volume_info_create(mountPoint, label, icon);
+            if (g_state) g_state->ejectDesktopFile = desktop_eject_create(mountPoint, label, icon);
+        }).detach();
     }
     return st->fsCtx;
 }
