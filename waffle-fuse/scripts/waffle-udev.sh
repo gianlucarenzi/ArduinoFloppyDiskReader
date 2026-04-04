@@ -108,30 +108,24 @@ add)
     # Launch waffle-fuse as the user.
     # No format= or density= → full auto-detection in waffle_init().
     # waffle_init() adds the GVfs bookmark and a ~/Desktop eject shortcut.
-    export WFUDEV_MNT="$MNT"
-    export WFUDEV_HOME="$SESSION_HOME"
-    export WFUDEV_DBUS="$DBUS_ADDR"
-    export WFUDEV_XDG="$XDG_RT"
+    # Use double-quoted -c string so the outer shell expands all variables
+    # before su is called (su resets the environment).
     WFUDEV_LOG="/tmp/waffle-fuse-$(basename "$PORT").log"
-    export WFUDEV_LOG
-    su -s /bin/sh "$SESSION_USER" -c '
-        export HOME="$WFUDEV_HOME"
-        export DBUS_SESSION_BUS_ADDRESS="$WFUDEV_DBUS"
-        export XDG_RUNTIME_DIR="$WFUDEV_XDG"
-        # -f (foreground) impedisce il double-fork interno di FUSE che chiude
-        # stdin/stdout/stderr. setsid + & gestiscono il distacco dalla sessione.
-        setsid "$WFUDEV_BIN" "$WFUDEV_PORT" "$WFUDEV_MNT" \
-            -f -o "fsname=waffle:$WFUDEV_PORT,subtype=waffle" \
-            >"$WFUDEV_LOG" 2>&1 &
-        # Wait up to 30 s for the mount to appear, then open the file manager
+    su -s /bin/sh "$SESSION_USER" -c "
+        export HOME='$SESSION_HOME'
+        export DBUS_SESSION_BUS_ADDRESS='$DBUS_ADDR'
+        export XDG_RUNTIME_DIR='$XDG_RT'
+        setsid '$WAFFLE_BIN' '$PORT' '$MNT' \
+            -f -o 'fsname=waffle:$PORT,subtype=waffle' \
+            >'$WFUDEV_LOG' 2>&1 &
         i=0
-        while [ "$i" -lt 30 ]; do
-            mountpoint -q "$WFUDEV_MNT" 2>/dev/null && break
-            sleep 1; i=$((i+1))
+        while [ \"\$i\" -lt 30 ]; do
+            mountpoint -q '$MNT' 2>/dev/null && break
+            sleep 1; i=\$((i+1))
         done
-        mountpoint -q "$WFUDEV_MNT" 2>/dev/null && \
-            xdg-open "$WFUDEV_MNT" >/dev/null 2>&1 &
-    '
+        mountpoint -q '$MNT' 2>/dev/null && \
+            xdg-open '$MNT' >/dev/null 2>&1 &
+    "
     ;;
 
 # ── Unplug: flush → unmount ───────────────────────────────────────────────────
