@@ -1,6 +1,7 @@
 // waffle-fuse: disk cache / hardware abstraction layer implementation
 
 #include "disk_cache.h"
+#include "waffle_log.h"
 #include "ADFWriter.h"
 #include "ArduinoInterface.h"
 #include "ibm_sectors.h"
@@ -41,6 +42,7 @@ bool WaffleDisk::open()
 {
     if (m_open) return true;
 
+    VLOG("waffle: opening device " << m_portName);
     m_impl = new Impl();
     if (!m_impl->writer.openDevice(toWide(m_portName))) {
         delete m_impl;
@@ -48,7 +50,6 @@ bool WaffleDisk::open()
         return false;
     }
 
-    // Check write protection
     m_writeProtected =
         (m_impl->writer.checkIfDiskIsWriteProtected(true) ==
          ArduinoFloppyReader::DiagnosticResponse::drWriteProtected);
@@ -61,6 +62,27 @@ bool WaffleDisk::open()
     }
 
     m_open = true;
+    m_writerOpen = true;
+    m_diskPresent = true;
+    return true;
+}
+
+// Open port only — geometry detection is deferred to remount() (NBD path).
+bool WaffleDisk::openDisk()
+{
+    if (m_open) return true;
+
+    VLOG("waffle: openDisk " << m_portName);
+    m_impl = new Impl();
+    if (!m_impl->writer.openDevice(toWide(m_portName))) {
+        delete m_impl;
+        m_impl = nullptr;
+        return false;
+    }
+
+    m_open = true;
+    m_writerOpen = true;
+    m_diskPresent = true; // probe already confirmed presence
     return true;
 }
 
@@ -68,11 +90,73 @@ void WaffleDisk::close()
 {
     if (!m_open) return;
     flush();
-    m_impl->writer.closeDevice();
+    if (m_writerOpen) {
+        m_impl->writer.closeDevice();
+        m_writerOpen = false;
+    }
     delete m_impl;
     m_impl = nullptr;
     m_cache.clear();
     m_open = false;
+    m_diskPresent = false;
+}
+
+void WaffleDisk::closeDisk()
+{
+    close();
+}
+
+// Disable motor but keep port open — used before checkPresence() polling
+// in Phase 5 so we don't move the head just to check disk presence.
+void WaffleDisk::parkDisk()
+{
+    std::lock_guard<std::mutex> lk(m_mtx);
+    if (!m_open || !m_writerOpen) return;
+    VLOG("waffle: parkDisk (motor off)");
+    m_impl->writer.enableReading(false);
+}
+
+// Re-detect geometry and write-protection on an already-open port.
+bool WaffleDisk::remount()
+{
+    std::lock_guard<std::mutex> lk(m_mtx);
+    if (!m_open || !m_writerOpen) return false;
+
+    m_cache.clear();
+    m_writeProtected =
+        (m_impl->writer.checkIfDiskIsWriteProtected(true) ==
+         ArduinoFloppyReader::DiagnosticResponse::drWriteProtected);
+
+    if (!detectGeometry()) {
+        diskRemoved();
+        return false;
+    }
+
+    m_diskPresent = true;
+    std::cerr << "waffle: format="
+              << (m_geo.format == DiskFormat::Amiga_ADF ? "Amiga" : "PC/FAT")
+              << " size=" << (totalSectors() * 512 / 1024) << " KB"
+              << (m_writeProtected ? " [RO]" : "") << "\n";
+    return true;
+}
+
+// Quick probe: open a fresh connection, check presence, close.
+// Port must be closed (m_writerOpen == false) when called.
+bool WaffleDisk::probePresent() const
+{
+    return WaffleDisk::probe(m_portName) == 0;
+}
+
+// Check disk presence using the already-open port (safe during I/O pauses).
+bool WaffleDisk::checkPresence()
+{
+    using namespace ArduinoFloppyReader;
+    std::lock_guard<std::mutex> lk(m_mtx);
+    if (!m_open || !m_writerOpen) return false;
+    m_impl->writer.checkIfDiskIsWriteProtected(true);
+    bool present = m_impl->writer.isDiskInDrive();
+    if (!present) diskRemoved();
+    return present;
 }
 
 // ── Probe (lightweight disk presence check, no head movement) ─────────────────
@@ -170,42 +254,49 @@ bool WaffleDisk::detectGeometry()
 
     // ── Try IBM / FAT ─────────────────────────────────────────────────────────
     // Only reached if Amiga decoding found no valid bootblock.
+    // Try both DD (9 sectors) and HD (18 sectors) so that GuessDiskDensity
+    // being wrong cannot cause a misidentification.
     // Require BOTH the FAT signature (0x55AA) AND a valid jump instruction to
     // avoid false positives from garbage MFM data.
     {
-        m_impl->writer.selectTrack(0);
-        m_impl->writer.selectSurface(DiskSurface::dsLower);
+        // Order: try the density GuessDiskDensity suggested first.
+        const bool densities[2] = { isHD, !isHD };
 
-        uint32_t trySectors = isHD ? 18 : 9;
-        std::vector<std::vector<uint8_t>> ibmSectors;
-        bool ok = m_impl->writer.readIBMTrack(isHD, 0, trySectors, ibmSectors, 3);
+        for (bool tryHD : densities) {
+            m_impl->writer.selectTrack(0);
+            m_impl->writer.selectSurface(DiskSurface::dsLower);
 
-        if (ok && !ibmSectors.empty() && !ibmSectors[0].empty()) {
+            const uint32_t trySectors = tryHD ? 18u : 9u;
+            std::vector<std::vector<uint8_t>> ibmSectors;
+            bool ok = m_impl->writer.readIBMTrack(tryHD, 0, trySectors, ibmSectors, 3);
+
+            if (!ok || ibmSectors.empty() || ibmSectors[0].empty()) continue;
+
             const uint8_t* boot = ibmSectors[0].data();
-
             bool fatSig = (ibmSectors[0].size() >= 512) &&
                           (boot[510] == 0x55) && (boot[511] == 0xAA);
             bool jmpOk  = (boot[0] == 0xEB || boot[0] == 0xE9);
 
-            // Require both markers to avoid false positives on Amiga data.
-            if (fatSig && jmpOk) {
-                m_geo.format         = DiskFormat::IBM_FAT;
-                m_geo.bytesPerSector = 512;
+            if (!fatSig || !jmpOk) continue;
 
-                uint32_t serialNum, numHeads, totalSectors, sectPerTrack, bytesPerSec;
-                if (IBM::getTrackDetails_IBM(boot, serialNum, numHeads, totalSectors,
-                                             sectPerTrack, bytesPerSec)) {
-                    m_geo.numHeads        = numHeads;
-                    m_geo.sectorsPerTrack = sectPerTrack;
-                    m_geo.bytesPerSector  = bytesPerSec;
-                    m_geo.numCylinders    = totalSectors / (numHeads * sectPerTrack);
-                } else {
-                    m_geo.numHeads        = 2;
-                    m_geo.sectorsPerTrack = isHD ? 18 : 9;
-                    m_geo.numCylinders    = 80;
-                }
-                return true;
+            std::cerr << "waffle-detect: IBM/FAT confirmed isHD=" << tryHD << "\n";
+            m_geo.isHD           = tryHD;
+            m_geo.format         = DiskFormat::IBM_FAT;
+            m_geo.bytesPerSector = 512;
+
+            uint32_t serialNum, numHeads, totalSectors, sectPerTrack, bytesPerSec;
+            if (IBM::getTrackDetails_IBM(boot, serialNum, numHeads, totalSectors,
+                                         sectPerTrack, bytesPerSec)) {
+                m_geo.numHeads        = numHeads;
+                m_geo.sectorsPerTrack = sectPerTrack;
+                m_geo.bytesPerSector  = bytesPerSec;
+                m_geo.numCylinders    = totalSectors / (numHeads * sectPerTrack);
+            } else {
+                m_geo.numHeads        = 2;
+                m_geo.sectorsPerTrack = trySectors;
+                m_geo.numCylinders    = 80;
             }
+            return true;
         }
     }
 
@@ -243,28 +334,45 @@ bool WaffleDisk::loadTrack(uint32_t cylinder, uint32_t head)
     const uint32_t key = cylinder * 2 + head;
     if (m_cache.count(key)) return true; // already cached
 
+    if (!m_writerOpen) return false;
+
+    VLOG("waffle: loadTrack cyl=" << cylinder << " head=" << head);
+
     using namespace ArduinoFloppyReader;
     const DiskSurface side = (head == 1) ? DiskSurface::dsUpper : DiskSurface::dsLower;
 
-    if (m_impl->writer.selectTrack((unsigned char)cylinder) != DiagnosticResponse::drOK)
+    if (m_impl->writer.selectTrack((unsigned char)cylinder) != DiagnosticResponse::drOK) {
+        diskRemoved();
         return false;
-    if (m_impl->writer.selectSurface(side) != DiagnosticResponse::drOK)
+    }
+    if (m_impl->writer.selectSurface(side) != DiagnosticResponse::drOK) {
+        diskRemoved();
         return false;
+    }
 
     TrackCache tc;
+    bool trackOk = true;
 
     if (m_geo.format == DiskFormat::Amiga_ADF) {
         std::vector<std::array<uint8_t, 512>> sects;
         m_impl->writer.readAmigaTrack(m_geo.isHD, cylinder, side, sects);
-        tc.sectors.resize(sects.size());
-        for (size_t i = 0; i < sects.size(); i++) {
-            tc.sectors[i].assign(sects[i].begin(), sects[i].end());
+        if (sects.empty()) {
+            trackOk = false;
+        } else {
+            tc.sectors.resize(sects.size());
+            for (size_t i = 0; i < sects.size(); i++)
+                tc.sectors[i].assign(sects[i].begin(), sects[i].end());
         }
     } else {
         // IBM / FAT / Unknown
         const uint32_t trackNum = cylinder * m_geo.numHeads + head;
-        m_impl->writer.readIBMTrack(m_geo.isHD, trackNum,
-                                    m_geo.sectorsPerTrack, tc.sectors);
+        trackOk = m_impl->writer.readIBMTrack(m_geo.isHD, trackNum,
+                                              m_geo.sectorsPerTrack, tc.sectors);
+    }
+
+    if (!trackOk) {
+        diskRemoved();
+        return false;
     }
 
     tc.dirty = false;
@@ -272,10 +380,23 @@ bool WaffleDisk::loadTrack(uint32_t cylinder, uint32_t head)
     return true;
 }
 
+// Called under m_mtx when an I/O failure suggests the disk was removed.
+void WaffleDisk::diskRemoved()
+{
+    if (!m_diskPresent.exchange(false)) return; // already known absent
+    m_cache.clear();
+    if (m_writerOpen) {
+        m_impl->writer.closeDevice();
+        m_writerOpen = false;
+    }
+    std::cerr << "waffle: disk removed (I/O error)\n";
+}
+
 bool WaffleDisk::flushTrack(uint32_t cylinder, uint32_t head, TrackCache& tc)
 {
     if (!tc.dirty) return true;
     if (isWriteProtected()) return false;
+    if (!m_writerOpen) return false;
 
     using namespace ArduinoFloppyReader;
     const DiskSurface side = (head == 1) ? DiskSurface::dsUpper : DiskSurface::dsLower;
@@ -307,7 +428,7 @@ bool WaffleDisk::flushTrack(uint32_t cylinder, uint32_t head, TrackCache& tc)
 bool WaffleDisk::flush()
 {
     std::lock_guard<std::mutex> lk(m_mtx);
-    if (!m_open) return true;
+    if (!m_open || !m_writerOpen) return true;
     bool ok = true;
     for (auto& kv : m_cache) {
         if (kv.second.dirty) {
@@ -324,7 +445,9 @@ bool WaffleDisk::flush()
 bool WaffleDisk::readSector(uint32_t lba, uint8_t* buf512)
 {
     std::lock_guard<std::mutex> lk(m_mtx);
-    if (!m_open) return false;
+    if (!m_open || !m_diskPresent) return false;
+
+    VLOG("waffle: readSector lba=" << lba);
 
     uint32_t cylinder, head, sector;
     lbaToPhysical(lba, cylinder, head, sector);
@@ -348,7 +471,9 @@ bool WaffleDisk::readSector(uint32_t lba, uint8_t* buf512)
 bool WaffleDisk::writeSector(uint32_t lba, const uint8_t* buf512)
 {
     std::lock_guard<std::mutex> lk(m_mtx);
-    if (!m_open || isWriteProtected()) return false;
+    if (!m_open || !m_diskPresent || isWriteProtected()) return false;
+
+    VLOG("waffle: writeSector lba=" << lba);
 
     uint32_t cylinder, head, sector;
     lbaToPhysical(lba, cylinder, head, sector);

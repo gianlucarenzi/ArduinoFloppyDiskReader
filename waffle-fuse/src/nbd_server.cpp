@@ -1,4 +1,5 @@
 #include "nbd_server.h"
+#include "waffle_log.h"
 #include <iostream>
 #include <vector>
 #include <cstring>
@@ -8,6 +9,7 @@
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 #include <endian.h>
+#include <poll.h>
 #include <thread>
 #include <algorithm>
 
@@ -114,21 +116,79 @@ bool NBDServer::run(const std::string& address, int port) {
     }
 
     m_running = true;
-    std::cout << "nbd: server listening on " << address << ":" << port << "\n";
+    std::cout << "nbd: server bound to " << address << ":" << port << "\n";
 
     while (m_running) {
-        sockaddr_in clientAddr{};
-        socklen_t clientLen = sizeof(clientAddr);
-        int clientFd = accept(m_serverFd, (sockaddr*)&clientAddr, &clientLen);
-        if (clientFd == -1) {
-            if (m_running) continue;
-            else break;
+
+        // ── Phase 1: probe until disk is detected (port is closed) ───────────
+        std::cout << "nbd: waiting for disk...\n";
+        while (m_running) {
+            VLOG("nbd: probing...");
+            if (m_disk->probePresent()) break;
+            // probe() itself takes ~100-500ms; add a small gap to avoid
+            // hammering the serial port between retries.
+            std::this_thread::sleep_for(std::chrono::milliseconds(2500));
+        }
+        if (!m_running) break;
+
+        // ── Phase 2: open port (no geometry detection yet) ───────────────────
+        if (!m_disk->openDisk()) {
+            std::cerr << "nbd: failed to open port after probe, retrying...\n";
+            continue;
+        }
+        std::cout << "nbd: disk detected, accepting connections on "
+                  << address << ":" << port << "\n";
+
+        // ── Phase 3: accept one client (poll so stop() can interrupt) ────────
+        //   While waiting, periodically check disk presence using the open port.
+        int clientFd = -1;
+        while (m_running) {
+            struct pollfd pfd{m_serverFd, POLLIN, 0};
+            int r = poll(&pfd, 1, 2000);
+            if (r > 0) {
+                sockaddr_in clientAddr{};
+                socklen_t clientLen = sizeof(clientAddr);
+                clientFd = accept(m_serverFd, (sockaddr*)&clientAddr, &clientLen);
+                if (clientFd != -1) break;
+            }
+            // Timeout: verify disk is still present using the open port.
+            if (!m_disk->checkPresence()) {
+                std::cout << "nbd: disk removed while waiting for client\n";
+                break;
+            }
         }
 
-        std::cout << "nbd: client connected\n";
-        handleClient(clientFd);
-        close(clientFd);
-        std::cout << "nbd: client disconnected\n";
+        if (clientFd == -1) {
+            // Disk removed before any client connected: park motor, then poll.
+            if (m_disk->isDiskPresent())
+                m_disk->parkDisk();
+            else
+                m_disk->closeDisk(); // already removed, just close
+        } else {
+            // ── Phase 4: detect geometry, then serve ─────────────────────────
+            std::cout << "nbd: client connected, detecting disk format...\n";
+            if (m_disk->remount()) {
+                handleClient(clientFd);
+            } else {
+                std::cerr << "nbd: format detection failed, disconnecting client\n";
+            }
+            close(clientFd);
+            std::cout << "nbd: client disconnected\n";
+            // Stop motor before polling for absence (port stays open).
+            m_disk->parkDisk();
+        }
+
+        // ── Phase 5: wait for disk to be confirmed absent ─────────────────────
+        // Port is open, motor is off. checkPresence() uses only
+        // COMMAND_CHECKDISKEXISTS — no motor, no head movement.
+        std::cout << "nbd: waiting for disk removal...\n";
+        while (m_running) {
+            VLOG("nbd: checking presence...");
+            if (!m_disk->checkPresence()) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
+        m_disk->closeDisk();
+        std::cout << "nbd: disk absent\n";
     }
 
     return true;
@@ -299,6 +359,20 @@ bool NBDServer::handshake(int fd) {
 
 bool NBDServer::mainLoop(int fd) {
     while (m_running) {
+        // Wait for an incoming request with a 2-second timeout.
+        // The timeout lets us detect disk removal even when the client is idle.
+        struct pollfd pfd{fd, POLLIN, 0};
+        int ret = poll(&pfd, 1, 2000);
+
+        if (ret == 0) {
+            // Timeout: check whether the disk is still present.
+            if (!m_disk->isDiskPresent()) {
+                std::cerr << "nbd: disk removed, closing connection\n";
+                break;
+            }
+            continue;
+        }
+        if (ret < 0) break;
         struct {
             uint32_t magic;
             uint32_t type;
@@ -310,6 +384,12 @@ bool NBDServer::mainLoop(int fd) {
         if (!read_all(fd, &req, sizeof(req))) break;
         if (be32toh(req.magic) != NBD_REQUEST_MAGIC) {
             std::cerr << "nbd: invalid request magic\n";
+            break;
+        }
+
+        // Disconnect immediately if the disk was removed.
+        if (!m_disk->isDiskPresent()) {
+            std::cerr << "nbd: disk removed, closing connection\n";
             break;
         }
 
@@ -330,6 +410,7 @@ bool NBDServer::mainLoop(int fd) {
             std::cout << "nbd: client disconnect command\n";
             break;
         } else if (type == NBD_CMD_READ) {
+            VLOG("nbd: READ offset=" << offset << " len=" << len);
             std::vector<uint8_t> data(len);
             bool ok = true;
 
@@ -356,6 +437,7 @@ bool NBDServer::mainLoop(int fd) {
                 if (!write_all(fd, data.data(), len)) break;
             }
         } else if (type == NBD_CMD_WRITE) {
+            VLOG("nbd: WRITE offset=" << offset << " len=" << len);
             std::vector<uint8_t> data(len);
             if (!read_all(fd, data.data(), len)) break;
 
@@ -388,6 +470,7 @@ bool NBDServer::mainLoop(int fd) {
             }
             if (!write_all(fd, &reply, sizeof(reply))) break;
         } else if (type == NBD_CMD_FLUSH) {
+            VLOG("nbd: FLUSH");
             m_disk->flush();
             if (!write_all(fd, &reply, sizeof(reply))) break;
         } else {
