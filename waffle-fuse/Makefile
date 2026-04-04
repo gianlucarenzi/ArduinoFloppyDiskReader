@@ -1,18 +1,19 @@
 # waffle-fuse Makefile
 # Builds a standalone FUSE driver for DrawBridge/Waffle floppy reader.
-# Supports Linux (libfuse3), macOS (macFUSE) and Windows (WinFsp).
+# Supports Linux (libfuse2 as well as libfuse3), macOS (macFUSE) and Windows (WinFsp).
 #
 # Dependencies:
-#   Linux:   sudo apt install libfuse3-dev
-#            sudo apt install libfuse-dev   # for USE_FUSE2=1
+#   Linux:   sudo apt install libfuse3-dev libfuse-dev
 #   macOS:   brew install macfuse
 #   Windows: https://github.com/winfsp/winfsp/releases
 #
 # Flags:
-#   USE_FUSE2=1   Force FUSE 2 on Linux (useful to test macOS/Windows compat)
-#                 Example: make USE_FUSE2=1
+#   USE_FUSE2=0   Force FUSE 3 on Linux (useful to test macOS/Windows compat)
+#                 Example: make USE_FUSE2=0
 
 CXX := g++
+# Default is for FUSE2
+USE_FUSE2 ?= 1
 
 # ── Platform detection ────────────────────────────────────────────────────────
 UNAME := $(shell uname -s 2>/dev/null || echo Windows)
@@ -81,7 +82,7 @@ endif
 CXXFLAGS := -std=c++17 -O2 -Wall -Wextra \
             -D_FILE_OFFSET_BITS=64 \
             -DOUTPUT_TIME_IN_NS \
-            -Isrc -Ilib -Ilib/capsapi -Iinc \
+            -Isrc -Ilib -Iinc \
             $(_FUSE_CFLAGS)
 
 LDFLAGS  := $(_FUSE_LIBS) $(_EXTRA_LDFLAGS)
