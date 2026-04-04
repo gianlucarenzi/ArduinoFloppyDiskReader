@@ -46,44 +46,55 @@ notify_error() {
     fi
 }
 
-# ── Auto-detect serial port ───────────────────────────────────────────────────
-if [ -z "$PORT" ]; then
-    for candidate in /dev/ttyUSB0 /dev/ttyUSB1 /dev/ttyACM0 /dev/ttyACM1; do
-        if [ -e "$candidate" ]; then
-            PORT="$candidate"
-            break
-        fi
-    done
+# ── Find waffle-fuse binary (needed for --probe below) ───────────────────────
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+WAFFLE_BIN="$SCRIPT_DIR/../waffle-fuse"
+if [ ! -x "$WAFFLE_BIN" ]; then
+    WAFFLE_BIN="waffle-fuse"
 fi
 
-if [ -z "$PORT" ]; then
-    notify_error "waffle-fuse" "No serial port found (tried /dev/ttyUSB0..1, /dev/ttyACM0..1)"
-    exit 1
-fi
-
-# ── Mountpoint ───────────────────────────────────────────────────────────────
-case "$FORMAT" in
-    amiga) LABEL="Amiga_Floppy" ;;
-    dos)   LABEL="DOS_Floppy"   ;;
-    *)     LABEL="Floppy"       ;;
+# ── Mountpoint & desktop-integration labels ──────────────────────────────────
+case "$FORMAT-$DENSITY" in
+    amiga-dd) LABEL="Amiga_Floppy"; DISPLAY_LABEL="Amiga Floppy DD 880K"  ;;
+    amiga-hd) LABEL="Amiga_Floppy"; DISPLAY_LABEL="Amiga Floppy HD 1.76M" ;;
+    dos-dd)   LABEL="DOS_Floppy";   DISPLAY_LABEL="DOS Floppy DD 720K"    ;;
+    dos-hd)   LABEL="DOS_Floppy";   DISPLAY_LABEL="DOS Floppy HD 1.44M"   ;;
+    *)        LABEL="Floppy";       DISPLAY_LABEL="Floppy"                 ;;
 esac
 
 MNT="/tmp/waffle-${LABEL}"
 
-# ── Find waffle-fuse binary ───────────────────────────────────────────────────
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-WAFFLE_BIN="$SCRIPT_DIR/../waffle-fuse"
-if [ ! -x "$WAFFLE_BIN" ]; then
-    # Fall back to PATH
-    WAFFLE_BIN="waffle-fuse"
-fi
-
 # ── Toggle: unmount if already mounted ───────────────────────────────────────
+# Checked early so we never need to probe the serial port just to unmount.
+# waffle-fuse removes the GVfs bookmark from waffle_destroy() automatically,
+# regardless of how the unmount is triggered.
 if mountpoint -q "$MNT" 2>/dev/null; then
     fusermount3 -u "$MNT" 2>/dev/null || fusermount -u "$MNT" 2>/dev/null || umount "$MNT" 2>/dev/null
     notify "waffle-fuse" "Disk unmounted from $MNT" "media-eject"
     rmdir "$MNT" 2>/dev/null || true
     exit 0
+fi
+
+# ── Auto-detect serial port via --probe ──────────────────────────────────────
+# Iterate over every ttyUSB* and ttyACM* character device.  For each one,
+# ask waffle-fuse to open the port at 2 Mbit and exchange a version command.
+# Exit codes: 0=disk present, 1=no disk, 2+=error / not a Waffle device.
+# Codes 0 and 1 both confirm a Waffle is responding on that port.
+if [ -z "$PORT" ]; then
+    set +e   # probe returns non-zero for non-Waffle ports; don't abort
+    for candidate in /dev/ttyUSB* /dev/ttyACM*; do
+        [ -c "$candidate" ] || continue          # skip if not a char device
+        "$WAFFLE_BIN" --probe "$candidate" >/dev/null 2>&1
+        case $? in
+            0|1) PORT="$candidate"; break ;;     # Waffle found (disk or no disk)
+        esac
+    done
+    set -e
+fi
+
+if [ -z "$PORT" ]; then
+    notify_error "waffle-fuse" "No Waffle device found on any serial port (probed /dev/ttyUSB* and /dev/ttyACM*)"
+    exit 1
 fi
 
 # ── Mount ─────────────────────────────────────────────────────────────────────
@@ -99,12 +110,17 @@ OPT=""
 [ -n "$FUSE_FORMAT" ] && OPT="format=${FUSE_FORMAT}"
 [ -n "$DENSITY" ]     && OPT="${OPT:+$OPT,}density=${DENSITY}"
 
+# Desktop integration: advertise the mount to GVfs-based file managers
+# (Nautilus, Thunar, Nemo) via x-gvfs-* options, and to KDE Solid (Dolphin)
+# via the fsname which appears in /proc/mounts.
+# fsname uses the serial port so concurrent mounts on different ports are unique.
+OPT="${OPT:+$OPT,}fsname=waffle:${PORT},subtype=waffle"
+
 if [ -n "$OPT" ]; then
     "$WAFFLE_BIN" "$PORT" "$MNT" -o "$OPT" &
 else
     "$WAFFLE_BIN" "$PORT" "$MNT" &
 fi
-
 WAFFLE_PID=$!
 
 # Wait for mount to become active (up to 60 s)
@@ -161,13 +177,15 @@ if [ $LS_OK -eq 0 ]; then
     exit 1
 fi
 
-notify "waffle-fuse" "${LABEL} mounted at $MNT" "media-floppy"
+notify "waffle-fuse" "${DISPLAY_LABEL} mounted at $MNT" "media-floppy"
 
 # Open file manager
 if command -v xdg-open >/dev/null 2>&1; then
     xdg-open "$MNT" &
 elif command -v thunar >/dev/null 2>&1; then
     thunar "$MNT" &
+elif command -v caja >/dev/null 2>&1; then
+	caja "$MNT" &
 elif command -v nautilus >/dev/null 2>&1; then
     nautilus "$MNT" &
 elif command -v dolphin >/dev/null 2>&1; then
