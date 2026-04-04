@@ -10,7 +10,12 @@
 ACTION="$1"   # add | remove
 PORT="$2"     # full device path, e.g. /dev/ttyUSB0
 
-[ -n "$ACTION" ] && [ -n "$PORT" ] || exit 1
+# Log everything from the start so failures are diagnosable.
+UDEV_LOG="/tmp/waffle-udev.log"
+exec >>"$UDEV_LOG" 2>&1
+echo "$(date '+%F %T') waffle-udev[$ACTION] port=$PORT"
+
+[ -n "$ACTION" ] && [ -n "$PORT" ] || { echo "ERROR: missing args"; exit 1; }
 
 # ── Locate waffle-fuse binary ─────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -19,11 +24,13 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WAFFLE_BIN="$(dirname "$SCRIPT_DIR")/bin/waffle-fuse"
 [ -x "$WAFFLE_BIN" ] || WAFFLE_BIN="$SCRIPT_DIR/../waffle-fuse"
 [ -x "$WAFFLE_BIN" ] || WAFFLE_BIN="$(command -v waffle-fuse 2>/dev/null)"
-[ -x "$WAFFLE_BIN" ] || { echo "waffle-udev: waffle-fuse not found" >&2; exit 1; }
+[ -x "$WAFFLE_BIN" ] || { echo "ERROR: waffle-fuse not found"; exit 1; }
+echo "  waffle-fuse binary: $WAFFLE_BIN"
 
-# ── Find the first active graphical session user ──────────────────────────────
+# ── Find the first active non-root user session ───────────────────────────────
 find_active_user() {
     if command -v loginctl >/dev/null 2>&1; then
+        # 1st pass: prefer graphical sessions
         RESULT=$(loginctl list-sessions --no-legend 2>/dev/null | \
         while read -r SID _ UNAME _; do
             [ "$UNAME" = "root" ] && continue
@@ -33,13 +40,25 @@ find_active_user() {
             esac
         done)
         [ -n "$RESULT" ] && { printf '%s' "$RESULT"; return; }
+        # 2nd pass: any non-root session (tty, unset, etc.)
+        RESULT=$(loginctl list-sessions --no-legend 2>/dev/null | \
+        while read -r SID _ UNAME _; do
+            [ "$UNAME" = "root" ] && continue
+            [ -z "$UNAME" ] && continue
+            printf '%s' "$UNAME"; break
+        done)
+        [ -n "$RESULT" ] && { printf '%s' "$RESULT"; return; }
     fi
-    # Fallback: who (look for user with an attached display)
-    who 2>/dev/null | awk '/\(:[0-9]/ { print $1; exit }'
+    # Fallback 1: who with a display (:0, :1 …)
+    RESULT=$(who 2>/dev/null | awk '/\(:[0-9]/ { print $1; exit }')
+    [ -n "$RESULT" ] && { printf '%s' "$RESULT"; return; }
+    # Fallback 2: first non-root logged-in user
+    who 2>/dev/null | awk '$1 != "root" { print $1; exit }'
 }
 
 SESSION_USER=$(find_active_user)
-[ -n "$SESSION_USER" ] || exit 0
+echo "  session_user='$SESSION_USER'"
+[ -n "$SESSION_USER" ] || { echo "ERROR: no active user session found"; exit 0; }
 
 SESSION_UID=$(id -u "$SESSION_USER" 2>/dev/null) || exit 0
 SESSION_HOME=$(getent passwd "$SESSION_USER" | cut -d: -f6)
@@ -59,21 +78,25 @@ add)
     export WFUDEV_PORT="$PORT"
     su -s /bin/sh "$SESSION_USER" -c \
         '$WFUDEV_BIN --probe $WFUDEV_PORT >/dev/null 2>&1'
-    case $? in
+    PROBE_INIT=$?
+    echo "  initial probe exit=$PROBE_INIT"
+    case $PROBE_INIT in
         0|1) ;;          # Waffle confirmed (disk present or absent)
-        *)   exit 0 ;;   # Different device on this VID:PID – ignore
+        *)   echo "  not a Waffle device, ignoring"; exit 0 ;;
     esac
 
     # Wait for a disk to be inserted, polling every 2 seconds.
     # Exit code 0=disk present, 1=no disk, 2+=error/disconnected.
+    echo "  waiting for disk..."
     while true; do
         su -s /bin/sh "$SESSION_USER" -c \
             '$WFUDEV_BIN --probe $WFUDEV_PORT >/dev/null 2>&1'
         PROBE=$?
         [ "$PROBE" -eq 0 ] && break        # disk inserted → proceed
-        [ "$PROBE" -gt 1 ] && exit 0       # device gone or error → abort
+        [ "$PROBE" -gt 1 ] && { echo "  probe error ($PROBE), aborting"; exit 0; }
         sleep 2
     done
+    echo "  disk present, mounting at $MNT"
 
     # Give the Arduino firmware a moment to settle after the last probe
     # before waffle-fuse opens the port for full operation.
