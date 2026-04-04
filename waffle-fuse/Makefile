@@ -88,33 +88,43 @@ CXXFLAGS := -std=c++17 -O2 -Wall -Wextra \
 LDFLAGS  := $(_FUSE_LIBS) $(_EXTRA_LDFLAGS)
 
 # ── Source files ──────────────────────────────────────────────────────────────
-LIB_SRCS := lib/ADFWriter.cpp \
-            lib/ArduinoInterface.cpp \
-            lib/SerialIO.cpp \
-            lib/RotationExtractor.cpp \
-            lib/pll.cpp \
-            lib/ibm_sectors.cpp \
-            lib/ftdi.cpp \
-            lib/debugmsg.cpp
+COMMON_LIB_SRCS := lib/ADFWriter.cpp \
+                   lib/ArduinoInterface.cpp \
+                   lib/SerialIO.cpp \
+                   lib/RotationExtractor.cpp \
+                   lib/pll.cpp \
+                   lib/ibm_sectors.cpp \
+                   lib/ftdi.cpp \
+                   lib/debugmsg.cpp
 
-SRC_SRCS := src/disk_cache.cpp \
-            src/fat_fs.cpp \
-            src/affs_fs.cpp \
-            src/waffle_fuse.cpp
+COMMON_SRC_SRCS := src/disk_cache.cpp
 
-ALL_SRCS := $(LIB_SRCS) $(SRC_SRCS)
+FUSE_SRCS := src/fat_fs.cpp \
+             src/affs_fs.cpp \
+             src/waffle_fuse.cpp
 
-OBJS     := $(ALL_SRCS:.cpp=.o)
+NBD_SRCS  := src/nbd_server.cpp \
+             src/waffle_nbd.cpp
 
-TARGET   := waffle-fuse$(TARGET_EXT)
+COMMON_OBJS := $(COMMON_LIB_SRCS:.cpp=.o) $(COMMON_SRC_SRCS:.cpp=.o)
+FUSE_OBJS   := $(FUSE_SRCS:.cpp=.o)
+NBD_OBJS    := $(NBD_SRCS:.cpp=.o)
+
+TARGET_FUSE := waffle-fuse$(TARGET_EXT)
+TARGET_NBD  := waffle-nbd$(TARGET_EXT)
+
+ALL_TARGETS := $(TARGET_FUSE) $(TARGET_NBD)
 
 # ── Build rules ───────────────────────────────────────────────────────────────
 .PHONY: all clean install
 
-all: $(TARGET)
+all: $(ALL_TARGETS)
 
-$(TARGET): $(OBJS)
+$(TARGET_FUSE): $(COMMON_OBJS) $(FUSE_OBJS)
 	$(CXX) -o $@ $^ $(LDFLAGS)
+
+$(TARGET_NBD): $(COMMON_OBJS) $(NBD_OBJS)
+	$(CXX) -o $@ $^ $(_EXTRA_LDFLAGS)
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
@@ -124,17 +134,16 @@ lib/capsapi/CapsPlug.o: lib/capsapi/CapsPlug.cpp
 	$(CXX) $(CXXFLAGS) -Iinc -c $< -o $@
 
 clean:
-	$(RM_CMD) $(OBJS) $(TARGET)
+	$(RM_CMD) $(COMMON_OBJS) $(FUSE_OBJS) $(NBD_OBJS) $(ALL_TARGETS)
+	$(RM_CMD) $(COMMON_OBJS:.o=.d) $(FUSE_OBJS:.o=.d) $(NBD_OBJS:.o=.d)
 
-install: $(TARGET)
+install: $(ALL_TARGETS)
 ifeq ($(UNAME),Windows)
-	@echo "Install not supported on Windows – copy $(TARGET) manually."
+	@echo "Install not supported on Windows – copy targets manually."
 else
-	$(INSTALL_CMD) $(TARGET) /usr/local/bin/$(TARGET)
+	$(INSTALL_CMD) $(TARGET_FUSE) /usr/local/bin/$(TARGET_FUSE)
+	$(INSTALL_CMD) $(TARGET_NBD) /usr/local/bin/$(TARGET_NBD)
 endif
 
 # ── Dependency generation ─────────────────────────────────────────────────────
--include $(OBJS:.o=.d)
-
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
+-include $(COMMON_OBJS:.o=.d) $(FUSE_OBJS:.o=.d) $(NBD_OBJS:.o=.d)
