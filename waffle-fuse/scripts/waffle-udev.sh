@@ -19,12 +19,15 @@ echo "$(date '+%F %T') waffle-udev[$ACTION] port=$PORT"
 
 # ── Locate waffle-fuse binary ─────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-# Installed layout: /usr/local/lib/waffle-fuse/waffle-udev.sh
-#                   /usr/local/bin/waffle-fuse
-WAFFLE_BIN="$(dirname "$SCRIPT_DIR")/bin/waffle-fuse"
-[ -x "$WAFFLE_BIN" ] || WAFFLE_BIN="$SCRIPT_DIR/../waffle-fuse"
+# Installed layout: /usr/local/lib/waffle-fuse/waffle-udev.sh  (SCRIPT_DIR)
+#                   /usr/local/bin/waffle-fuse                  (PREFIX/bin)
+# PREFIX is two levels up from SCRIPT_DIR (/usr/local/lib/waffle-fuse -> /usr/local)
+PREFIX="$(dirname "$(dirname "$SCRIPT_DIR")")"
+WAFFLE_BIN="$PREFIX/bin/waffle-fuse"
+# Fallback: dev-tree layout (scripts/ sits inside the project, binary at project root)
+[ -x "$WAFFLE_BIN" ] || WAFFLE_BIN="$SCRIPT_DIR/../../waffle-fuse"
 [ -x "$WAFFLE_BIN" ] || WAFFLE_BIN="$(command -v waffle-fuse 2>/dev/null)"
-[ -x "$WAFFLE_BIN" ] || { echo "ERROR: waffle-fuse not found"; exit 1; }
+[ -x "$WAFFLE_BIN" ] || { echo "ERROR: waffle-fuse not found (looked in $PREFIX/bin)"; exit 1; }
 echo "  waffle-fuse binary: $WAFFLE_BIN"
 
 # ── Find the first active non-root user session ───────────────────────────────
