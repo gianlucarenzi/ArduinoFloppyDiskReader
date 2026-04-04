@@ -102,8 +102,10 @@ static void gvfs_bookmark_remove(const std::string& mountPoint)
 
 // Create ~/Desktop/Eject <label>.desktop so the user can unmount from the GUI.
 // fusermount triggers waffle_destroy() which flushes dirty tracks before close.
+// iconName should be a freedesktop icon name (e.g. "amiga-floppy", "dos-floppy").
 static std::string desktop_eject_create(const std::string& mountPoint,
-                                        const std::string& displayName)
+                                        const std::string& displayName,
+                                        const std::string& iconName = "media-eject")
 {
     const char* home = getenv("HOME");
     if (!home) return {};
@@ -128,12 +130,31 @@ static std::string desktop_eject_create(const std::string& mountPoint,
         << "Comment=Flush and unmount " << displayName << "\n"
         << "Exec=sh -c 'fusermount3 -u \"" << mountPoint << "\" 2>/dev/null"
         <<           " || fusermount -u \"" << mountPoint << "\" 2>/dev/null'\n"
-        << "Icon=media-eject\n"
+        << "Icon=" << iconName << "\n"
         << "Terminal=false\n"
         << "StartupNotify=false\n";
 
     chmod(path.c_str(), 0755);
     return path;
+}
+
+// Create <mountpoint>/.xdg-volume-info so GVfs-aware file managers
+// (Nautilus, Thunar, Nemo) pick up the correct volume name and icon.
+static void xdg_volume_info_create(const std::string& mountPoint,
+                                   const std::string& displayName,
+                                   const std::string& iconName)
+{
+    std::string path = mountPoint + "/.xdg-volume-info";
+    std::ofstream out(path);
+    out << "[Volume Info]\n"
+        << "Name=" << displayName << "\n"
+        << "Icon=" << iconName    << "\n";
+}
+
+static void xdg_volume_info_remove(const std::string& mountPoint)
+{
+    std::string path = mountPoint + "/.xdg-volume-info";
+    unlink(path.c_str());
 }
 
 static void desktop_eject_remove(const std::string& path)
@@ -145,8 +166,12 @@ static void desktop_eject_remove(const std::string& path)
 #else
 static void gvfs_bookmark_add(const std::string&, const std::string&) {}
 static void gvfs_bookmark_remove(const std::string&) {}
-static std::string desktop_eject_create(const std::string&, const std::string&) { return {}; }
+static std::string desktop_eject_create(const std::string&, const std::string&,
+                                        const std::string& = {}) { return {}; }
 static void desktop_eject_remove(const std::string&) {}
+static void xdg_volume_info_create(const std::string&, const std::string&,
+                                   const std::string&) {}
+static void xdg_volume_info_remove(const std::string&) {}
 #endif
 
 // ── Program state (kept alive for the duration of the mount) ─────────────────
@@ -308,7 +333,8 @@ static void* waffle_init(WF_INIT_SIG(conn))
             std::string label = std::string("Amiga Floppy ") + (isFFS ? "FFS" : "OFS")
                                 + (isHD ? " HD" : " DD");
             gvfs_bookmark_add(st->mountPoint, label);
-            st->ejectDesktopFile = desktop_eject_create(st->mountPoint, label);
+            xdg_volume_info_create(st->mountPoint, label, "amiga-floppy");
+            st->ejectDesktopFile = desktop_eject_create(st->mountPoint, label, "amiga-floppy");
             return st->fsCtx;
         }
     }
@@ -322,13 +348,14 @@ static void* waffle_init(WF_INIT_SIG(conn))
     }
     bool isFAT16 = fat_is_fat16(st->fsCtx);
     bool isHD    = st->disk->geometry().isHD;
-    std::cout << "waffle-fuse: mounted as FAT" << (isFAT16 ? "16" : "12")
+    std::cerr << "waffle-fuse: mounted as FAT" << (isFAT16 ? "16" : "12")
               << (st->disk->isWriteProtected() ? " (read-only)" : " (read-write)") << "\n";
     {
         std::string label = std::string("DOS Floppy FAT") + (isFAT16 ? "16" : "12")
                             + (isHD ? " HD" : " DD");
         gvfs_bookmark_add(st->mountPoint, label);
-        st->ejectDesktopFile = desktop_eject_create(st->mountPoint, label);
+        xdg_volume_info_create(st->mountPoint, label, "dos-floppy");
+        st->ejectDesktopFile = desktop_eject_create(st->mountPoint, label, "dos-floppy");
     }
     return st->fsCtx;
 }
@@ -344,6 +371,7 @@ static void waffle_destroy(void* data)
         }
         if (g_state->disk) g_state->disk->flush();
         gvfs_bookmark_remove(g_state->mountPoint);
+        xdg_volume_info_remove(g_state->mountPoint);
         desktop_eject_remove(g_state->ejectDesktopFile);
     }
 }
