@@ -104,6 +104,7 @@ class WaffleDaemon:
         self.waffle_proc = None
         self.disk_info  = ''      # e.g. "Amiga OFS (read-write)"
         self._probing   = False   # True while a probe thread is running
+        self.ejected_ports = set() # Ports where the disk was manually ejected
 
         self._setup_tray()
         GLib.timeout_add(POLL_INTERVAL_MS, self._poll_tick)
@@ -196,7 +197,16 @@ class WaffleDaemon:
     def _probe_thread(self, ports):
         """Background thread: probe each candidate port, idle_add result."""
         for port in ports:
-            if self._probe_port(port):
+            has_disk = self._probe_port(port)
+
+            if port in self.ejected_ports:
+                if not has_disk:
+                    # Disk was finally removed, we can stop ignoring this port
+                    self.ejected_ports.remove(port)
+                # Even if has_disk is True, we skip mounting because it was manually ejected
+                continue
+
+            if has_disk:
                 GLib.idle_add(self._on_disk_detected, port)
                 return
         GLib.idle_add(self._on_probe_done)
@@ -387,6 +397,10 @@ class WaffleDaemon:
         GLib.idle_add(self._ejected)
 
     def _ejected(self):
+        # Remember this port was manually ejected so we don't remount it immediately
+        if self.port:
+            self.ejected_ports.add(self.port)
+
         self.state    = 'idle'
         self.port     = None
         self.waffle_proc = None
