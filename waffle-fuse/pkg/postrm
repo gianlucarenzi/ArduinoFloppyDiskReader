@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    remove|purge)
+        udevadm control --reload-rules 2>/dev/null || true
+        if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+            gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
+        fi
+        ;;
+esac

@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+# Stop any running waffle handler units before removal.
+for unit in $(systemctl list-units --no-legend --state=active 'waffle-ttyUSB*.service' 2>/dev/null \
+              | awk '{print $1}'); do
+    systemctl stop "$unit" 2>/dev/null || true
+done

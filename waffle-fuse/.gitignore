@@ -3,7 +3,8 @@ src/*.o
 src/*.d
 lib/*.o
 lib/*.d
-waffle-fuse
+waffle-nbd
+*.deb
 
 # Mountpoint (empty dir kept via .gitkeep)
 mountpoint/*

@@ -1,0 +1,16 @@
+# /etc/udev/rules.d/99-waffle-nbd.rules
+#
+# Automatically starts waffle-nbd when a DrawBridge / Waffle floppy reader
+# is plugged in and stops it cleanly when removed.
+
+# ── FTDI FT230X / Waffle v2 ───────────────────────────────────────────────────
+ACTION=="add",    SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", \
+    RUN+="/usr/lib/waffle-nbd/waffle-udev.sh add $env{DEVNAME}"
+ACTION=="remove", SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", \
+    RUN+="/usr/lib/waffle-nbd/waffle-udev.sh remove $env{DEVNAME}"
+
+# ── FTDI FT232RL / classic DrawBridge ────────────────────────────────────────
+ACTION=="add",    SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", \
+    RUN+="/usr/lib/waffle-nbd/waffle-udev.sh add $env{DEVNAME}"
+ACTION=="remove", SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", \
+    RUN+="/usr/lib/waffle-nbd/waffle-udev.sh remove $env{DEVNAME}"

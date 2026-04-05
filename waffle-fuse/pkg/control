@@ -1,0 +1,17 @@
+Package: waffle-nbd
+Version: @VERSION@
+Architecture: @ARCH@
+Maintainer: Gianluca Renzi <gianlucarenzi@eurek.it>
+Depends: nbd-client, kmod, util-linux
+Recommends: libnotify-bin, xdg-utils
+Description: NBD server for DrawBridge/Waffle floppy reader
+ waffle-nbd exposes a DrawBridge or Waffle V2 floppy disk as a Linux
+ Network Block Device (/dev/nbd0), mountable with standard kernel drivers
+ (affs for Amiga OFS/FFS, vfat for DOS FAT).
+ .
+ Includes udev rules for automatic hot-plug detection and mounting, a
+ polkit rule that allows active local users to unmount /dev/nbd* without
+ password, and a systemd-run based handler for the full plug-in lifecycle.
+ .
+ Supports FTDI FT230X (Waffle V2, VID:PID 0403:6015) and FT232RL
+ (classic DrawBridge, 0403:6001).
