@@ -3,6 +3,12 @@
 # Automatically starts waffle-nbd when a DrawBridge / Waffle floppy reader
 # is plugged in and stops it cleanly when removed.
 
+# ── Prevent udisks2 from auto-mounting NBD block devices ─────────────────────
+# UDISKS_AUTO=0 stops the spurious auto-mount (and the extra tray icon) while
+# keeping the device visible to udisks2 so the polkit rule can authorise
+# user-initiated unmounts without a password prompt.
+KERNEL=="nbd[0-9]*", ENV{UDISKS_AUTO}="0"
+
 # ── FTDI FT230X / Waffle v2 ───────────────────────────────────────────────────
 ACTION=="add",    SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", \
     RUN+="/usr/lib/waffle-nbd/waffle-udev.sh add $env{DEVNAME}"
