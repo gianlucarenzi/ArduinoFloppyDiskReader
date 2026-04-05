@@ -144,13 +144,26 @@ stdbuf -oL -eL "$WAFFLE_NBD" "$PORT" 127.0.0.1 "$NBD_PORT" 2>&1 | while read -r 
                 echo "--> Comando: mount -t $FORMAT -o $OPTS $NBD_DEV $MNT"
                 if mount -t "$FORMAT" -o "$OPTS" "$NBD_DEV" "$MNT"; then
                     echo "--> Montaggio completato."
-                    # Open file manager as the desktop user with the correct display env.
-                    # env KEY=VAL pairs from DISPLAY_VAR/WAYLAND_VAR are passed positionally.
-                    sudo -u "$USER" env \
-                        DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$UID_U/bus" \
-                        ${DISPLAY_VAR:+$DISPLAY_VAR} \
-                        ${WAYLAND_VAR:+$WAYLAND_VAR} \
-                        xdg-open "$MNT" &
+                    # Tell the running file manager to open the folder via the
+                    # standard org.freedesktop.FileManager1 D-Bus interface.
+                    # This works without DISPLAY since the file manager is
+                    # already connected to the display; falls back to xdg-open
+                    # (with explicit display env) if FileManager1 is unavailable.
+                    _dbus="unix:path=/run/user/$UID_U/bus"
+                    if ! sudo -u "$USER" \
+                            DBUS_SESSION_BUS_ADDRESS="$_dbus" \
+                            gdbus call --session \
+                                --dest org.freedesktop.FileManager1 \
+                                --object-path /org/freedesktop/FileManager1 \
+                                --method org.freedesktop.FileManager1.ShowFolders \
+                                "['file://$MNT']" "" >/dev/null 2>&1; then
+                        echo "--> FileManager1 non disponibile, fallback a xdg-open..."
+                        sudo -u "$USER" env \
+                            DBUS_SESSION_BUS_ADDRESS="$_dbus" \
+                            ${DISPLAY_VAR:+$DISPLAY_VAR} \
+                            ${WAYLAND_VAR:+$WAYLAND_VAR} \
+                            xdg-open "$MNT" &
+                    fi
                 else
                     echo "--> ERRORE: Mount fallito."
                 fi
