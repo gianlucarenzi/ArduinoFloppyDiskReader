@@ -41,8 +41,12 @@ done
 
 # ── Percorsi ─────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Use relative path only in source/dev layout (binary is a regular file next to scripts/).
+# When installed via .deb the binary is in /usr/bin/ — fall back to PATH lookup.
 WAFFLE_NBD="$SCRIPT_DIR/../waffle-nbd"
-[ -x "$WAFFLE_NBD" ] || WAFFLE_NBD="waffle-nbd"
+if [ ! -f "$WAFFLE_NBD" ] || [ ! -x "$WAFFLE_NBD" ]; then
+    WAFFLE_NBD="$(command -v waffle-nbd 2>/dev/null || echo waffle-nbd)"
+fi
 
 # ── Stato ────────────────────────────────────────────────────────────────────
 MNT=""
