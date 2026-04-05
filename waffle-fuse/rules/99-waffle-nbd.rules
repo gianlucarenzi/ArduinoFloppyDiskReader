@@ -9,11 +9,6 @@
 # To find the VID:PID of your adapter:
 #   udevadm info /dev/ttyUSB0 | grep -E 'idVendor|idProduct'
 
-# ── Prevent udisks2 from auto-mounting NBD block devices ─────────────────────
-# waffle-nbd-handler.sh owns the full lifecycle (mount + xdg-open).
-# Without this, udisks2 mounts the same device and creates spurious tray icons.
-KERNEL=="nbd[0-9]*", ENV{UDISKS_IGNORE}="1"
-
 # ── FTDI FT230X / Waffle v2 ───────────────────────────────────────────────────
 ACTION=="add",    SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", \
     RUN+="/usr/local/lib/waffle-nbd/waffle-udev.sh add $env{DEVNAME}"

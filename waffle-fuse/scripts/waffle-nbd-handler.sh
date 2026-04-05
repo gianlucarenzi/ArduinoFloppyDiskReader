@@ -129,10 +129,6 @@ stdbuf -oL -eL "$WAFFLE_NBD" "$PORT" 127.0.0.1 "$NBD_PORT" 2>&1 | while read -r 
                 *)    LABEL="Unknown_Floppy" ;;
             esac
 
-            MNT="/media/$USER/$LABEL"
-            mkdir -p "$MNT"
-            chown "$USER:" "$MNT"
-
             OPTS="nosuid"
             case "$FORMAT" in
                 affs) OPTS="$OPTS,users,setuid=$UID_U,setgid=$GID_U" ;;
@@ -140,10 +136,26 @@ stdbuf -oL -eL "$WAFFLE_NBD" "$PORT" 127.0.0.1 "$NBD_PORT" 2>&1 | while read -r 
             esac
 
             if [ "$FORMAT" != "unknown" ]; then
-                echo "--> Montaggio $NBD_DEV ($FORMAT) su $MNT..."
-                echo "--> Comando: mount -t $FORMAT -o $OPTS $NBD_DEV $MNT"
-                if mount -t "$FORMAT" -o "$OPTS" "$NBD_DEV" "$MNT"; then
-                    echo "--> Montaggio completato."
+                # Check if udisks2 already auto-mounted the device during the
+                # timeout (possible for well-known filesystems like vfat).
+                EXISTING_MNT=$(findmnt -n -o TARGET "$NBD_DEV" 2>/dev/null)
+                if [ -n "$EXISTING_MNT" ]; then
+                    MNT="$EXISTING_MNT"
+                    echo "--> $NBD_DEV già montato su $MNT (da udisks2)"
+                else
+                    MNT="/media/$USER/$LABEL"
+                    mkdir -p "$MNT"
+                    chown "$USER:" "$MNT"
+                    echo "--> Montaggio $NBD_DEV ($FORMAT) su $MNT..."
+                    echo "--> Comando: mount -t $FORMAT -o $OPTS $NBD_DEV $MNT"
+                    if ! mount -t "$FORMAT" -o "$OPTS" "$NBD_DEV" "$MNT"; then
+                        echo "--> ERRORE: Mount fallito."
+                        MNT=""
+                    fi
+                fi
+
+                if [ -n "$MNT" ]; then
+                    echo "--> Montaggio completato su $MNT."
                     # Tell the running file manager to open the folder via the
                     # standard org.freedesktop.FileManager1 D-Bus interface.
                     # This works without DISPLAY since the file manager is
@@ -164,8 +176,6 @@ stdbuf -oL -eL "$WAFFLE_NBD" "$PORT" 127.0.0.1 "$NBD_PORT" 2>&1 | while read -r 
                             ${WAYLAND_VAR:+$WAYLAND_VAR} \
                             xdg-open "$MNT" &
                     fi
-                else
-                    echo "--> ERRORE: Mount fallito."
                 fi
             else
                 echo "--> Filesystem sconosciuto, montaggio automatico saltato."
