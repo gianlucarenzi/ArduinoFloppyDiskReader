@@ -5,12 +5,6 @@ floppy disk letto da un adattatore DrawBridge / Waffle V2 come un
 dispositivo a blocchi Linux (`/dev/nbd0`), montabile con i normali
 strumenti del sistema operativo.
 
-> [!NOTE]
-> Questa guida riguarda esclusivamente **waffle-nbd** e il suo sistema
-> di auto-mount (`waffle-monitor.py`).  
-> Per il driver FUSE (`waffle-fuse`) consultare il README principale del
-> progetto.
-
 ---
 
 ## Indice
@@ -22,11 +16,10 @@ strumenti del sistema operativo.
 5. [Compilazione](#5-compilazione)
 6. [Installazione](#6-installazione)
 7. [Uso manuale](#7-uso-manuale)
-8. [Auto-mount con waffle-monitor](#8-auto-mount-con-waffle-monitor)
+8. [Auto-mount via udev](#8-auto-mount-via-udev)
 9. [Montaggio del filesystem](#9-montaggio-del-filesystem)
-10. [Configurazione della modalità (FUSE vs NBD)](#10-configurazione-della-modalità-fuse-vs-nbd)
-11. [Log e diagnostica](#11-log-e-diagnostica)
-12. [Risoluzione dei problemi](#12-risoluzione-dei-problemi)
+10. [Log e diagnostica](#10-log-e-diagnostica)
+11. [Risoluzione dei problemi](#11-risoluzione-dei-problemi)
 
 ---
 
@@ -82,9 +75,6 @@ sudo apt install \
     pkg-config
 ```
 
-> `waffle-nbd` **non richiede libfuse**.  
-> `libfuse3-dev` o `libfuse-dev` servono solo per `waffle-fuse`.
-
 ### 3.2 Pacchetti runtime — waffle-nbd
 
 `waffle-nbd` usa la porta seriale standard (`/dev/ttyUSB0`) tramite le
@@ -117,23 +107,18 @@ sudo ldconfig
 sudo apt install nbd-client
 ```
 
-### 3.4 Pacchetti per waffle-monitor.py (auto-mount)
+### 3.4 Pacchetti per l'auto-mount via udev
 
 ```bash
 # Obbligatori
 sudo apt install \
-    python3 \
-    python3-pyudev \
     nbd-client \
     kmod
 
 # Raccomandati (notifiche desktop e apertura file manager)
 sudo apt install \
     libnotify-bin \
-    xdg-utils \
-    python3-gi \
-    gir1.2-notify-0.7 \
-    gir1.2-glib-2.0
+    xdg-utils
 
 # Per montare filesystem Amiga (affs) senza errori di modulo:
 # (su Debian/Ubuntu il modulo è già incluso nel kernel standard — vedi §4)
@@ -141,7 +126,7 @@ sudo apt install \
 
 ### 3.5 Permessi utente
 
-L'utente che usa `waffle-nbd` direttamente (senza `waffle-monitor`) deve
+L'utente che usa `waffle-nbd` direttamente (senza auto-mount) deve
 far parte del gruppo `dialout` per accedere a `/dev/ttyUSBx`:
 
 ```bash
@@ -149,8 +134,8 @@ sudo usermod -aG dialout $USER
 # Effettuare logout e login per rendere effettivo il gruppo.
 ```
 
-> `waffle-monitor.py` gira come **root** via systemd, quindi non richiede
-> questo per l'auto-mount.
+> L'handler udev (`waffle-nbd-handler.sh`) gira come **root** via systemd,
+> quindi non richiede questo per l'auto-mount.
 
 ---
 
@@ -211,18 +196,15 @@ echo "options nbd nbds_max=16" | sudo tee /etc/modprobe.d/nbd.conf
 git clone https://github.com/gianlucarenzi/ArduinoFloppyDiskReader.git
 cd ArduinoFloppyDiskReader/waffle-fuse
 
-# Solo waffle-nbd (non richiede libfuse)
-make waffle-nbd
-
-# Entrambi i binari
 make
 
 # Verifica
 ./waffle-nbd --help
+./waffle-nbd --probe /dev/ttyUSB0
 ```
 
 Il Makefile usa `g++` con standard C++17 e collega solo `-lpthread -ldl`
-per `waffle-nbd` (nessuna dipendenza da FUSE).
+(nessuna dipendenza da librerie esterne).
 
 ---
 
@@ -230,8 +212,8 @@ per `waffle-nbd` (nessuna dipendenza da FUSE).
 
 ### 6.1 Installazione completa (consigliata)
 
-Lo script installa i binari, il monitor Python, la regola udev e il
-servizio systemd:
+Lo script installa il binario, gli script helper, la regola udev e la
+polkit rule:
 
 ```bash
 sudo scripts/install-udev.sh
@@ -241,29 +223,28 @@ Cosa viene installato:
 
 | File | Destinazione |
 |------|-------------|
-| `waffle-fuse`         | `/usr/local/bin/waffle-fuse` |
-| `waffle-nbd`          | `/usr/local/bin/waffle-nbd` |
-| `waffle-udev.sh`      | `/usr/local/lib/waffle-fuse/waffle-udev.sh` |
-| `waffle-monitor.py`   | `/usr/local/lib/waffle-fuse/waffle-monitor.py` |
-| `waffle-monitor.service` | `/etc/systemd/system/waffle-monitor.service` |
-| `99-waffle-fuse.rules` | `/etc/udev/rules.d/99-waffle-fuse.rules` |
-| icone SVG             | `/usr/share/icons/hicolor/scalable/devices/` |
+| `waffle-nbd`            | `/usr/local/bin/waffle-nbd` |
+| `waffle-udev.sh`        | `/usr/local/lib/waffle-nbd/waffle-udev.sh` |
+| `waffle-nbd-handler.sh` | `/usr/local/lib/waffle-nbd/waffle-nbd-handler.sh` |
+| `99-waffle-nbd.rules`   | `/etc/udev/rules.d/99-waffle-nbd.rules` |
+| `85-waffle-nbd.rules`   | `/etc/polkit-1/rules.d/85-waffle-nbd.rules` |
+| icone SVG               | `/usr/share/icons/hicolor/scalable/devices/` |
 
-Il servizio viene abilitato e avviato automaticamente:
+Al plug-in del dispositivo, udev lancia automaticamente `waffle-udev.sh`
+che avvia `waffle-nbd-handler.sh` tramite `systemd-run`. Per seguire i log:
 
 ```bash
-# Stato del servizio
-systemctl status waffle-monitor.service
+# Log dell'handler (nome dinamico per porta)
+journalctl -u waffle-ttyUSB0 -f
 
-# Log in tempo reale
-journalctl -u waffle-monitor -f
+# Log udev helper
+cat /tmp/waffle-udev.log
 ```
 
 ### 6.2 Installazione manuale (senza auto-mount)
 
 ```bash
 sudo install -m 755 waffle-nbd /usr/local/bin/waffle-nbd
-sudo install -m 755 waffle-fuse /usr/local/bin/waffle-fuse
 ```
 
 ### 6.3 Disinstallazione
@@ -316,76 +297,49 @@ sudo nbd-client -d /dev/nbd0   # disconnetti
 
 ---
 
-## 8. Auto-mount con waffle-monitor
+## 8. Auto-mount via udev
 
-`waffle-monitor.py` è un demone Python che ascolta gli eventi udev e
-gestisce automaticamente l'intero ciclo: plug-in → server → mount → file
-manager → unplug.
+Il sistema di auto-mount è interamente basato su script shell e `systemd-run`,
+senza dipendenze Python.
 
-### 8.1 Prerequisiti Python
+### 8.1 Come funziona al plug-in
 
-```bash
-# Verifica versione Python (richiede 3.9+)
-python3 --version
+1. udev rileva il device ttyUSB (VID:PID `0403:6015` / `0403:6001`)
+2. Esegue `waffle-udev.sh add /dev/ttyUSBx` come root
+3. `waffle-udev.sh` usa `waffle-nbd --probe` per confermare che il dispositivo
+   risponda al protocollo Waffle/DrawBridge (non solo un generico FTDI)
+4. Se la probe ha successo, `systemd-run` lancia `waffle-nbd-handler.sh`
+   come unit transiente `waffle-ttyUSBx.service`
 
-# Installa dipendenze
-sudo apt install python3-pyudev
+### 8.2 Cosa fa waffle-nbd-handler.sh
 
-# Verifica
-python3 -c "import pyudev; print('pyudev OK')"
-```
-
-### 8.2 Avvio manuale del monitor (test)
-
-```bash
-# Come root:
-sudo python3 /usr/local/lib/waffle-fuse/waffle-monitor.py --verbose
-# oppure dal sorgente:
-sudo python3 waffle-fuse/scripts/waffle-monitor.py --verbose
-```
-
-### 8.3 Servizio systemd
-
-```bash
-# Stato
-systemctl status waffle-monitor.service
-
-# Avvio / stop
-sudo systemctl start  waffle-monitor.service
-sudo systemctl stop   waffle-monitor.service
-
-# Abilita all'avvio
-sudo systemctl enable waffle-monitor.service
-
-# Log
-journalctl -u waffle-monitor -f
-journalctl -u waffle-monitor --since "10 min ago"
-```
-
-### 8.4 Cosa fa il monitor al plug-in
-
-1. Rileva il device ttyUSB tramite udev (VID:PID `0403:6015` / `0403:6001`)
-2. Esegue `modprobe nbd` se `/dev/nbd0` non esiste
-3. Lancia `waffle-nbd /dev/ttyUSBx 127.0.0.1 <porta>`
-4. Riprova `nbd-client` ogni 2 s (il server è pronto solo dopo che si
-   inserisce un disco — questo può richiedere decine di secondi)
-5. Mount point: `/run/media/<utente>/waffle-ttyUSBx/`
-6. Prova `mount -t affs` → poi `mount -t vfat`
+1. Carica `modprobe nbd` e `modprobe affs` se necessario
+2. Trova un `/dev/nbdN` libero e una porta TCP libera (a partire da 10809)
+3. Lancia `waffle-nbd <porta> 127.0.0.1 <porta-tcp>`
+4. Attende il messaggio `nbd: disk detected` sullo stdout del server
+5. Connette `nbd-client` al device NBD
+6. Al ricevimento di `nbd: client requested GO` monta il filesystem
+   (`-t affs` o `-t vfat` in base al formato rilevato) sotto `/media/<utente>/`
 7. Apre il file manager con `xdg-open` come utente della sessione
-8. In caso di fallimento manda una notifica desktop
+8. Al messaggio `nbd: disk absent` smonta e libera il device NBD
 
-### 8.5 Notifiche desktop
+### 8.3 Al rimozione del dispositivo
 
-Le notifiche richiedono `notify-send` nell'ambiente dell'utente:
+udev esegue `waffle-udev.sh remove /dev/ttyUSBx`, che ferma l'unit
+`waffle-ttyUSBx.service` e scatena lo smontaggio tramite il `trap` in
+`waffle-nbd-handler.sh`.
+
+### 8.4 Notifiche desktop
+
+Le notifiche richiedono `notify-send` installato:
 
 ```bash
 sudo apt install libnotify-bin
 ```
 
-`waffle-monitor` usa `runuser` per eseguire `notify-send` come utente
-della sessione grafica attiva. Se la sessione desktop non è rilevata
-(server headless), le notifiche vengono semplicemente saltate — il
-montaggio avviene comunque.
+`waffle-nbd-handler.sh` usa `xdg-open` come utente della sessione grafica
+attiva. Se la sessione desktop non è rilevata (server headless), l'apertura
+del file manager viene saltata — il montaggio avviene comunque.
 
 ---
 
@@ -432,42 +386,19 @@ sudo nbd-client -d /dev/nbd0
 
 ---
 
-## 10. Configurazione della modalità (FUSE vs NBD)
+## 10. Log e diagnostica
 
-La modalità di default è **NBD**. Per cambiare:
-
-```bash
-mkdir -p ~/.config
-
-# Modalità NBD (default, usato se il file non esiste):
-echo "NBD" > ~/.config/waffle.mode
-
-# Modalità FUSE:
-echo "FUSE" > ~/.config/waffle.mode
-```
-
-Il file viene letto da `waffle-udev.sh` all'evento udev di plug-in.
-
-| Modalità | Backend | Mount |
-|----------|---------|-------|
-| `NBD`    | `waffle-nbd` + `nbd-client` | Kernel affs/vfat |
-| `FUSE`   | `waffle-fuse` | FUSE (userspace) |
-
----
-
-## 11. Log e diagnostica
-
-### Log del servizio systemd
+### Log dell'handler udev (per porta)
 
 ```bash
-# Segui in tempo reale
-journalctl -u waffle-monitor -f
+# Log dell'handler (nome dinamico per porta)
+journalctl -u waffle-ttyUSB0 -f
 
 # Ultimi 100 messaggi
-journalctl -u waffle-monitor -n 100
+journalctl -u waffle-ttyUSB0 -n 100
 
 # Dal boot corrente
-journalctl -u waffle-monitor -b
+journalctl -u waffle-ttyUSB0 -b
 ```
 
 ### Log udev helper
@@ -510,7 +441,7 @@ udevadm monitor --subsystem-match=tty --property
 
 ---
 
-## 12. Risoluzione dei problemi
+## 11. Risoluzione dei problemi
 
 ### `modprobe nbd` fallisce
 
@@ -570,32 +501,20 @@ newgrp dialout   # oppure fare logout/login
 sudo modprobe affs
 lsmod | grep affs
 
-# Verificare il formato del disco (waffle-fuse --probe ritorna il tipo):
-waffle-fuse --probe /dev/ttyUSB0
+# Verificare la presenza del disco con waffle-nbd --probe:
+waffle-nbd --probe /dev/ttyUSB0
 ```
 
-### Nessuna notifica desktop
+### Nessuna apertura file manager
 
-Il monitor gira come root e usa `runuser` per raggiungere la sessione
-utente. Verificare:
+L'handler usa `xdg-open` come utente della sessione. Verificare:
 
 ```bash
-# L'utente ha notify-send?
-which notify-send
+# L'utente ha xdg-utils?
+which xdg-open
 
 # La sessione è registrata in logind?
 loginctl list-sessions
-
-# Test manuale come utente:
-notify-send "Test" "Funziona?"
-```
-
-### `waffle-monitor.py` non parte (`pyudev not found`)
-
-```bash
-sudo apt install python3-pyudev
-# oppure:
-sudo pip3 install pyudev
 ```
 
 ### `runuser` non disponibile
@@ -620,16 +539,12 @@ sudo apt install build-essential g++ make git pkg-config
 # Runtime (NBD + mount)
 sudo apt install nbd-client
 
-# Auto-mount (waffle-monitor.py)
+# Auto-mount (udev + handler)
 sudo apt install \
-    python3 \
-    python3-pyudev \
     kmod \
     util-linux \
     libnotify-bin \
-    xdg-utils \
-    python3-gi \
-    gir1.2-notify-0.7
+    xdg-utils
 
 # Filesystem Amiga
 sudo modprobe affs
@@ -638,6 +553,6 @@ echo "affs" | sudo tee -a /etc/modules-load.d/waffle.conf
 # Modulo NBD permanente
 echo "nbd" | sudo tee /etc/modules-load.d/waffle.conf
 
-# Gruppo seriale per uso manuale (non serve per waffle-monitor)
+# Gruppo seriale per uso manuale
 sudo usermod -aG dialout $USER
 ```

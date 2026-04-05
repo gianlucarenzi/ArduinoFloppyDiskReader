@@ -8,20 +8,18 @@
 #   scripts/install-udev.sh --local [--uninstall]
 #
 # System install places:
-#   1. waffle-fuse binary        → /usr/local/bin/  (used for --probe)
-#   2. waffle-nbd binary         → /usr/local/bin/
-#   3. waffle-udev.sh            → /usr/local/lib/waffle-fuse/
-#   4. waffle-nbd-handler.sh     → /usr/local/lib/waffle-fuse/
-#   5. udev rule                 → /etc/udev/rules.d/
-#   6. polkit rule               → /etc/polkit-1/rules.d/
-#   7. SVG icons                 → /usr/share/icons/hicolor/scalable/devices/
+#   1. waffle-nbd binary         → /usr/local/bin/
+#   2. waffle-udev.sh            → /usr/local/lib/waffle-nbd/
+#   3. waffle-nbd-handler.sh     → /usr/local/lib/waffle-nbd/
+#   4. udev rule                 → /etc/udev/rules.d/
+#   5. polkit rule               → /etc/polkit-1/rules.d/
+#   6. SVG icons                 → /usr/share/icons/hicolor/scalable/devices/
 #
 # Local install places (XDG user dirs, no sudo needed):
-#   1. waffle-fuse binary        → ~/.local/bin/  (used for --probe)
-#   2. waffle-nbd binary         → ~/.local/bin/
-#   3. waffle-udev.sh            → ~/.local/share/waffle-fuse/
-#   4. waffle-nbd-handler.sh     → ~/.local/share/waffle-fuse/
-#   5. SVG icons                 → ~/.local/share/icons/hicolor/scalable/devices/
+#   1. waffle-nbd binary         → ~/.local/bin/
+#   2. waffle-udev.sh            → ~/.local/share/waffle-nbd/
+#   3. waffle-nbd-handler.sh     → ~/.local/share/waffle-nbd/
+#   4. SVG icons                 → ~/.local/share/icons/hicolor/scalable/devices/
 #   NOTE: udev rule requires root; hotplug will not work without it.
 
 set -e
@@ -29,11 +27,10 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-RULE_SRC="$PROJECT_DIR/rules/99-waffle-fuse.rules"
+RULE_SRC="$PROJECT_DIR/rules/99-waffle-nbd.rules"
 POLKIT_RULE_SRC="$SCRIPT_DIR/85-waffle-nbd.rules"
 UDEV_SH_SRC="$SCRIPT_DIR/waffle-udev.sh"
 HANDLER_SH_SRC="$SCRIPT_DIR/waffle-nbd-handler.sh"
-WAFFLE_FUSE_BIN="$PROJECT_DIR/waffle-fuse"
 WAFFLE_NBD_BIN="$PROJECT_DIR/waffle-nbd"
 ICON_DIR="$PROJECT_DIR/icons"
 
@@ -51,9 +48,8 @@ for arg in "$@"; do
 done
 
 if [ "$LOCAL" = "1" ]; then
-    BIN_DST_FUSE="${XDG_BIN_HOME:-$HOME/.local/bin}/waffle-fuse"
     BIN_DST_NBD="${XDG_BIN_HOME:-$HOME/.local/bin}/waffle-nbd"
-    LIB_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/waffle-fuse"
+    LIB_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/waffle-nbd"
     UDEV_SH_DST="$LIB_DIR/waffle-udev.sh"
     HANDLER_SH_DST="$LIB_DIR/waffle-nbd-handler.sh"
     HICOLOR_ICONS="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/devices"
@@ -66,20 +62,19 @@ else
         echo "  $0 --local" >&2
         exit 1
     fi
-    BIN_DST_FUSE="/usr/local/bin/waffle-fuse"
     BIN_DST_NBD="/usr/local/bin/waffle-nbd"
-    LIB_DIR="/usr/local/lib/waffle-fuse"
+    LIB_DIR="/usr/local/lib/waffle-nbd"
     UDEV_SH_DST="$LIB_DIR/waffle-udev.sh"
     HANDLER_SH_DST="$LIB_DIR/waffle-nbd-handler.sh"
     HICOLOR_ICONS="/usr/share/icons/hicolor/scalable/devices"
-    RULE_DST="/etc/udev/rules.d/99-waffle-fuse.rules"
+    RULE_DST="/etc/udev/rules.d/99-waffle-nbd.rules"
     POLKIT_RULE_DST="/etc/polkit-1/rules.d/85-waffle-nbd.rules"
 fi
 
 # ── Uninstall ────────────────────────────────────────────────────────────────
 if [ "$UNINSTALL" = "1" ]; then
-    echo "Removing waffle-fuse / waffle-nbd..."
-    rm -f "$BIN_DST_FUSE" "$BIN_DST_NBD" "$UDEV_SH_DST" "$HANDLER_SH_DST"
+    echo "Removing waffle-nbd..."
+    rm -f "$BIN_DST_NBD" "$UDEV_SH_DST" "$HANDLER_SH_DST"
     rm -f "$HICOLOR_ICONS/amiga-floppy.svg" "$HICOLOR_ICONS/dos-floppy.svg"
     rmdir "$LIB_DIR" 2>/dev/null || true
     if [ -n "$RULE_DST" ]; then
@@ -100,8 +95,7 @@ fi
 # ── Install ──────────────────────────────────────────────────────────────────
 [ -f "$UDEV_SH_SRC" ]      || { echo "Error: $UDEV_SH_SRC not found" >&2; exit 1; }
 [ -f "$HANDLER_SH_SRC" ]   || { echo "Error: $HANDLER_SH_SRC not found" >&2; exit 1; }
-[ -x "$WAFFLE_FUSE_BIN" ]  || { echo "Error: $WAFFLE_FUSE_BIN not found (run 'make' first)" >&2; exit 1; }
-[ -x "$WAFFLE_NBD_BIN" ]   || echo "Warning: $WAFFLE_NBD_BIN not found; NBD mode will not work until built."
+[ -x "$WAFFLE_NBD_BIN" ]   || { echo "Error: $WAFFLE_NBD_BIN not found (run 'make' first)" >&2; exit 1; }
 
 if [ "$LOCAL" = "1" ]; then
     echo "Installing waffle-nbd locally (user install)..."
@@ -110,13 +104,9 @@ else
 fi
 
 # Binaries
-mkdir -p "$(dirname "$BIN_DST_FUSE")"
-install -m 755 "$WAFFLE_FUSE_BIN" "$BIN_DST_FUSE"
-echo "  $BIN_DST_FUSE"
-if [ -x "$WAFFLE_NBD_BIN" ]; then
-    install -m 755 "$WAFFLE_NBD_BIN" "$BIN_DST_NBD"
-    echo "  $BIN_DST_NBD"
-fi
+mkdir -p "$(dirname "$BIN_DST_NBD")"
+install -m 755 "$WAFFLE_NBD_BIN" "$BIN_DST_NBD"
+echo "  $BIN_DST_NBD"
 
 # Helper scripts
 mkdir -p "$LIB_DIR"
@@ -159,7 +149,7 @@ if [ "$LOCAL" = "1" ]; then
     if [ -f "$BASHRC" ] && grep -qF '.local/bin' "$BASHRC"; then
         echo "  ~/.bashrc already contains .local/bin in PATH — skipped."
     else
-        printf '\n# Added by waffle-fuse install\n%s\n' "$PATH_LINE" >> "$BASHRC"
+        printf '\n# Added by waffle-nbd install\n%s\n' "$PATH_LINE" >> "$BASHRC"
         echo "  Added .local/bin to PATH in ~/.bashrc"
         echo "  Run: source ~/.bashrc  (or open a new terminal)"
     fi

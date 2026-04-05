@@ -1,7 +1,7 @@
 #!/bin/sh
 # waffle-udev.sh  –  udev helper for automatic Waffle / DrawBridge mounting
 #
-# Called as root by /etc/udev/rules.d/99-waffle-fuse.rules.
+# Called as root by /etc/udev/rules.d/99-waffle-nbd.rules.
 # Identifies the active graphical user, then starts/stops the NBD handler.
 #
 # Usage (by udev): waffle-udev.sh add|remove /dev/ttyUSBx
@@ -27,11 +27,10 @@ find_bin() {
     printf '%s' "$BIN"
 }
 
-WAFFLE_FUSE_BIN="$(find_bin waffle-fuse)"
+WAFFLE_NBD_BIN="$(find_bin waffle-nbd)"
 
-# waffle-fuse is needed for --probe.
-[ -x "$WAFFLE_FUSE_BIN" ] || { echo "ERROR: waffle-fuse not found"; exit 1; }
-echo "  waffle-fuse: $WAFFLE_FUSE_BIN"
+[ -x "$WAFFLE_NBD_BIN" ] || { echo "ERROR: waffle-nbd not found"; exit 1; }
+echo "  waffle-nbd: $WAFFLE_NBD_BIN"
 
 # ── Find the first active non-root user session ───────────────────────────────
 find_active_user() {
@@ -63,7 +62,6 @@ echo "  session_user='$SESSION_USER'"
 [ -n "$SESSION_USER" ] || { echo "ERROR: no active user session found"; exit 0; }
 
 SESSION_UID=$(id -u "$SESSION_USER" 2>/dev/null) || exit 0
-SESSION_HOME=$(getent passwd "$SESSION_USER" | cut -d: -f6)
 
 PORT_BASE="$(basename "$PORT")"
 UNIT="waffle-${PORT_BASE}"
@@ -72,8 +70,8 @@ case "$ACTION" in
 
 # ── Plug-in ───────────────────────────────────────────────────────────────────
 add)
-    # Confirm the device speaks the Waffle protocol.
-    "$WAFFLE_FUSE_BIN" --probe "$PORT" >/dev/null 2>&1
+    # Confirm the device speaks the Waffle/DrawBridge protocol.
+    "$WAFFLE_NBD_BIN" --probe "$PORT" >/dev/null 2>&1
     PROBE_INIT=$?
     echo "  initial probe exit=$PROBE_INIT"
     case $PROBE_INIT in
