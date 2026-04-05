@@ -56,6 +56,16 @@ PENDING_DENSITY=""
 UID_U=$(id -u "$USER")
 GID_U=$(id -g "$USER")
 
+# Retrieve graphical session environment from user's systemd --user instance.
+# This is needed because the handler runs as root (system slice) and has no
+# DISPLAY/WAYLAND_DISPLAY in its environment.
+_user_sysenv() {
+    XDG_RUNTIME_DIR="/run/user/$UID_U" \
+        sudo -u "$USER" systemctl --user show-environment 2>/dev/null
+}
+DISPLAY_VAR=$(_user_sysenv | grep -m1 '^DISPLAY=')
+WAYLAND_VAR=$(_user_sysenv | grep -m1 '^WAYLAND_DISPLAY=')
+
 
 cleanup() {
     echo "Chiusura sessione per $PORT..."
@@ -134,10 +144,13 @@ stdbuf -oL -eL "$WAFFLE_NBD" "$PORT" 127.0.0.1 "$NBD_PORT" 2>&1 | while read -r 
                 echo "--> Comando: mount -t $FORMAT -o $OPTS $NBD_DEV $MNT"
                 if mount -t "$FORMAT" -o "$OPTS" "$NBD_DEV" "$MNT"; then
                     echo "--> Montaggio completato."
-                    if command -v sudo >/dev/null; then
-                        sudo -u "$USER" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$UID_U/bus" \
-                            xdg-open "$MNT" >/dev/null 2>&1 &
-                    fi
+                    # Open file manager as the desktop user with the correct display env.
+                    # env KEY=VAL pairs from DISPLAY_VAR/WAYLAND_VAR are passed positionally.
+                    sudo -u "$USER" env \
+                        DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$UID_U/bus" \
+                        ${DISPLAY_VAR:+$DISPLAY_VAR} \
+                        ${WAYLAND_VAR:+$WAYLAND_VAR} \
+                        xdg-open "$MNT" &
                 else
                     echo "--> ERRORE: Mount fallito."
                 fi
