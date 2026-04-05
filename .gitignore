@@ -78,3 +78,4 @@ CVS
 config.status
 config.log
 autom4te.cache/
+/waffle-fuse/waffle-nbd
