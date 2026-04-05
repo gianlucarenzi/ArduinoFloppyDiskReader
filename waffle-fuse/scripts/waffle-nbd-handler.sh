@@ -53,6 +53,7 @@ MNT=""
 CONNECTED=0
 PENDING_FORMAT=""
 PENDING_DENSITY=""
+WATCHER_PID=""
 UID_U=$(id -u "$USER")
 GID_U=$(id -g "$USER")
 
@@ -69,6 +70,7 @@ WAYLAND_VAR=$(_user_sysenv | grep -m1 '^WAYLAND_DISPLAY=')
 
 cleanup() {
     echo "Chiusura sessione per $PORT..."
+    [ -n "$WATCHER_PID" ] && kill "$WATCHER_PID" 2>/dev/null
     if [ -n "$MNT" ] && mountpoint -q "$MNT"; then
         umount -l "$MNT" 2>/dev/null
         rmdir "$MNT" 2>/dev/null
@@ -176,6 +178,23 @@ stdbuf -oL -eL "$WAFFLE_NBD" "$PORT" 127.0.0.1 "$NBD_PORT" 2>&1 | while read -r 
                             ${WAYLAND_VAR:+$WAYLAND_VAR} \
                             xdg-open "$MNT" &
                     fi
+
+                    # Watch for user-initiated eject (mount point disappears).
+                    # When detected: disconnect nbd-client and prompt to remove the disk.
+                    _mnt_snap="$MNT"
+                    _dbus_snap="$_dbus"
+                    (
+                        while mountpoint -q "$_mnt_snap" 2>/dev/null; do
+                            sleep 2
+                        done
+                        nbd-client -d "$NBD_DEV" 2>/dev/null
+                        sudo -u "$USER" \
+                            DBUS_SESSION_BUS_ADDRESS="$_dbus_snap" \
+                            notify-send -i drive-removable-media-usb \
+                            "Waffle: disco smontato" \
+                            "Puoi rimuovere il floppy dal drive.\nInserisci un nuovo disco per ricominciare."
+                    ) &
+                    WATCHER_PID=$!
                 fi
             else
                 echo "--> Filesystem sconosciuto, montaggio automatico saltato."
@@ -186,6 +205,8 @@ stdbuf -oL -eL "$WAFFLE_NBD" "$PORT" 127.0.0.1 "$NBD_PORT" 2>&1 | while read -r 
     # 3. Rimozione disco
     if [[ "$line" == *"nbd: disk absent"* ]] || [[ "$line" == *"disk removed"* ]]; then
         echo "--> Disco rimosso, smontaggio in corso..."
+        [ -n "$WATCHER_PID" ] && kill "$WATCHER_PID" 2>/dev/null
+        WATCHER_PID=""
         if [ -n "$MNT" ]; then
             umount -l "$MNT" 2>/dev/null
             rmdir "$MNT" 2>/dev/null
