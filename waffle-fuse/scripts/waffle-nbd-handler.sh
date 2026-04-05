@@ -191,8 +191,7 @@ stdbuf -oL -eL "$WAFFLE_NBD" "$PORT" 127.0.0.1 "$NBD_PORT" 2>&1 | while read -r 
                         sudo -u "$USER" \
                             DBUS_SESSION_BUS_ADDRESS="$_dbus_snap" \
                             notify-send -i drive-removable-media-usb \
-                            "Waffle: disco smontato" \
-                            "Puoi rimuovere il floppy dal drive.\nInserisci un nuovo disco per ricominciare."
+                            "Waffle" "You can now remove the disk."
                     ) &
                     WATCHER_PID=$!
                 fi
