@@ -1,0 +1,16 @@
+// 85-waffle-nbd.rules – Waffle NBD polkit rule
+//
+// Allow active local users to unmount /dev/nbd* devices without
+// authentication.  These block devices are mounted as root by
+// waffle-nbd-handler.sh, so UDisks2 classifies the operation as
+// "filesystem-unmount-others" and would otherwise prompt for a password.
+polkit.addRule(function(action, subject) {
+    if (action.id === "org.freedesktop.udisks2.filesystem-unmount-others" &&
+        subject.local && subject.active)
+    {
+        var device = action.lookup("device");
+        if (device && device.indexOf("/dev/nbd") === 0) {
+            return polkit.Result.YES;
+        }
+    }
+});

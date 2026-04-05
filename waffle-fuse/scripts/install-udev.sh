@@ -14,7 +14,8 @@
 #   4. waffle-monitor.py         → /usr/local/lib/waffle-fuse/
 #   5. waffle-monitor.service    → /etc/systemd/system/
 #   6. udev rule                 → /etc/udev/rules.d/
-#   7. SVG icons                 → /usr/share/icons/hicolor/scalable/devices/
+#   7. polkit rule               → /etc/polkit-1/rules.d/
+#   8. SVG icons                 → /usr/share/icons/hicolor/scalable/devices/
 #
 # Local install places (XDG user dirs, no sudo needed):
 #   1. waffle-fuse binary        → ~/.local/bin/
@@ -30,6 +31,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 RULE_SRC="$PROJECT_DIR/rules/99-waffle-fuse.rules"
+POLKIT_RULE_SRC="$SCRIPT_DIR/85-waffle-nbd.rules"
 UDEV_SH_SRC="$SCRIPT_DIR/waffle-udev.sh"
 MONITOR_PY_SRC="$SCRIPT_DIR/waffle-monitor.py"
 MONITOR_SVC_SRC="$SCRIPT_DIR/waffle-monitor.service"
@@ -58,6 +60,7 @@ if [ "$LOCAL" = "1" ]; then
     MONITOR_PY_DST="$LIB_DIR/waffle-monitor.py"
     HICOLOR_ICONS="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/devices"
     RULE_DST=""
+    POLKIT_RULE_DST=""
     SYSTEMD_DST=""
 else
     if [ "$(id -u)" -ne 0 ]; then
@@ -73,6 +76,7 @@ else
     MONITOR_PY_DST="$LIB_DIR/waffle-monitor.py"
     HICOLOR_ICONS="/usr/share/icons/hicolor/scalable/devices"
     RULE_DST="/etc/udev/rules.d/99-waffle-fuse.rules"
+    POLKIT_RULE_DST="/etc/polkit-1/rules.d/85-waffle-nbd.rules"
     SYSTEMD_DST="/etc/systemd/system/waffle-monitor.service"
 fi
 
@@ -93,6 +97,10 @@ if [ "$UNINSTALL" = "1" ]; then
     if [ -n "$RULE_DST" ]; then
         rm -f "$RULE_DST"
         udevadm control --reload-rules
+    fi
+    if [ -n "$POLKIT_RULE_DST" ]; then
+        rm -f "$POLKIT_RULE_DST"
+        echo "  $POLKIT_RULE_DST (removed)"
     fi
     if command -v gtk-update-icon-cache >/dev/null 2>&1; then
         gtk-update-icon-cache -f "${HICOLOR_ICONS%/scalable/devices}" 2>/dev/null || true
@@ -146,6 +154,14 @@ if [ -n "$RULE_DST" ]; then
     install -m 644 "$RULE_SRC" "$RULE_DST"
     echo "  $RULE_DST"
     udevadm control --reload-rules
+fi
+
+# polkit rule (system only) – allows users to unmount /dev/nbd* without password
+if [ -n "$POLKIT_RULE_DST" ]; then
+    [ -f "$POLKIT_RULE_SRC" ] || { echo "Error: $POLKIT_RULE_SRC not found" >&2; exit 1; }
+    mkdir -p "$(dirname "$POLKIT_RULE_DST")"
+    install -m 644 "$POLKIT_RULE_SRC" "$POLKIT_RULE_DST"
+    echo "  $POLKIT_RULE_DST"
 fi
 
 # Icons
