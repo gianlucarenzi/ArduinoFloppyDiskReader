@@ -37,6 +37,11 @@
 #include "fat_fs.h"
 #include "affs_fs.h"
 #include "debugmsg.h"
+#include "waffle_log.h"
+
+// Definition required by disk_cache.cpp (also used by waffle_nbd.cpp).
+// Enabled when the user passes -o debug_hw.
+std::atomic<bool> g_verbose{false};
 
 // ── GVfs bookmark helpers (Linux only) ───────────────────────────────────────
 // File managers that use GVfs (Nautilus, Thunar, Nemo, PCManFM-Qt) watch
@@ -479,6 +484,7 @@ int main(int argc, char* argv[])
 
     state.forceRO = state.forceRO || opts.ro;
     state.debugHW = opts.debug_hw;
+    g_verbose     = opts.debug_hw != 0;
 
     // Initialise both operation tables (done once; these are globals)
     s_fat_ops  = fat_get_operations();
