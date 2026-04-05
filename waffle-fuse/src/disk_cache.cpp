@@ -133,6 +133,14 @@ bool WaffleDisk::remount()
     }
 
     m_diskPresent = true;
+
+    {
+        const char* fmt = (m_geo.format == DiskFormat::Amiga_ADF) ? "affs" :
+                          (m_geo.format == DiskFormat::IBM_FAT)   ? "vfat" : "unknown";
+        const char* den = m_geo.isHD ? "hd" : "dd";
+        std::cerr << "waffle-event: format=" << fmt << " density=" << den << std::endl;
+    }
+
     std::cerr << "waffle: format="
               << (m_geo.format == DiskFormat::Amiga_ADF ? "Amiga" : "PC/FAT")
               << " size=" << (totalSectors() * 512 / 1024) << " KB"

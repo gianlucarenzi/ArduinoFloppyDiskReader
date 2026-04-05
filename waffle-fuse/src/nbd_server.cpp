@@ -169,13 +169,23 @@ bool NBDServer::run(const std::string& address, int port) {
             std::cout << "nbd: client connected, detecting disk format...\n";
             if (m_disk->remount()) {
                 handleClient(clientFd);
+                close(clientFd);
+                std::cout << "nbd: client disconnected\n";
+                // Stop motor before polling for absence (port stays open).
+                m_disk->parkDisk();
             } else {
-                std::cerr << "nbd: format detection failed, disconnecting client\n";
+                // remount() failed (e.g. motor not yet up to speed on first
+                // insert).  Close the client fd *and* the disk port, then
+                // loop back to Phase 1 so we re-probe and retry instead of
+                // getting stuck in Phase 5 while the disk is still present.
+                // nbd-client will see the closed connection, report
+                // "INIT_PASSWD bad", and the monitor retry loop will reconnect
+                // once the server is ready.
+                std::cerr << "nbd: format detection failed, retrying...\n";
+                close(clientFd);
+                m_disk->closeDisk();
+                continue;
             }
-            close(clientFd);
-            std::cout << "nbd: client disconnected\n";
-            // Stop motor before polling for absence (port stays open).
-            m_disk->parkDisk();
         }
 
         // ── Phase 5: wait for disk to be confirmed absent ─────────────────────
@@ -220,9 +230,10 @@ bool NBDServer::handshake(int fd) {
     if (!write_all(fd, &init, sizeof(init))) return false;
 
     // 2. Client flags
-    uint32_t client_flags;
-    if (!read_all(fd, &client_flags, sizeof(client_flags))) return false;
-    // client_flags = be32toh(client_flags); // ignored for now
+    uint32_t client_flags_be;
+    if (!read_all(fd, &client_flags_be, sizeof(client_flags_be))) return false;
+    uint32_t client_flags = be32toh(client_flags_be);
+    bool client_no_zeroes = (client_flags & NBD_FLAG_NO_ZEROES) != 0;
 
     // 3. Option Negotiation
     while (true) {
@@ -248,7 +259,8 @@ bool NBDServer::handshake(int fd) {
         }
 
         if (option.opt == NBD_OPT_EXPORT_NAME) {
-            std::cout << "nbd: client requested export name\n";
+            std::string name(data.begin(), data.end());
+            std::cout << "nbd: client requested export name '" << name << "'\n";
             uint64_t size = (uint64_t)m_disk->totalSectors() * 512;
             uint16_t flags = NBD_FLAG_HAS_FLAGS | NBD_FLAG_SEND_FLUSH;
             if (m_disk->isWriteProtected()) flags |= NBD_FLAG_READ_ONLY;
@@ -258,6 +270,11 @@ bool NBDServer::handshake(int fd) {
 
             if (!write_all(fd, &size_be, sizeof(size_be))) return false;
             if (!write_all(fd, &flags_be, sizeof(flags_be))) return false;
+
+            if (!client_no_zeroes) {
+                uint8_t zeroes[124] = {0};
+                if (!write_all(fd, zeroes, sizeof(zeroes))) return false;
+            }
             return true;
         } 
         else if (option.opt == NBD_OPT_LIST) {
