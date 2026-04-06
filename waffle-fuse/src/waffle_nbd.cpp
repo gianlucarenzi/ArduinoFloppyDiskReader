@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <poll.h>
 #include "disk_cache.h"
 #include "nbd_server.h"
@@ -32,6 +34,40 @@ static std::string ctlSocketPath(const std::string& portName)
     auto slash = portName.rfind('/');
     std::string base = (slash != std::string::npos) ? portName.substr(slash + 1) : portName;
     return "/run/waffle-nbd/" + base + ".ctl";
+}
+
+// Returns the first TCP port >= start that is not currently bound on addr.
+static int findFreePort(const std::string& addr, int start = 10809)
+{
+    for (int port = start; port < 65535; ++port) {
+        int fd = ::socket(AF_INET, SOCK_STREAM, 0);
+        if (fd < 0) break;
+        int opt = 1;
+        ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        struct sockaddr_in sa{};
+        sa.sin_family = AF_INET;
+        sa.sin_port   = htons(static_cast<uint16_t>(port));
+        ::inet_pton(AF_INET, addr.c_str(), &sa.sin_addr);
+        bool free = (::bind(fd, reinterpret_cast<sockaddr*>(&sa), sizeof(sa)) == 0);
+        ::close(fd);
+        if (free) return port;
+    }
+    return -1;
+}
+
+// Returns the first /dev/nbdX whose kernel pid file is absent or empty
+// (meaning no nbd-client is connected to it).
+static std::string findFreeNbdDev()
+{
+    for (int i = 0; i < 64; ++i) {
+        std::string pidPath = "/sys/block/nbd" + std::to_string(i) + "/pid";
+        std::ifstream pf(pidPath);
+        // If file doesn't exist or is empty, device is free.
+        std::string pid;
+        if (!pf || !(pf >> pid) || pid.empty())
+            return "/dev/nbd" + std::to_string(i);
+    }
+    return "";
 }
 
 void usage(const char* progname) {
@@ -402,7 +438,12 @@ int main(int argc, char* argv[]) {
         if (argc < 3) { usage(argv[0]); return 1; }
         const std::string imgPath = argv[2];
         const std::string nbdAddr = (argc >= 4) ? argv[3] : "127.0.0.1";
-        const int         nbdPort = (argc >= 5) ? std::stoi(argv[4]) : 10809;
+        int               nbdPort = (argc >= 5) ? std::stoi(argv[4])
+                                                : findFreePort(nbdAddr);
+        if (nbdPort < 0) {
+            std::cerr << "waffle-nbd: no free TCP port found\n";
+            return 1;
+        }
 
         auto disk = FileDiskImage::load(imgPath);
         if (!disk) {
@@ -414,6 +455,12 @@ int main(int argc, char* argv[]) {
                   << "nbd: format="
                   << (geo.format == DiskFormat::Amiga_ADF ? "Amiga" : "PC/FAT")
                   << " size=" << (disk->totalSectors() * 512 / 1024) << " KB\n";
+
+        // Suggest the nbd-client command before blocking.
+        std::string nbdDev = findFreeNbdDev();
+        if (!nbdDev.empty())
+            std::cout << "nbd: connect with: sudo nbd-client " << nbdAddr
+                      << " " << nbdPort << " " << nbdDev << "\n";
 
         g_server = std::make_unique<NBDServer>(std::move(disk));
         // Derive a control socket name from the image filename.
@@ -433,10 +480,21 @@ int main(int argc, char* argv[]) {
 
     std::string serialPort = argv[1];
     std::string nbdAddr    = (argc >= 3) ? argv[2] : "127.0.0.1";
-    int nbdPort            = (argc >= 4) ? std::stoi(argv[3]) : 10809;
+    int         nbdPort    = (argc >= 4) ? std::stoi(argv[3])
+                                         : findFreePort(nbdAddr);
+    if (nbdPort < 0) {
+        std::cerr << "waffle-nbd: no free TCP port found\n";
+        return 1;
+    }
 
     auto disk = std::make_unique<WaffleDisk>(serialPort);
     std::cout << "waffle-nbd: using port " << serialPort << "\n";
+
+    // Suggest the nbd-client command before blocking.
+    std::string nbdDev = findFreeNbdDev();
+    if (!nbdDev.empty())
+        std::cout << "nbd: connect with: sudo nbd-client " << nbdAddr
+                  << " " << nbdPort << " " << nbdDev << "\n";
 
     g_server = std::make_unique<NBDServer>(std::move(disk));
     g_server->setControlSocket(ctlSocketPath(serialPort));
