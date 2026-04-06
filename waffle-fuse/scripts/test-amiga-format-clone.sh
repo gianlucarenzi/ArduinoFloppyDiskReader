@@ -125,13 +125,13 @@ step "Formattazione disco → Amiga OFS"
 ctl_cmd format amiga
 ok "Formattazione completata"
 
-# Disconnetti e riconnetti per rileggere la geometria dopo il formato
-step "Riconnessione dopo formato"
-$SUDO nbd-client -d "$NBD_DEV" 2>/dev/null || true
-sleep 1
-$SUDO nbd-client "$NBD_ADDR" "$NBD_PORT" "$NBD_DEV" || fail "riconnessione fallita"
+# Il formato è avvenuto con nbd-client già connesso: il block device è ancora
+# attivo e riflette già il nuovo contenuto. Basta forzare il rilettura della
+# partizione e attendere che il device sia stabile.
+step "Aggiornamento block device dopo formato"
+$SUDO blockdev --rereadpt "$NBD_DEV" 2>/dev/null || true
 wait_blk || fail "Block device non pronto dopo 30s"
-ok "Riconnesso: $NBD_DEV"
+ok "Block device pronto: $NBD_DEV"
 
 # ═════════════════════════════════════════════════════════════════════════════
 # 4. Mount del disco formattato
@@ -251,9 +251,7 @@ ok "Dump completato"
 # 12. Verifica finale: rimonta e controlla entrambi i file
 # ═════════════════════════════════════════════════════════════════════════════
 step "Verifica finale: rimonta e controlla contenuto"
-$SUDO nbd-client -d "$NBD_DEV" 2>/dev/null || true
-sleep 1
-$SUDO nbd-client "$NBD_ADDR" "$NBD_PORT" "$NBD_DEV" || fail "riconnessione finale fallita"
+$SUDO blockdev --rereadpt "$NBD_DEV" 2>/dev/null || true
 wait_blk || fail "Block device non pronto"
 $SUDO mount -t affs -o "nosuid,uid=$(id -u),gid=$(id -g)" "$NBD_DEV" "$MNT" \
     || fail "mount finale fallito"
