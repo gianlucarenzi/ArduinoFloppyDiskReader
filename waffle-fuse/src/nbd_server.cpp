@@ -1,10 +1,14 @@
 #include "nbd_server.h"
 #include "waffle_log.h"
 #include <iostream>
+#include <sstream>
+#include <fstream>
 #include <vector>
 #include <cstring>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/un.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
@@ -88,6 +92,14 @@ void NBDServer::stop() {
         close(m_serverFd);
         m_serverFd = -1;
     }
+    // Wake up and join the control thread.
+    if (m_ctlFd != -1) {
+        shutdown(m_ctlFd, SHUT_RDWR);
+        close(m_ctlFd);
+        m_ctlFd = -1;
+    }
+    if (m_ctlThread.joinable())
+        m_ctlThread.join();
 }
 
 bool NBDServer::run(const std::string& address, int port) {
@@ -117,6 +129,12 @@ bool NBDServer::run(const std::string& address, int port) {
 
     m_running = true;
     std::cout << "nbd: server bound to " << address << ":" << port << "\n";
+
+    // Start control socket thread if a path was configured.
+    if (!m_ctlPath.empty()) {
+        m_ctlThread = std::thread(&NBDServer::runControlThread, this);
+        std::cout << "nbd: control socket at " << m_ctlPath << "\n";
+    }
 
     while (m_running) {
 
@@ -496,4 +514,285 @@ bool NBDServer::mainLoop(int fd) {
         }
     }
     return true;
+}
+
+// ── Control socket ────────────────────────────────────────────────────────────
+
+void NBDServer::runControlThread()
+{
+    // Ensure the parent directory exists (e.g. /run/waffle-nbd/).
+    {
+        std::string dir = m_ctlPath;
+        auto slash = dir.rfind('/');
+        if (slash != std::string::npos) {
+            dir = dir.substr(0, slash);
+            // mkdir -p: create each component that doesn't exist yet.
+            for (size_t i = 1; i <= dir.size(); i++) {
+                if (i == dir.size() || dir[i] == '/') {
+                    std::string part = dir.substr(0, i);
+                    if (mkdir(part.c_str(), 0755) == -1 && errno != EEXIST) {
+                        std::cerr << "nbd-ctl: cannot create " << part
+                                  << ": " << strerror(errno) << "\n";
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    m_ctlFd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (m_ctlFd == -1) {
+        std::cerr << "nbd-ctl: socket() failed: " << strerror(errno) << "\n";
+        return;
+    }
+
+    unlink(m_ctlPath.c_str()); // remove stale socket
+
+    sockaddr_un addr{};
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, m_ctlPath.c_str(), sizeof(addr.sun_path) - 1);
+
+    if (bind(m_ctlFd, (sockaddr*)&addr, sizeof(addr)) == -1) {
+        std::cerr << "nbd-ctl: bind(" << m_ctlPath << ") failed: " << strerror(errno) << "\n";
+        close(m_ctlFd);
+        m_ctlFd = -1;
+        return;
+    }
+    // Allow any local process to reach the socket (access is controlled by
+    // filesystem permissions on the parent directory, not the socket itself).
+    chmod(m_ctlPath.c_str(), 0666);
+
+    if (listen(m_ctlFd, 4) == -1) {
+        close(m_ctlFd);
+        m_ctlFd = -1;
+        return;
+    }
+
+    while (m_running) {
+        struct pollfd pfd{m_ctlFd, POLLIN, 0};
+        if (poll(&pfd, 1, 1000) <= 0) continue;
+
+        sockaddr_un clientAddr{};
+        socklen_t clientLen = sizeof(clientAddr);
+        int clientFd = accept(m_ctlFd, (sockaddr*)&clientAddr, &clientLen);
+        if (clientFd == -1) continue;
+
+        handleControlClient(clientFd);
+        close(clientFd);
+    }
+
+    close(m_ctlFd);
+    m_ctlFd = -1;
+    unlink(m_ctlPath.c_str());
+}
+
+// Read a newline-terminated line from fd (with a short per-byte timeout).
+static std::string readLine(int fd)
+{
+    std::string line;
+    char c;
+    while (line.size() < 256) {
+        struct pollfd pfd{fd, POLLIN, 0};
+        if (poll(&pfd, 1, 5000) <= 0) break; // 5-second read timeout
+        if (read(fd, &c, 1) != 1) break;
+        if (c == '\n') break;
+        if (c != '\r') line += c;
+    }
+    return line;
+}
+
+void NBDServer::handleControlClient(int fd)
+{
+    std::string line = readLine(fd);
+    VLOG("nbd-ctl: command: '" << line << "'");
+
+    std::istringstream iss(line);
+    std::string cmd, arg1, arg2;
+    iss >> cmd >> arg1 >> arg2;
+
+    // ── format amiga|pc [hd] ──────────────────────────────────────────────────
+    if (cmd == "format") {
+        FormatType ftype;
+        if      (arg1 == "amiga") ftype = FormatType::Amiga_OFS;
+        else if (arg1 == "pc")    ftype = FormatType::PC_FAT12;
+        else {
+            const char* err = "error: unknown type (use amiga or pc)\n";
+            write_all(fd, err, strlen(err));
+            return;
+        }
+        bool isHD = (arg2 == "hd");
+
+        if (!m_disk->isDiskPresent()) {
+            const char* err = "error: no disk present\n";
+            write_all(fd, err, strlen(err));
+            return;
+        }
+
+        std::cerr << "nbd-ctl: format request type="
+                  << (ftype == FormatType::Amiga_OFS ? "amiga" : "pc")
+                  << " hd=" << (isHD ? "1" : "0") << "\n";
+
+        bool ok = m_disk->formatDisk(ftype, isHD,
+            [&](int cur, int total, const std::string& msg) {
+                int pct = (total > 0) ? (cur * 100 / total) : 100;
+                std::string resp = "progress " + std::to_string(pct) +
+                                   " " + std::to_string(cur) +
+                                   " " + std::to_string(total) +
+                                   " " + msg + "\n";
+                write_all(fd, resp.c_str(), resp.size());
+            });
+
+        if (ok) {
+            write_all(fd, "ok\n", 3);
+            std::cerr << "waffle-event: format-done type="
+                      << (ftype == FormatType::Amiga_OFS ? "affs" : "vfat")
+                      << " hd=" << (isHD ? "1" : "0") << std::endl;
+        } else {
+            const char* err = "error: format failed (disk write-protected or removed?)\n";
+            write_all(fd, err, strlen(err));
+        }
+        return;
+    }
+
+    // ── clone <output-file> ───────────────────────────────────────────────────
+    // Reads all sectors from the currently inserted disk and saves to a file.
+    if (cmd == "clone") {
+        if (arg1.empty()) {
+            const char* err = "error: usage: clone <output-file>\n";
+            write_all(fd, err, strlen(err));
+            return;
+        }
+
+        if (!m_disk->isDiskPresent()) {
+            const char* err = "error: no disk present\n";
+            write_all(fd, err, strlen(err));
+            return;
+        }
+
+        const uint32_t total = m_disk->totalSectors();
+        std::cerr << "nbd-ctl: clone request file=" << arg1
+                  << " sectors=" << total << "\n";
+
+        std::ofstream ofs(arg1, std::ios::binary | std::ios::trunc);
+        if (!ofs) {
+            std::string err = "error: cannot create " + arg1 + "\n";
+            write_all(fd, err.c_str(), err.size());
+            return;
+        }
+
+        int lastPct = -1;
+        uint8_t buf[512];
+        bool readError = false;
+        for (uint32_t lba = 0; lba < total; lba++) {
+            if (!m_disk->readSector(lba, buf)) {
+                std::string err = "error: read error at sector " + std::to_string(lba) + "\n";
+                write_all(fd, err.c_str(), err.size());
+                readError = true;
+                break;
+            }
+            ofs.write(reinterpret_cast<char*>(buf), 512);
+
+            int pct = (int)(lba * 100 / total);
+            if (pct != lastPct) {
+                std::string resp = "progress " + std::to_string(pct) +
+                                   " " + std::to_string(lba) +
+                                   " " + std::to_string(total) +
+                                   " sector " + std::to_string(lba) + "\n";
+                write_all(fd, resp.c_str(), resp.size());
+                lastPct = pct;
+            }
+        }
+
+        ofs.close();
+
+        if (!readError) {
+            write_all(fd, "ok\n", 3);
+            std::cerr << "waffle-event: clone-done file=" << arg1
+                      << " sectors=" << total << std::endl;
+        }
+        return;
+    }
+
+    // ── dump <input-file> ─────────────────────────────────────────────────────
+    // Writes a disk image file to the currently inserted physical disk.
+    // The format is auto-detected from the image (magic bytes + size).
+    if (cmd == "dump") {
+        if (arg1.empty()) {
+            const char* err = "error: usage: dump <input-file>\n";
+            write_all(fd, err, strlen(err));
+            return;
+        }
+
+        if (!m_disk->isDiskPresent()) {
+            const char* err = "error: no disk present\n";
+            write_all(fd, err, strlen(err));
+            return;
+        }
+
+        // Load image into memory.
+        std::ifstream ifs(arg1, std::ios::binary | std::ios::ate);
+        if (!ifs) {
+            std::string err = "error: cannot open " + arg1 + "\n";
+            write_all(fd, err.c_str(), err.size());
+            return;
+        }
+        std::streamsize fileSize = ifs.tellg();
+        ifs.seekg(0);
+        if (fileSize % 512 != 0 || fileSize < 512) {
+            std::string err = "error: " + arg1 + " is not a valid sector-aligned image\n";
+            write_all(fd, err.c_str(), err.size());
+            return;
+        }
+
+        uint32_t numSectors = static_cast<uint32_t>(fileSize / 512);
+        std::vector<std::array<uint8_t, 512>> sectors(numSectors);
+        for (auto& sec : sectors) {
+            if (!ifs.read(reinterpret_cast<char*>(sec.data()), 512)) {
+                const char* err = "error: read error on input file\n";
+                write_all(fd, err, strlen(err));
+                return;
+            }
+        }
+
+        // Auto-detect format and density.
+        const uint8_t* b0 = sectors[0].data();
+        FormatType ftype = (b0[0]=='D' && b0[1]=='O' && b0[2]=='S')
+                         ? FormatType::Amiga_OFS : FormatType::PC_FAT12;
+        bool isHD = (numSectors > 1760);
+
+        std::cerr << "nbd-ctl: dump request file=" << arg1
+                  << " sectors=" << numSectors
+                  << " type=" << (ftype == FormatType::Amiga_OFS ? "amiga" : "pc")
+                  << " hd=" << (isHD ? "1" : "0") << "\n";
+
+        // Cast to WaffleDisk to call writeDiskImage (it's an extension of IDiskImage).
+        auto* wd = dynamic_cast<WaffleDisk*>(m_disk.get());
+        if (!wd) {
+            const char* err = "error: dump not supported on this device type\n";
+            write_all(fd, err, strlen(err));
+            return;
+        }
+
+        bool ok = wd->writeDiskImage(ftype, isHD, sectors,
+            [&](int cur, int total2, const std::string& msg) {
+                int pct = (total2 > 0) ? (cur * 100 / total2) : 100;
+                std::string resp = "progress " + std::to_string(pct) +
+                                   " " + std::to_string(cur) +
+                                   " " + std::to_string(total2) +
+                                   " " + msg + "\n";
+                write_all(fd, resp.c_str(), resp.size());
+            });
+
+        if (ok) {
+            write_all(fd, "ok\n", 3);
+            std::cerr << "waffle-event: dump-done file=" << arg1 << std::endl;
+        } else {
+            const char* err = "error: write failed (disk write-protected or removed?)\n";
+            write_all(fd, err, strlen(err));
+        }
+        return;
+    }
+
+    const char* err = "error: unknown command (use: format amiga|pc [hd]  |  clone <file>  |  dump <file>)\n";
+    write_all(fd, err, strlen(err));
 }

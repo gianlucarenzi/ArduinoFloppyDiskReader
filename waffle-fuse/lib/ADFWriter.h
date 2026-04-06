@@ -168,6 +168,11 @@ namespace ArduinoFloppyReader {
         DiagnosticResponse readCurrentTrack(void* trackData, const int dataLength, const bool readFromIndexPulse) { return m_device.readCurrentTrack(trackData, dataLength, readFromIndexPulse); }
         DiagnosticResponse enableReading(bool enable, bool reset = true, bool dontWait = false) { return m_device.enableReading(enable, reset, dontWait); }
 
+        // Send the 'R' (reset) command to the Waffle/DrawBridge firmware.
+        // The device replies with '1' when the reset is complete.
+        // Silently ignored if the port is not open.
+        void resetDevice() { m_device.resetArduino(); }
+
         // ----------------------------------------------------------------
         // Low-level track I/O helpers for the FUSE driver
         // ----------------------------------------------------------------

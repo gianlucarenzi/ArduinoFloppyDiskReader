@@ -18,8 +18,9 @@ strumenti del sistema operativo.
 7. [Uso manuale](#7-uso-manuale)
 8. [Auto-mount via udev](#8-auto-mount-via-udev)
 9. [Montaggio del filesystem](#9-montaggio-del-filesystem)
-10. [Log e diagnostica](#10-log-e-diagnostica)
-11. [Risoluzione dei problemi](#11-risoluzione-dei-problemi)
+10. [Formattazione del disco](#95-formattare-un-disco--control-socket)
+11. [Log e diagnostica](#10-log-e-diagnostica)
+12. [Risoluzione dei problemi](#11-risoluzione-dei-problemi)
 
 ---
 
@@ -382,6 +383,85 @@ va comunque specificato a `mount`.
 ```bash
 sudo umount /mnt/amiga          # o /mnt/dos
 sudo nbd-client -d /dev/nbd0
+```
+
+---
+
+## 9.5 Formattare un disco — control socket
+
+Quando il server è avviato (da udev o manualmente) apre automaticamente un
+**control socket Unix** in:
+
+```
+/run/waffle-nbd/<nome-porta>.ctl
+# Esempio: /run/waffle-nbd/ttyUSB0.ctl
+```
+
+### Formato via server in esecuzione
+
+Per formattare un disco **già inserito** senza fermare il server:
+
+```bash
+# 1. Smontare il filesystem (se montato)
+sudo umount /mnt/amiga        # o /mnt/dos
+
+# 2. Inviare il comando di formato al server in esecuzione
+waffle-nbd --ctl /run/waffle-nbd/ttyUSB0.ctl format amiga
+# oppure:
+waffle-nbd --ctl /run/waffle-nbd/ttyUSB0.ctl format pc
+waffle-nbd --ctl /run/waffle-nbd/ttyUSB0.ctl format amiga hd   # alta densità
+waffle-nbd --ctl /run/waffle-nbd/ttyUSB0.ctl format pc hd
+```
+
+L'output mostra il progresso traccia per traccia:
+
+```
+  [0%] track 0/160 cyl 0 head 0
+  [12%] track 20/160 cyl 10 head 0
+  ...
+  [100%] track 160/160 done
+waffle-nbd: format complete.
+```
+
+Il server rimane attivo al termine; il client NBD può riconnettersi
+(`sudo nbd-client -d /dev/nbd0 && sudo nbd-client 127.0.0.1 10809 /dev/nbd0`)
+per accedere al disco appena formattato.
+
+### Formato standalone (senza server in esecuzione)
+
+Se il server **non** è in esecuzione si può usare la modalità standalone:
+
+```bash
+waffle-nbd --format amiga /dev/ttyUSB0        # Amiga OFS DD (880 KB)
+waffle-nbd --format amiga --hd /dev/ttyUSB0   # Amiga OFS HD (1,76 MB)
+waffle-nbd --format pc /dev/ttyUSB0           # PC FAT12 DD (720 KB)
+waffle-nbd --format pc --hd /dev/ttyUSB0      # PC FAT12 HD (1,44 MB)
+```
+
+Questa modalità apre la porta seriale, scrive il disco e termina.
+
+### Protocollo control socket (per script)
+
+Il socket accetta connessioni Unix stream. Il client invia una riga e
+riceve lo streaming del progresso:
+
+```
+# Richiesta:
+format amiga\n
+format amiga hd\n
+format pc\n
+format pc hd\n
+
+# Risposte (streaming):
+progress <pct> <cur> <total> <dettagli>\n   # una per traccia
+ok\n                                         # successo
+error: <messaggio>\n                         # errore
+```
+
+Esempio con `socat`:
+
+```bash
+echo "format amiga" | socat - UNIX-CONNECT:/run/waffle-nbd/ttyUSB0.ctl
 ```
 
 ---

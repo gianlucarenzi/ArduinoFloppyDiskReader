@@ -327,6 +327,10 @@ namespace ArduinoFloppyReader {
         // Closes the port down
         void closePort();
 
+        // Send the firmware 'R' reset command and wait for the '1' reply.
+        // Silently ignored if the port is not open.
+        void resetArduino();
+
         // Check the EEPROM setting for advanced controller
         DiagnosticResponse eeprom_IsAdvancedController(bool& enabled);
         DiagnosticResponse eeprom_IsDrawbridgePlusMode(bool& enabled);

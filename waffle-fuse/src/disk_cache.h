@@ -3,6 +3,7 @@
 // Bridges the DrawBridge/Waffle Arduino device to a generic LBA block device.
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 #include <array>
@@ -13,6 +14,9 @@
 // ── Disk format ──────────────────────────────────────────────────────────────
 enum class DiskFormat { Unknown, IBM_FAT, Amiga_ADF };
 
+// ── Format type (for formatDisk) ─────────────────────────────────────────────
+enum class FormatType { Amiga_OFS, PC_FAT12 };
+
 struct DiskGeometry {
     DiskFormat format        = DiskFormat::Unknown;
     uint32_t   numCylinders  = 80;
@@ -22,6 +26,12 @@ struct DiskGeometry {
     bool       isHD          = false; // true = 1.44 MB / Amiga HD
     bool       nonStdTiming  = false; // Atari ST timing
 };
+
+// ── Disk image builder ────────────────────────────────────────────────────────
+// Build a complete blank disk image in memory without opening hardware.
+// Returns a flat array of 512-byte sectors (1760 for Amiga DD, 3520 for HD, etc.)
+// Useful for writing to .adf / .img files or for testing.
+std::vector<std::array<uint8_t, 512>> buildDiskImage(FormatType type, bool isHD);
 
 // ── IDiskImage ────────────────────────────────────────────────────────────────
 // Abstract 512-byte block device; LBA is 0-based.
@@ -35,6 +45,12 @@ public:
     virtual const DiskGeometry& geometry() const = 0;
     virtual bool     flush() { return true; }
     virtual bool     isDiskPresent() const { return true; }
+
+    // Format the disk with the given filesystem and density.
+    // progress(current_track, total_tracks, message) is called for each track written.
+    virtual bool     formatDisk(FormatType /*type*/, bool /*isHD*/,
+                                std::function<void(int,int,const std::string&)> /*progress*/ = nullptr)
+                                { return false; }
 
     // NBD lifecycle hooks (no-ops for non-hardware implementations):
 
@@ -91,6 +107,17 @@ public:
     bool     remount()       override; // re-detect geometry on open port
     bool     probePresent()  const override; // static probe (port must be closed)
     bool     checkPresence() override; // check presence using open port, no motor
+
+    // Format the disk.  Device must be open (openDisk() already called).
+    bool formatDisk(FormatType type, bool isHD,
+                    std::function<void(int,int,const std::string&)> progress = nullptr) override;
+
+    // Write an arbitrary pre-built disk image to hardware.
+    // Device must be open (openDisk() already called).
+    // The caller is responsible for ensuring the image matches the drive's density.
+    bool writeDiskImage(FormatType type, bool isHD,
+                        const std::vector<std::array<uint8_t, 512>>& sectors,
+                        std::function<void(int,int,const std::string&)> progress = nullptr);
 
 private:
     struct TrackCache {

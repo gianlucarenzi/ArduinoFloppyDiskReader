@@ -4,9 +4,8 @@
 # is plugged in and stops it cleanly when removed.
 
 # ── Prevent udisks2 from auto-mounting NBD block devices ─────────────────────
-# UDISKS_AUTO=0 stops the spurious auto-mount (and the extra tray icon) while
-# keeping the device visible to udisks2 so the polkit rule can authorise
-# user-initiated unmounts without a password prompt.
+# UDISKS_AUTO=0 stops auto-mount; the handler script calls udisksctl mount
+# explicitly so udisks2 manages exactly one icon with an eject button.
 KERNEL=="nbd[0-9]*", ENV{UDISKS_AUTO}="0"
 
 # ── FTDI FT230X / Waffle v2 ───────────────────────────────────────────────────

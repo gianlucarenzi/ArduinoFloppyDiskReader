@@ -1,6 +1,10 @@
 #!/bin/sh
 set -e
 
+# Create runtime directory for control sockets (persists until reboot).
+mkdir -p /run/waffle-nbd
+chmod 755 /run/waffle-nbd
+
 udevadm control --reload-rules 2>/dev/null || true
 udevadm trigger --subsystem-match=tty 2>/dev/null || true
 

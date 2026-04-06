@@ -663,6 +663,23 @@ void ArduinoInterface::closePort()
 
 }
 
+// Send the 'R' firmware reset command and wait for the '1' acknowledgement.
+void ArduinoInterface::resetArduino()
+{
+    if (!m_comPort.isPortOpen()) return;
+
+    const char cmd = COMMAND_RESET;
+    m_comPort.write(&cmd, 1);
+
+    // Wait up to 500 ms for the '1' reply.
+    char reply = 0;
+    for (int i = 0; i < 50; i++) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        if (m_comPort.read(&reply, 1) == 1 && reply == '1')
+            break;
+    }
+}
+
 // Returns true if the track actually contains some data, else its considered blank or unformatted
 bool ArduinoInterface::trackContainsData(const RawTrackDataDD& trackData) const {
     int zerocount = 0, ffcount = 0;

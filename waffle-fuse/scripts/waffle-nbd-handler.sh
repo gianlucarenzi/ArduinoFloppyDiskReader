@@ -131,52 +131,82 @@ stdbuf -oL -eL "$WAFFLE_NBD" "$PORT" 127.0.0.1 "$NBD_PORT" 2>&1 | while read -r 
                 *)    LABEL="Unknown_Floppy" ;;
             esac
 
-            OPTS="nosuid"
-            case "$FORMAT" in
-                affs) OPTS="$OPTS,users,setuid=$UID_U,setgid=$GID_U" ;;
-                vfat) OPTS="$OPTS,users,uid=$UID_U,gid=$GID_U,umask=022" ;;
-            esac
-
             if [ "$FORMAT" != "unknown" ]; then
-                # Check if udisks2 already auto-mounted the device during the
-                # timeout (possible for well-known filesystems like vfat).
-                EXISTING_MNT=$(findmnt -n -o TARGET "$NBD_DEV" 2>/dev/null)
-                if [ -n "$EXISTING_MNT" ]; then
-                    MNT="$EXISTING_MNT"
-                    echo "--> $NBD_DEV già montato su $MNT (da udisks2)"
+                _dbus="unix:path=/run/user/$UID_U/bus"
+                SCRIPT_MOUNTED=0
+
+                if [ "$FORMAT" = "vfat" ]; then
+                    # Let udisks2 manage the mount so only one icon (with eject
+                    # button) appears in the file manager.  udisks2 places the
+                    # mount point under /run/media/$USER/<label>.
+                    echo "--> Montaggio $NBD_DEV via udisksctl..."
+                    MNT=$(sudo -u "$USER" \
+                              DBUS_SESSION_BUS_ADDRESS="$_dbus" \
+                              udisksctl mount -b "$NBD_DEV" --no-user-interaction \
+                              2>&1 | sed -n 's/.*at \(.*\)\./\1/p' | tr -d '\r')
+                    if [ -n "$MNT" ] && mountpoint -q "$MNT" 2>/dev/null; then
+                        echo "--> udisksctl montato su $MNT."
+                        SCRIPT_MOUNTED=0  # udisks2 owns it; file manager opens automatically
+                    else
+                        # udisksctl failed (e.g. already mounted) — fall back to
+                        # manual mount so the disk is still accessible.
+                        MNT=$(findmnt -n -o TARGET "$NBD_DEV" 2>/dev/null)
+                        if [ -z "$MNT" ]; then
+                            MNT="/media/$USER/$LABEL"
+                            mkdir -p "$MNT"
+                            chown "$USER:" "$MNT"
+                            OPTS="nosuid,users,uid=$UID_U,gid=$GID_U,umask=022"
+                            echo "--> Fallback: mount -t vfat -o $OPTS $NBD_DEV $MNT"
+                            if mount -t vfat -o "$OPTS" "$NBD_DEV" "$MNT"; then
+                                SCRIPT_MOUNTED=1
+                            else
+                                echo "--> ERRORE: Mount fallito."
+                                MNT=""
+                            fi
+                        else
+                            echo "--> $NBD_DEV già montato su $MNT."
+                        fi
+                    fi
                 else
-                    MNT="/media/$USER/$LABEL"
-                    mkdir -p "$MNT"
-                    chown "$USER:" "$MNT"
-                    echo "--> Montaggio $NBD_DEV ($FORMAT) su $MNT..."
-                    echo "--> Comando: mount -t $FORMAT -o $OPTS $NBD_DEV $MNT"
-                    if ! mount -t "$FORMAT" -o "$OPTS" "$NBD_DEV" "$MNT"; then
-                        echo "--> ERRORE: Mount fallito."
-                        MNT=""
+                    # affs and other types: manual mount (udisks2 doesn't support them).
+                    MNT=$(findmnt -n -o TARGET "$NBD_DEV" 2>/dev/null)
+                    if [ -z "$MNT" ]; then
+                        MNT="/media/$USER/$LABEL"
+                        OPTS="nosuid,users,setuid=$UID_U,setgid=$GID_U"
+                        mkdir -p "$MNT"
+                        chown "$USER:" "$MNT"
+                        echo "--> Montaggio $NBD_DEV ($FORMAT) su $MNT..."
+                        if mount -t "$FORMAT" -o "$OPTS" "$NBD_DEV" "$MNT"; then
+                            SCRIPT_MOUNTED=1
+                        else
+                            echo "--> ERRORE: Mount fallito."
+                            MNT=""
+                        fi
+                    else
+                        echo "--> $NBD_DEV già montato su $MNT."
                     fi
                 fi
 
                 if [ -n "$MNT" ]; then
                     echo "--> Montaggio completato su $MNT."
-                    # Tell the running file manager to open the folder via the
-                    # standard org.freedesktop.FileManager1 D-Bus interface.
-                    # This works without DISPLAY since the file manager is
-                    # already connected to the display; falls back to xdg-open
-                    # (with explicit display env) if FileManager1 is unavailable.
-                    _dbus="unix:path=/run/user/$UID_U/bus"
-                    if ! sudo -u "$USER" \
-                            DBUS_SESSION_BUS_ADDRESS="$_dbus" \
-                            gdbus call --session \
-                                --dest org.freedesktop.FileManager1 \
-                                --object-path /org/freedesktop/FileManager1 \
-                                --method org.freedesktop.FileManager1.ShowFolders \
-                                "['file://$MNT']" "" >/dev/null 2>&1; then
-                        echo "--> FileManager1 non disponibile, fallback a xdg-open..."
-                        sudo -u "$USER" env \
-                            DBUS_SESSION_BUS_ADDRESS="$_dbus" \
-                            ${DISPLAY_VAR:+$DISPLAY_VAR} \
-                            ${WAYLAND_VAR:+$WAYLAND_VAR} \
-                            xdg-open "$MNT" &
+                    # Open the file manager only for manually-mounted filesystems.
+                    # udisksctl mounts trigger an automatic file manager open via
+                    # the udisks2/GVfs D-Bus signal.
+                    if [ "$SCRIPT_MOUNTED" -eq 1 ]; then
+                        if ! sudo -u "$USER" \
+                                DBUS_SESSION_BUS_ADDRESS="$_dbus" \
+                                gdbus call --session \
+                                    --dest org.freedesktop.FileManager1 \
+                                    --object-path /org/freedesktop/FileManager1 \
+                                    --method org.freedesktop.FileManager1.ShowFolders \
+                                    "['file://$MNT']" "" >/dev/null 2>&1; then
+                            echo "--> FileManager1 non disponibile, fallback a xdg-open..."
+                            sudo -u "$USER" env \
+                                DBUS_SESSION_BUS_ADDRESS="$_dbus" \
+                                ${DISPLAY_VAR:+$DISPLAY_VAR} \
+                                ${WAYLAND_VAR:+$WAYLAND_VAR} \
+                                xdg-open "$MNT" &
+                        fi
                     fi
 
                     # Watch for user-initiated eject (mount point disappears).
