@@ -209,6 +209,13 @@ bool NBDServer::run(const std::string& address, int port) {
         // ── Phase 5: wait for disk to be confirmed absent ─────────────────────
         // Port is open, motor is off. checkPresence() uses only
         // COMMAND_CHECKDISKEXISTS — no motor, no head movement.
+        // Skip this phase if a format/dump via control socket just completed:
+        // the disk is still present and a new nbd-client will reconnect shortly.
+        if (m_skipAbsentWait.exchange(false)) {
+            std::cout << "nbd: skipping disk-absent wait (format/dump just completed)\n";
+            m_disk->parkDisk();
+            continue; // loop back to Phase 2 → accept new client
+        }
         std::cout << "nbd: waiting for disk removal...\n";
         while (m_running) {
             VLOG("nbd: checking presence...");
@@ -647,6 +654,8 @@ void NBDServer::handleControlClient(int fd)
             std::cerr << "waffle-event: format-done type="
                       << (ftype == FormatType::Amiga_OFS ? "affs" : "vfat")
                       << " hd=" << (isHD ? "1" : "0") << std::endl;
+            // Allow immediate reconnect without disk removal (geometry changed).
+            m_skipAbsentWait = true;
         } else {
             const char* err = "error: format failed (disk write-protected or removed?)\n";
             write_all(fd, err, strlen(err));
@@ -786,6 +795,8 @@ void NBDServer::handleControlClient(int fd)
         if (ok) {
             write_all(fd, "ok\n", 3);
             std::cerr << "waffle-event: dump-done file=" << arg1 << std::endl;
+            // Allow immediate reconnect without disk removal (content changed).
+            m_skipAbsentWait = true;
         } else {
             const char* err = "error: write failed (disk write-protected or removed?)\n";
             write_all(fd, err, strlen(err));

@@ -125,13 +125,25 @@ step "Formattazione disco → Amiga OFS"
 ctl_cmd format amiga
 ok "Formattazione completata"
 
-# Il formato è avvenuto con nbd-client già connesso: il block device è ancora
-# attivo e riflette già il nuovo contenuto. Basta forzare il rilettura della
-# partizione e attendere che il device sia stabile.
-step "Aggiornamento block device dopo formato"
-$SUDO blockdev --rereadpt "$NBD_DEV" 2>/dev/null || true
+# Il server ha settato m_skipAbsentWait=true: dopo la disconnect del client
+# salterà Phase 5 e accetterà subito un nuovo client.
+# Disconnettiamo e riconnettiamo per far rinegoziare la dimensione corretta
+# (da 720KB PC a 880KB Amiga).
+step "Riconnessione per aggiornare geometria NBD (PC 720KB → Amiga 880KB)"
+$SUDO nbd-client -d "$NBD_DEV" 2>/dev/null || true
+
+# Attendi che il server torni ad accettare connessioni (skipping absent wait)
+info "Attesa server pronto per nuova connessione..."
+for ((i=0; i<15; i++)); do
+    sleep 1
+    if $SUDO nbd-client "$NBD_ADDR" "$NBD_PORT" "$NBD_DEV" 2>/dev/null; then
+        RECONNECTED=1
+        break
+    fi
+done
+[[ "${RECONNECTED:-0}" -eq 1 ]] || fail "Riconnessione NBD fallita dopo 15s"
 wait_blk || fail "Block device non pronto dopo 30s"
-ok "Block device pronto: $NBD_DEV"
+ok "Riconnesso: $NBD_DEV ($(( $(cat /sys/block/${NBD_DEV##*/}/size) * 512 / 1024 )) KB)"
 
 # ═════════════════════════════════════════════════════════════════════════════
 # 4. Mount del disco formattato
@@ -251,7 +263,17 @@ ok "Dump completato"
 # 12. Verifica finale: rimonta e controlla entrambi i file
 # ═════════════════════════════════════════════════════════════════════════════
 step "Verifica finale: rimonta e controlla contenuto"
-$SUDO blockdev --rereadpt "$NBD_DEV" 2>/dev/null || true
+# dump ha settato m_skipAbsentWait: disconnetti e riconnetti per aggiornare
+# il contenuto nel block device (il dump scrive via seriale, non via NBD).
+$SUDO nbd-client -d "$NBD_DEV" 2>/dev/null || true
+RECONNECTED=0
+for ((i=0; i<15; i++)); do
+    sleep 1
+    if $SUDO nbd-client "$NBD_ADDR" "$NBD_PORT" "$NBD_DEV" 2>/dev/null; then
+        RECONNECTED=1; break
+    fi
+done
+[[ "$RECONNECTED" -eq 1 ]] || fail "Riconnessione finale fallita"
 wait_blk || fail "Block device non pronto"
 $SUDO mount -t affs -o "nosuid,uid=$(id -u),gid=$(id -g)" "$NBD_DEV" "$MNT" \
     || fail "mount finale fallito"

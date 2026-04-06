@@ -35,6 +35,7 @@ private:
 
     std::unique_ptr<IDiskImage> m_disk;
     std::atomic<bool>           m_running{false};
+    std::atomic<bool>           m_skipAbsentWait{false}; // set by format/dump to skip Phase 5
     int                         m_serverFd = -1;
 
     std::string                 m_ctlPath;
