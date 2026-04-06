@@ -157,33 +157,35 @@ bool NBDServer::run(const std::string& address, int port) {
         std::cout << "nbd: disk detected, accepting connections on "
                   << address << ":" << port << "\n";
 
-        // ── Phase 3: accept one client (poll so stop() can interrupt) ────────
-        //   While waiting, periodically check disk presence using the open port.
-        int clientFd = -1;
-        while (m_running) {
-            struct pollfd pfd{m_serverFd, POLLIN, 0};
-            int r = poll(&pfd, 1, 2000);
-            if (r > 0) {
-                sockaddr_in clientAddr{};
-                socklen_t clientLen = sizeof(clientAddr);
-                clientFd = accept(m_serverFd, (sockaddr*)&clientAddr, &clientLen);
-                if (clientFd != -1) break;
+        // ── Phase 3+4: accept client and serve, with remount retry ───────────
+        // If remount() fails (motor not yet at reading speed), keep the disk
+        // port open so the motor continues spinning between attempts.
+        // Calling closeDisk()/resetDevice() on each failure restarts the
+        // Arduino and the motor spin-up cycle, causing an endless failure loop.
+        bool diskGone = false;
+        while (m_running && !diskGone) {
+            // Phase 3: accept one client (poll so stop() can interrupt)
+            int clientFd = -1;
+            while (m_running) {
+                struct pollfd pfd{m_serverFd, POLLIN, 0};
+                int r = poll(&pfd, 1, 2000);
+                if (r > 0) {
+                    sockaddr_in clientAddr{};
+                    socklen_t clientLen = sizeof(clientAddr);
+                    clientFd = accept(m_serverFd, (sockaddr*)&clientAddr, &clientLen);
+                    if (clientFd != -1) break;
+                }
+                // Timeout: verify disk is still present using the open port.
+                if (!m_disk->checkPresence()) {
+                    std::cout << "nbd: disk removed while waiting for client\n";
+                    diskGone = true;
+                    break;
+                }
             }
-            // Timeout: verify disk is still present using the open port.
-            if (!m_disk->checkPresence()) {
-                std::cout << "nbd: disk removed while waiting for client\n";
-                break;
-            }
-        }
 
-        if (clientFd == -1) {
-            // Disk removed before any client connected: park motor, then poll.
-            if (m_disk->isDiskPresent())
-                m_disk->parkDisk();
-            else
-                m_disk->closeDisk(); // already removed, just close
-        } else {
-            // ── Phase 4: detect geometry, then serve ─────────────────────────
+            if (diskGone || clientFd == -1) break;
+
+            // Phase 4: detect geometry, then serve
             std::cout << "nbd: client connected, detecting disk format...\n";
             if (m_disk->remount()) {
                 handleClient(clientFd);
@@ -191,38 +193,37 @@ bool NBDServer::run(const std::string& address, int port) {
                 std::cout << "nbd: client disconnected\n";
                 // Stop motor before polling for absence (port stays open).
                 m_disk->parkDisk();
+                break; // → Phase 5
             } else {
-                // remount() failed (e.g. motor not yet up to speed on first
-                // insert).  Close the client fd *and* the disk port, then
-                // wait a moment for the drive to spin up before retrying.
+                // Keep the disk port open so the motor continues to spin up.
+                // Resetting the Arduino here would restart the spin-up cycle
+                // and cause an endless failure loop.
                 std::cerr << "nbd: format detection failed, retrying in 3s...\n";
                 close(clientFd);
-                m_disk->closeDisk();
                 std::this_thread::sleep_for(std::chrono::seconds(3));
-                continue;
+                // Loop back to Phase 3: accept a new nbd-client connection.
             }
         }
 
+        if (!m_running) break;
+
         // ── Phase 5: wait for disk to be confirmed absent ─────────────────────
-        // Port is open, motor is off. checkPresence() uses only
-        // COMMAND_CHECKDISKEXISTS — no motor, no head movement.
-        // Skip this phase if a format/dump via control socket just completed:
+        // Port is open, motor is off (parkDisk was called after serve, or disk
+        // was removed). checkPresence() uses only COMMAND_CHECKDISKEXISTS.
+        // Skip this phase if format/dump just completed via control socket:
         // the disk is still present and a new nbd-client will reconnect shortly.
         if (m_skipAbsentWait.exchange(false)) {
             std::cout << "nbd: skipping disk-absent wait (format/dump just completed)\n";
             m_disk->closeDisk();
-            // Wait for the drive motor to spin down and stabilise before
-            // the next probe/open/remount cycle. Without this delay, remount()
-            // fails because the motor is not yet at reading speed after a long
-            // write operation.
-            std::this_thread::sleep_for(std::chrono::seconds(4));
-            continue; // → Phase 1: probePresent() will find disk immediately → Phase 2/3
+            continue; // → Phase 1: probePresent() will find disk immediately
         }
-        std::cout << "nbd: waiting for disk removal...\n";
-        while (m_running) {
-            VLOG("nbd: checking presence...");
-            if (!m_disk->checkPresence()) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        if (!diskGone) {
+            std::cout << "nbd: waiting for disk removal...\n";
+            while (m_running) {
+                VLOG("nbd: checking presence...");
+                if (!m_disk->checkPresence()) break;
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            }
         }
         m_disk->closeDisk();
         std::cout << "nbd: disk absent\n";
