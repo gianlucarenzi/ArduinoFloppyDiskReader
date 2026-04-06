@@ -118,6 +118,15 @@ stdbuf -oL -eL "$WAFFLE_NBD" "$PORT" 127.0.0.1 "$NBD_PORT" 2>&1 | while read -r 
             PENDING_FORMAT=""
             PENDING_DENSITY=""
 
+            # Initial spin-up wait: HD disks need longer to stabilise.
+            if [ "$DENSITY" = "hd" ]; then
+                echo "--> Disco HD: attesa 10s per stabilizzazione motore..."
+                sleep 10
+            else
+                echo "--> Disco DD: attesa 5s per stabilizzazione motore..."
+                sleep 5
+            fi
+
             # Wait up to 30 s for the kernel to announce the block device.
             DEV_NAME="${NBD_DEV##*/}"
             SIZE_FILE="/sys/block/$DEV_NAME/size"
