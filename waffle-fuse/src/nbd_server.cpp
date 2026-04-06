@@ -154,16 +154,17 @@ bool NBDServer::run(const std::string& address, int port) {
             std::cerr << "nbd: failed to open port after probe, retrying...\n";
             continue;
         }
-        std::cout << "nbd: disk detected, accepting connections on "
-                  << address << ":" << port << "\n";
-
         // ── Phase 3+4: accept client and serve, with remount retry ───────────
         // If remount() fails (motor not yet at reading speed), keep the disk
         // port open so the motor continues spinning between attempts.
         // Calling closeDisk()/resetDevice() on each failure restarts the
         // Arduino and the motor spin-up cycle, causing an endless failure loop.
+        // Re-emit "disk detected" before each accept so that external handlers
+        // (e.g. waffle-nbd-handler.sh) reconnect nbd-client after a retry.
         bool diskGone = false;
         while (m_running && !diskGone) {
+            std::cout << "nbd: disk detected, accepting connections on "
+                      << address << ":" << port << "\n";
             // Phase 3: accept one client (poll so stop() can interrupt)
             int clientFd = -1;
             while (m_running) {
