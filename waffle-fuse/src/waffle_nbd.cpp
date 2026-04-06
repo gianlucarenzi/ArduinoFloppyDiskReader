@@ -36,6 +36,7 @@ static std::string ctlSocketPath(const std::string& portName)
 
 void usage(const char* progname) {
     std::cerr << "Usage: " << progname << " [--verbose] <serial-port> [nbd-address] [nbd-port]\n"
+              << "       " << progname << " --serve-image <image.adf|img> [nbd-address] [nbd-port]\n"
               << "       " << progname << " --probe <serial-port>\n"
               << "       " << progname << " --format <amiga|pc> [--hd] <serial-port>\n"
               << "       " << progname << " --format <amiga|pc> [--hd] <output.adf>\n"
@@ -44,6 +45,8 @@ void usage(const char* progname) {
               << "       " << progname << " --write-image <input.adf|img> <serial-port>\n"
               << "\n"
               << "  --verbose         Enable verbose debug logging to stderr.\n"
+              << "  --serve-image     Serve an ADF or IMG file as an NBD block device.\n"
+              << "                    No hardware required; writes are flushed back to the file.\n"
               << "  --probe           Check if a Waffle/DrawBridge device is present and a disk\n"
               << "                    is loaded (exit 0=disk, 1=no disk, 2=port/hardware error).\n"
               << "  --format amiga    Format with blank Amiga OFS filesystem.\n"
@@ -62,6 +65,8 @@ void usage(const char* progname) {
               << "\n"
               << "Example:\n"
               << "  " << progname << " /dev/ttyUSB0 127.0.0.1 10809\n"
+              << "  " << progname << " --serve-image workbench.adf\n"
+              << "  " << progname << " --serve-image workbench.adf 127.0.0.1 10810\n"
               << "  " << progname << " --probe /dev/ttyUSB0\n"
               << "  " << progname << " --format amiga /dev/ttyUSB0\n"
               << "  " << progname << " --format amiga blank.adf\n"
@@ -390,6 +395,40 @@ int main(int argc, char* argv[]) {
     if (argc < 2) {
         usage(argv[0]);
         return 1;
+    }
+
+    // --serve-image <file> [nbd-address] [nbd-port]
+    if (strcmp(argv[1], "--serve-image") == 0) {
+        if (argc < 3) { usage(argv[0]); return 1; }
+        const std::string imgPath = argv[2];
+        const std::string nbdAddr = (argc >= 4) ? argv[3] : "127.0.0.1";
+        const int         nbdPort = (argc >= 5) ? std::stoi(argv[4]) : 10809;
+
+        auto disk = FileDiskImage::load(imgPath);
+        if (!disk) {
+            std::cerr << "waffle-nbd: cannot load image " << imgPath << "\n";
+            return 1;
+        }
+        const auto& geo = disk->geometry();
+        std::cout << "waffle-nbd: serving image " << imgPath << "\n"
+                  << "nbd: format="
+                  << (geo.format == DiskFormat::Amiga_ADF ? "Amiga" : "PC/FAT")
+                  << " size=" << (disk->totalSectors() * 512 / 1024) << " KB\n";
+
+        g_server = std::make_unique<NBDServer>(std::move(disk));
+        // Derive a control socket name from the image filename.
+        auto slash = imgPath.rfind('/');
+        std::string base = (slash != std::string::npos) ? imgPath.substr(slash + 1) : imgPath;
+        g_server->setControlSocket("/run/waffle-nbd/" + base + ".ctl");
+
+        std::signal(SIGINT,  signal_handler);
+        std::signal(SIGTERM, signal_handler);
+
+        if (!g_server->run(nbdAddr, nbdPort)) {
+            std::cerr << "waffle-nbd: failed to start server\n";
+            return 1;
+        }
+        return 0;
     }
 
     std::string serialPort = argv[1];

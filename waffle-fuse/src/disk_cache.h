@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 #include <array>
@@ -146,4 +147,33 @@ private:
     std::map<uint32_t, TrackCache> m_cache;
     mutable std::mutex             m_mtx;
     std::atomic<bool>              m_diskPresent{false};
+};
+
+// ── FileDiskImage ─────────────────────────────────────────────────────────────
+// IDiskImage backed by an ADF or IMG file loaded entirely in memory.
+// Auto-detects Amiga / PC-FAT format and geometry from magic bytes and size.
+// Writes are committed back to the file on flush() or destruction.
+class FileDiskImage : public IDiskImage {
+public:
+    // Load an existing ADF/IMG file.  Returns nullptr on error.
+    static std::unique_ptr<FileDiskImage> load(const std::string& path,
+                                               bool readOnly = false);
+
+    ~FileDiskImage() override;
+
+    bool     readSector(uint32_t lba, uint8_t* buf512) override;
+    bool     writeSector(uint32_t lba, const uint8_t* buf512) override;
+    uint32_t totalSectors()     const override { return m_sectors.size(); }
+    bool     isWriteProtected() const override { return m_readOnly; }
+    const DiskGeometry& geometry() const override { return m_geo; }
+    bool     flush() override;
+
+private:
+    FileDiskImage() = default;
+
+    std::string                            m_path;
+    bool                                   m_readOnly = false;
+    bool                                   m_dirty    = false;
+    DiskGeometry                           m_geo;
+    std::vector<std::array<uint8_t, 512>>  m_sectors;
 };

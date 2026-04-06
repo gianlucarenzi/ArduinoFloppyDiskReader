@@ -12,6 +12,7 @@
 #include <locale>
 #include <codecvt>
 #include <iostream>
+#include <fstream>
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -787,4 +788,100 @@ std::vector<std::array<uint8_t, 512>> buildDiskImage(FormatType type, bool isHD)
 {
     return (type == FormatType::Amiga_OFS) ? buildAmigaDiskImage(isHD)
                                            : buildFAT12DiskImage(isHD);
+}
+
+// ── FileDiskImage ─────────────────────────────────────────────────────────────
+
+// Detect geometry from magic bytes and total size.
+static DiskGeometry detectFileGeometry(const std::vector<std::array<uint8_t,512>>& sects)
+{
+    DiskGeometry geo;
+    geo.bytesPerSector = 512;
+
+    const uint32_t total = sects.size();
+    // Amiga OFS/FFS magic: first 3 bytes are 'D','O','S'
+    bool isAmiga = (total >= 1 &&
+                    sects[0][0] == 0x44 && sects[0][1] == 0x4f && sects[0][2] == 0x53);
+
+    if (isAmiga) {
+        geo.format = DiskFormat::Amiga_ADF;
+        // DD=1760 sectors, HD=3520
+        geo.isHD           = (total > 1760);
+        geo.numCylinders   = 80;
+        geo.numHeads       = 2;
+        geo.sectorsPerTrack = geo.isHD ? 22 : 11;
+    } else {
+        geo.format = DiskFormat::IBM_FAT;
+        // DD 720K=1440 sectors, HD 1.44M=2880
+        geo.isHD           = (total > 1440);
+        geo.numCylinders   = 80;
+        geo.numHeads       = 2;
+        geo.sectorsPerTrack = geo.isHD ? 18 : 9;
+    }
+    return geo;
+}
+
+std::unique_ptr<FileDiskImage> FileDiskImage::load(const std::string& path, bool readOnly)
+{
+    std::ifstream f(path, std::ios::binary | std::ios::ate);
+    if (!f) {
+        std::cerr << "FileDiskImage: cannot open " << path << "\n";
+        return nullptr;
+    }
+    const std::streamsize sz = f.tellg();
+    if (sz <= 0 || sz % 512 != 0) {
+        std::cerr << "FileDiskImage: file size " << sz << " not a multiple of 512\n";
+        return nullptr;
+    }
+    f.seekg(0);
+
+    auto img = std::unique_ptr<FileDiskImage>(new FileDiskImage());
+    img->m_path     = path;
+    img->m_readOnly = readOnly;
+    img->m_sectors.resize(static_cast<size_t>(sz / 512));
+
+    for (auto& sec : img->m_sectors)
+        f.read(reinterpret_cast<char*>(sec.data()), 512);
+
+    if (!f) {
+        std::cerr << "FileDiskImage: read error\n";
+        return nullptr;
+    }
+
+    img->m_geo = detectFileGeometry(img->m_sectors);
+    return img;
+}
+
+FileDiskImage::~FileDiskImage()
+{
+    flush();
+}
+
+bool FileDiskImage::readSector(uint32_t lba, uint8_t* buf512)
+{
+    if (lba >= m_sectors.size()) return false;
+    std::memcpy(buf512, m_sectors[lba].data(), 512);
+    return true;
+}
+
+bool FileDiskImage::writeSector(uint32_t lba, const uint8_t* buf512)
+{
+    if (m_readOnly || lba >= m_sectors.size()) return false;
+    std::memcpy(m_sectors[lba].data(), buf512, 512);
+    m_dirty = true;
+    return true;
+}
+
+bool FileDiskImage::flush()
+{
+    if (!m_dirty || m_readOnly || m_path.empty()) return true;
+    std::ofstream f(m_path, std::ios::binary | std::ios::trunc);
+    if (!f) {
+        std::cerr << "FileDiskImage: cannot write " << m_path << "\n";
+        return false;
+    }
+    for (const auto& sec : m_sectors)
+        f.write(reinterpret_cast<const char*>(sec.data()), 512);
+    m_dirty = false;
+    return f.good();
 }
