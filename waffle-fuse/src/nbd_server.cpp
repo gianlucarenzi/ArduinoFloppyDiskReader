@@ -213,8 +213,8 @@ bool NBDServer::run(const std::string& address, int port) {
         // the disk is still present and a new nbd-client will reconnect shortly.
         if (m_skipAbsentWait.exchange(false)) {
             std::cout << "nbd: skipping disk-absent wait (format/dump just completed)\n";
-            m_disk->parkDisk();
-            continue; // loop back to Phase 2 → accept new client
+            m_disk->closeDisk(); // close port so Phase 1 probePresent() works correctly
+            continue; // → Phase 1: probePresent() will find disk immediately → Phase 2/3
         }
         std::cout << "nbd: waiting for disk removal...\n";
         while (m_running) {
