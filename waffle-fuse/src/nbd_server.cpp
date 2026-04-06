@@ -194,14 +194,11 @@ bool NBDServer::run(const std::string& address, int port) {
             } else {
                 // remount() failed (e.g. motor not yet up to speed on first
                 // insert).  Close the client fd *and* the disk port, then
-                // loop back to Phase 1 so we re-probe and retry instead of
-                // getting stuck in Phase 5 while the disk is still present.
-                // nbd-client will see the closed connection, report
-                // "INIT_PASSWD bad", and the monitor retry loop will reconnect
-                // once the server is ready.
-                std::cerr << "nbd: format detection failed, retrying...\n";
+                // wait a moment for the drive to spin up before retrying.
+                std::cerr << "nbd: format detection failed, retrying in 3s...\n";
                 close(clientFd);
                 m_disk->closeDisk();
+                std::this_thread::sleep_for(std::chrono::seconds(3));
                 continue;
             }
         }
@@ -213,7 +210,12 @@ bool NBDServer::run(const std::string& address, int port) {
         // the disk is still present and a new nbd-client will reconnect shortly.
         if (m_skipAbsentWait.exchange(false)) {
             std::cout << "nbd: skipping disk-absent wait (format/dump just completed)\n";
-            m_disk->closeDisk(); // close port so Phase 1 probePresent() works correctly
+            m_disk->closeDisk();
+            // Wait for the drive motor to spin down and stabilise before
+            // the next probe/open/remount cycle. Without this delay, remount()
+            // fails because the motor is not yet at reading speed after a long
+            // write operation.
+            std::this_thread::sleep_for(std::chrono::seconds(4));
             continue; // → Phase 1: probePresent() will find disk immediately → Phase 2/3
         }
         std::cout << "nbd: waiting for disk removal...\n";

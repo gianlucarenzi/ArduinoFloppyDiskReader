@@ -134,14 +134,14 @@ $SUDO nbd-client -d "$NBD_DEV" 2>/dev/null || true
 
 # Attendi che il server torni ad accettare connessioni (skipping absent wait)
 info "Attesa server pronto per nuova connessione..."
-for ((i=0; i<15; i++)); do
+for ((i=0; i<30; i++)); do
     sleep 1
     if $SUDO nbd-client "$NBD_ADDR" "$NBD_PORT" "$NBD_DEV" 2>/dev/null; then
         RECONNECTED=1
         break
     fi
 done
-[[ "${RECONNECTED:-0}" -eq 1 ]] || fail "Riconnessione NBD fallita dopo 15s"
+[[ "${RECONNECTED:-0}" -eq 1 ]] || fail "Riconnessione NBD fallita dopo 30s"
 wait_blk || fail "Block device non pronto dopo 30s"
 ok "Riconnesso: $NBD_DEV ($(( $(cat /sys/block/${NBD_DEV##*/}/size) * 512 / 1024 )) KB)"
 
@@ -267,7 +267,7 @@ step "Verifica finale: rimonta e controlla contenuto"
 # il contenuto nel block device (il dump scrive via seriale, non via NBD).
 $SUDO nbd-client -d "$NBD_DEV" 2>/dev/null || true
 RECONNECTED=0
-for ((i=0; i<15; i++)); do
+for ((i=0; i<30; i++)); do
     sleep 1
     if $SUDO nbd-client "$NBD_ADDR" "$NBD_PORT" "$NBD_DEV" 2>/dev/null; then
         RECONNECTED=1; break
