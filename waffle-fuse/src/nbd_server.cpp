@@ -204,12 +204,19 @@ bool NBDServer::run(const std::string& address, int port) {
                 m_disk->parkDisk();
                 break; // → Phase 5
             } else {
-                // Keep the disk port open so the motor continues to spin up.
-                // Resetting the Arduino here would restart the spin-up cycle
-                // and cause an endless failure loop.
+                // remount() failed: the Arduino may be in an inconsistent
+                // state after failed MFM reads. Reset it (closeDisk), give
+                // it 3s to recover and the motor to spin up, then reopen the
+                // port and retry — without going through Phase 1 (which would
+                // add a 2.5s probe delay per attempt).
                 std::cerr << "nbd: format detection failed, retrying in 3s...\n";
                 close(clientFd);
+                m_disk->closeDisk();
                 std::this_thread::sleep_for(std::chrono::seconds(3));
+                if (!m_disk->openDisk()) {
+                    diskGone = true; // port failed to reopen — treat as removed
+                    break;
+                }
                 // Loop back to Phase 3: accept a new nbd-client connection.
             }
         }

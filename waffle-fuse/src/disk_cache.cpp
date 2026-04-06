@@ -13,6 +13,8 @@
 #include <codecvt>
 #include <iostream>
 #include <fstream>
+#include <thread>
+#include <chrono>
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -280,6 +282,15 @@ bool WaffleDisk::detectGeometry()
             std::vector<std::vector<uint8_t>> ibmSectors;
             bool ok = m_impl->writer.readIBMTrack(tryHD, 0, trySectors, ibmSectors, 3);
 
+            std::cerr << "waffle-detect: IBM try isHD=" << tryHD
+                      << " ok=" << ok
+                      << " sectors=" << ibmSectors.size()
+                      << " s0size=" << (ibmSectors.empty() ? 0 : ibmSectors[0].size())
+                      << " s0[0]=" << std::hex << (ibmSectors.empty() || ibmSectors[0].empty() ? 0 : (int)ibmSectors[0][0])
+                      << " s0[510]=" << (ibmSectors.empty() || ibmSectors[0].size()<512 ? 0 : (int)ibmSectors[0][510])
+                      << " s0[511]=" << (ibmSectors.empty() || ibmSectors[0].size()<512 ? 0 : (int)ibmSectors[0][511])
+                      << std::dec << "\n";
+
             if (!ok || ibmSectors.empty() || ibmSectors[0].empty()) continue;
 
             const uint8_t* boot = ibmSectors[0].data();
@@ -307,6 +318,86 @@ bool WaffleDisk::detectGeometry()
                 m_geo.numCylinders    = 80;
             }
             return true;
+        }
+    }
+
+    // Unknown — if all reads returned zeros the motor may not yet be at speed.
+    // Retry once after 1.5s before giving up.
+    if (m_geo.format == DiskFormat::Unknown) {
+        std::cerr << "waffle-detect: unknown format on first pass, waiting 1.5s for motor...\n";
+        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+
+        // Re-enable reading so the firmware waits again for motor if needed.
+        if (m_impl->writer.enableReading(true, true) == DiagnosticResponse::drOK &&
+            m_impl->writer.selectTrack(0)            == DiagnosticResponse::drOK &&
+            m_impl->writer.selectSurface(DiskSurface::dsLower) == DiagnosticResponse::drOK)
+        {
+            // Amiga retry
+            {
+                auto hasDos = [](const std::vector<std::array<uint8_t,512>>& s) -> bool {
+                    return !s.empty() && s[0][0]=='D' && s[0][1]=='O' && s[0][2]=='S';
+                };
+                std::vector<std::array<uint8_t, 512>> amigaSectors;
+                m_impl->writer.readAmigaTrack(isHD, 0, DiskSurface::dsLower, amigaSectors, 3);
+                std::cerr << "waffle-detect: Amiga retry isHD=" << isHD
+                          << " bb=" << std::hex
+                          << (int)(amigaSectors.empty()?0:amigaSectors[0][0]) << ","
+                          << (int)(amigaSectors.empty()?0:amigaSectors[0][1]) << ","
+                          << (int)(amigaSectors.empty()?0:amigaSectors[0][2]) << ","
+                          << (int)(amigaSectors.empty()?0:amigaSectors[0][3])
+                          << std::dec << "\n";
+                if (hasDos(amigaSectors)) {
+                    const unsigned int maxSect = isHD ? 22u : 11u;
+                    std::cerr << "waffle-detect: Amiga confirmed on retry isHD=" << isHD << "\n";
+                    m_geo.format          = DiskFormat::Amiga_ADF;
+                    m_geo.numHeads        = 2;
+                    m_geo.sectorsPerTrack = maxSect;
+                    m_geo.numCylinders    = 80;
+                    m_geo.bytesPerSector  = 512;
+                    return true;
+                }
+            }
+
+            // IBM retry
+            {
+                const bool densities[2] = { isHD, !isHD };
+                for (bool tryHD : densities) {
+                    m_impl->writer.selectTrack(0);
+                    m_impl->writer.selectSurface(DiskSurface::dsLower);
+                    const uint32_t trySectors = tryHD ? 18u : 9u;
+                    std::vector<std::vector<uint8_t>> ibmSectors;
+                    bool ok = m_impl->writer.readIBMTrack(tryHD, 0, trySectors, ibmSectors, 3);
+                    std::cerr << "waffle-detect: IBM retry isHD=" << tryHD << " ok=" << ok
+                              << " s0[0]=" << std::hex
+                              << (ibmSectors.empty()||ibmSectors[0].empty()?0:(int)ibmSectors[0][0])
+                              << " s0[510]=" << (ibmSectors.empty()||ibmSectors[0].size()<512?0:(int)ibmSectors[0][510])
+                              << " s0[511]=" << (ibmSectors.empty()||ibmSectors[0].size()<512?0:(int)ibmSectors[0][511])
+                              << std::dec << "\n";
+                    if (!ok || ibmSectors.empty() || ibmSectors[0].empty()) continue;
+                    const uint8_t* boot = ibmSectors[0].data();
+                    bool fatSig = (ibmSectors[0].size() >= 512) &&
+                                  (boot[510] == 0x55) && (boot[511] == 0xAA);
+                    bool jmpOk  = (boot[0] == 0xEB || boot[0] == 0xE9);
+                    if (!fatSig || !jmpOk) continue;
+                    std::cerr << "waffle-detect: IBM/FAT confirmed on retry isHD=" << tryHD << "\n";
+                    m_geo.isHD           = tryHD;
+                    m_geo.format         = DiskFormat::IBM_FAT;
+                    m_geo.bytesPerSector = 512;
+                    uint32_t serialNum, numHeads, totalSectors, sectPerTrack, bytesPerSec;
+                    if (IBM::getTrackDetails_IBM(boot, serialNum, numHeads, totalSectors,
+                                                 sectPerTrack, bytesPerSec)) {
+                        m_geo.numHeads        = numHeads;
+                        m_geo.sectorsPerTrack = sectPerTrack;
+                        m_geo.bytesPerSector  = bytesPerSec;
+                        m_geo.numCylinders    = totalSectors / (numHeads * sectPerTrack);
+                    } else {
+                        m_geo.numHeads        = 2;
+                        m_geo.sectorsPerTrack = trySectors;
+                        m_geo.numCylinders    = 80;
+                    }
+                    return true;
+                }
+            }
         }
     }
 
