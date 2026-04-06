@@ -17,47 +17,58 @@ IMAGE="$(realpath "$IMAGE")"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SERVE_SCRIPT="$SCRIPT_DIR/waffle-serve-image.sh"
+WORKDIR=$(mktemp -d /tmp/waffle-serve-test-XXXXXX)
+SERVE_PID=""
 
 if [ ! -x "$SERVE_SCRIPT" ]; then
     echo "ERRORE: $SERVE_SCRIPT non trovato o non eseguibile" >&2
     exit 1
 fi
 
-# ── Helper ────────────────────────────────────────────────────────────────────
-GREEN='\033[0;32m'; RED='\033[0;31m'; RESET='\033[0m'; BOLD='\033[1m'
-step() { echo -e "\n${BOLD}══ $* ${RESET}"; }
-ok()   { echo -e "${GREEN}✔ $*${RESET}"; }
-fail() { echo -e "${RED}✘ $*${RESET}"; sudo kill "$SERVE_PID" 2>/dev/null || true; exit 1; }
-
-# Determina se serve sudo
+# ── sudo wrapper ───────────────────────────────────────────────────────────────
 if [ "$(id -u)" -ne 0 ]; then
     echo "Alcune operazioni richiedono privilegi (modprobe, nbd-client, mount)."
     SUDO="sudo"
+    $SUDO true || { echo "sudo non disponibile o negato"; exit 1; }
 else
     SUDO=""
 fi
 
+# ── Colori / helper ────────────────────────────────────────────────────────────
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'; BOLD='\033[1m'
+step()  { echo -e "\n${BOLD}${YELLOW}══ $* ${NC}"; }
+ok()    { echo -e "${GREEN}✔ $*${NC}"; }
+fail()  { echo -e "${RED}✘ $*${NC}"; exit 1; }
+info()  { echo "    $*"; }
+
+# ── Pulizia ────────────────────────────────────────────────────────────────────
+cleanup() {
+    [ -n "$SERVE_PID" ] && kill "$SERVE_PID" 2>/dev/null || true
+    [ -n "$SERVE_PID" ] && wait "$SERVE_PID" 2>/dev/null || true
+    rm -rf "$WORKDIR"
+}
+trap cleanup EXIT
+
 # ── Moduli ────────────────────────────────────────────────────────────────────
-step "Caricamento moduli kernel"
-$SUDO modprobe nbd  2>/dev/null || true
-$SUDO modprobe affs 2>/dev/null || true
-ok "Moduli caricati"
+step "Caricamento moduli kernel (nbd, affs)"
+$SUDO modprobe nbd  2>/dev/null && ok "nbd caricato"  || true
+$SUDO modprobe affs 2>/dev/null && ok "affs caricato" || true
 
 # ── Avvio serve-image ─────────────────────────────────────────────────────────
 step "Avvio waffle-serve-image.sh su $(basename "$IMAGE")"
 
-LOG=$(mktemp /tmp/waffle-serve-XXXXXX.log)
+LOG="$WORKDIR/serve.log"
 $SUDO "$SERVE_SCRIPT" "$IMAGE" > "$LOG" 2>&1 &
 SERVE_PID=$!
-echo "    PID: $SERVE_PID  log: $LOG"
+info "PID: $SERVE_PID  log: $LOG"
 
 # ── Attesa montaggio ──────────────────────────────────────────────────────────
 step "Attesa montaggio (max 30s)"
 MNT=""
 for i in $(seq 1 30); do
-    MNT=$(grep -oP '(?<=mounted at ).*' "$LOG" 2>/dev/null | tail -1 || true)
-    # anche udisksctl: "udisksctl mounted at /run/media/..."
-    [ -z "$MNT" ] && MNT=$(grep -oP '(?<=Mounted .* at )\S+' "$LOG" 2>/dev/null | tail -1 || true)
+    MNT=$(grep -oP '(?<=mounted at ).*'       "$LOG" 2>/dev/null | tail -1 || true)
+    [ -z "$MNT" ] && \
+    MNT=$(grep -oP '(?<=Mounted .* at )\S+'   "$LOG" 2>/dev/null | tail -1 || true)
     if [ -n "$MNT" ] && mountpoint -q "$MNT" 2>/dev/null; then
         break
     fi
@@ -68,8 +79,7 @@ done
 echo
 
 if [ -z "$MNT" ]; then
-    echo "--- log ---"
-    cat "$LOG"
+    echo "--- log ---"; cat "$LOG"
     fail "Montaggio non avvenuto entro 30s"
 fi
 ok "Montato su $MNT"
@@ -81,7 +91,7 @@ if [ -n "$NBD_DEV" ]; then
     ok "Device: $NBD_DEV"
     lsblk "$NBD_DEV" 2>/dev/null | sed 's/^/    /' || true
 else
-    echo "    (device NBD non estratto dal log)"
+    info "(device NBD non estratto dal log)"
 fi
 
 # ── Contenuto ────────────────────────────────────────────────────────────────
@@ -93,35 +103,31 @@ ok "$FILE_COUNT file/dir al primo livello"
 # ── Smontaggio ────────────────────────────────────────────────────────────────
 step "Smontaggio"
 $SUDO umount "$MNT" 2>/dev/null || $SUDO umount -l "$MNT" 2>/dev/null || true
-
-# Attendi che il watcher nel script se ne accorga e faccia cleanup
-sleep 4
+sleep 4  # lascia al watcher interno il tempo di fare cleanup
 
 if mountpoint -q "$MNT" 2>/dev/null; then
     fail "Mountpoint ancora attivo dopo umount"
 fi
 ok "Smontato correttamente"
 
-# ── Verifica pulizia ──────────────────────────────────────────────────────────
-step "Verifica pulizia processo"
-$SUDO kill "$SERVE_PID" 2>/dev/null || true
+# ── Verifica pulizia NBD ───────────────────────────────────────────────────────
+step "Verifica rilascio device NBD"
+kill "$SERVE_PID" 2>/dev/null || true
 wait "$SERVE_PID" 2>/dev/null || true
+SERVE_PID=""
 
 if [ -n "$NBD_DEV" ]; then
-    PID_FILE="/sys/block/${NBD_DEV##*/}/pid"
-    PID_VAL=$(cat "$PID_FILE" 2>/dev/null || echo "")
+    PID_VAL=$(cat "/sys/block/${NBD_DEV##*/}/pid" 2>/dev/null || echo "")
     if [ -z "$PID_VAL" ] || [ "$PID_VAL" -eq 0 ] 2>/dev/null; then
         ok "$NBD_DEV liberato"
     else
-        echo "    Attenzione: $NBD_DEV ancora in uso (pid=$PID_VAL)"
+        info "Attenzione: $NBD_DEV ancora in uso (pid=$PID_VAL)"
     fi
 fi
 
 # ── Riepilogo ─────────────────────────────────────────────────────────────────
 step "Riepilogo"
 ok "Test completato con successo"
-echo "    Immagine: $IMAGE"
-echo "    Device:   ${NBD_DEV:-n/d}"
-echo "    Mount:    $MNT"
-echo ""
-echo "    Log completo: $LOG"
+info "Immagine: $IMAGE"
+info "Device:   ${NBD_DEV:-n/d}"
+info "Mount:    $MNT"
