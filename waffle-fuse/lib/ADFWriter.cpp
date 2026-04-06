@@ -2998,6 +2998,8 @@ bool ADFWriter::writeAmigaTrack(bool isHD, unsigned int cylinder, DiskSurface si
                                 const std::vector<std::array<uint8_t, 512>>& sectors,
                                 bool usePrecomp)
 {
+    if (m_device.setDiskCapacity(isHD) != DiagnosticResponse::drOK) return false;
+
     const unsigned int maxSect = isHD ? NUM_SECTORS_PER_TRACK_HD : NUM_SECTORS_PER_TRACK_DD;
     const size_t fillerBytes = 1654;
 
@@ -3027,6 +3029,8 @@ bool ADFWriter::writeIBMTrack(bool isHD, unsigned int trackNum, bool useAtariTim
                               const std::vector<std::vector<uint8_t>>& sectors,
                               bool usePrecomp)
 {
+    if (m_device.setDiskCapacity(isHD) != DiagnosticResponse::drOK) return false;
+
     IBM::DecodedTrack trk;
     for (uint32_t i = 0; i < (uint32_t)sectors.size(); i++) {
         IBM::DecodedSector sec;
