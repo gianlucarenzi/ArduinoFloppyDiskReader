@@ -195,7 +195,7 @@ stdbuf -oL -eL "$WAFFLE_NBD" "$PORT" 127.0.0.1 "$NBD_PORT" 2>&1 | while read -r 
                     MNT=$(findmnt -n -o TARGET "$NBD_DEV" 2>/dev/null)
                     if [ -z "$MNT" ]; then
                         MNT="/media/$USER/$LABEL"
-                        OPTS="nosuid,users,uid=$UID_U,gid=$GID_U"
+                        OPTS="nosuid,users,setuid=$UID_U,setgid=$GID_U"
                         mkdir -p "$MNT"
                         chown "$USER:" "$MNT"
                         echo "--> Montaggio $NBD_DEV ($FORMAT) su $MNT..."
