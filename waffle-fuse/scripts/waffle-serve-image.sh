@@ -128,9 +128,31 @@ while IFS= read -r line; do
         fi
     fi
 
-    # After GO: mount
+    # After GO: wait for block device to be ready, then mount
     if [[ "$line" == *"nbd: client requested GO"* ]] && [ "$CONNECTED" -eq 1 ] \
        && [ -z "$MNT" ] && [ -n "$FORMAT" ]; then
+
+        # Wait up to 30 s for the kernel to announce the block device size.
+        # /sys/block/nbdX/size contains the number of 512-byte sectors;
+        # it stays 0 until nbd-client negotiation is fully complete and
+        # udev has processed the block device event.
+        DEV_NAME="${NBD_DEV##*/}"   # e.g. "nbd0"
+        SIZE_FILE="/sys/block/$DEV_NAME/size"
+        echo "[serve-image] waiting for block device $NBD_DEV to be ready..."
+        READY=0
+        for _w in $(seq 1 30); do
+            _sz=$(cat "$SIZE_FILE" 2>/dev/null || echo 0)
+            if [ "$_sz" -gt 0 ] 2>/dev/null; then
+                READY=1
+                echo "[serve-image] block device ready (${_sz} sectors) after ${_w}s"
+                break
+            fi
+            sleep 1
+        done
+        if [ "$READY" -eq 0 ]; then
+            echo "[serve-image] ERROR: block device $NBD_DEV not ready after 30s" >&2
+            break
+        fi
 
         IMG_BASE=$(basename "$IMAGE")
         IMG_NAME="${IMG_BASE%.*}"

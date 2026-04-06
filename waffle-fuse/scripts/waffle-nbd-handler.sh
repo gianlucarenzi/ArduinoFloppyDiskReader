@@ -118,12 +118,25 @@ stdbuf -oL -eL "$WAFFLE_NBD" "$PORT" 127.0.0.1 "$NBD_PORT" 2>&1 | while read -r 
             PENDING_FORMAT=""
             PENDING_DENSITY=""
 
-            echo "--> Avvio del montaggio tra 5 secondi..."
-            for i in $(seq 5 -1 1); do
-                echo -n "$i... "
+            # Wait up to 30 s for the kernel to announce the block device.
+            DEV_NAME="${NBD_DEV##*/}"
+            SIZE_FILE="/sys/block/$DEV_NAME/size"
+            echo "--> In attesa che il block device $NBD_DEV sia pronto (max 30s)..."
+            READY=0
+            for _w in $(seq 1 30); do
+                _sz=$(cat "$SIZE_FILE" 2>/dev/null || echo 0)
+                if [ "$_sz" -gt 0 ] 2>/dev/null; then
+                    READY=1
+                    echo "--> $NBD_DEV pronto (${_sz} settori) dopo ${_w}s."
+                    break
+                fi
                 sleep 1
             done
-            echo
+            if [ "$READY" -eq 0 ]; then
+                echo "--> ERRORE: $NBD_DEV non pronto dopo 30s, montaggio saltato."
+                PENDING_FORMAT=""
+                continue
+            fi
 
             case "$FORMAT" in
                 affs) LABEL="Amiga_Floppy" ;;
