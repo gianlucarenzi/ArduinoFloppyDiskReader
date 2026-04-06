@@ -189,222 +189,137 @@ int WaffleDisk::probe(const std::string& portName)
 
 // ── Geometry detection ────────────────────────────────────────────────────────
 
+// Detection order (by statistical frequency): Amiga DD → PC DD → PC HD → Amiga HD.
+// If m_forcedHD is set, only the matching densities are tried.
+// Two passes: first pass immediately, second pass after 1.5s motor spin-up wait
+// (only if every read returned zeros on the first pass).
 bool WaffleDisk::detectGeometry()
 {
-    bool isHD = false;
+    bool senseHD = false;
     if (m_forcedHD >= 0) {
-        isHD = (m_forcedHD == 1);  // forced by user
+        senseHD = (m_forcedHD == 1);
     } else {
-        m_impl->writer.GuessDiskDensity(isHD);
+        m_impl->writer.GuessDiskDensity(senseHD);
     }
-    m_geo.isHD = isHD;
+    m_geo.isHD = senseHD;
 
-    // Position to track 0, head 0 (lower = side 0 in Amiga convention).
-    // enableReading(reset=true) internally calls findTrack0 which switches to
-    // dsUpper, so we must select dsLower AFTER enableReading, not before.
     using namespace ArduinoFloppyReader;
-    if (m_impl->writer.enableReading(true, true) != DiagnosticResponse::drOK) return false;
-    if (m_impl->writer.selectTrack(0)            != DiagnosticResponse::drOK) return false;
-    if (m_impl->writer.selectSurface(DiskSurface::dsLower) != DiagnosticResponse::drOK) return false;
 
-    // ── Try Amiga ADF first ───────────────────────────────────────────────────
-    // Strategy: try DD first (most Amiga disks are DD), then HD.  The retry
-    // trigger is whether sector 0 contains the 'DOS' bootblock signature —
-    // not the sector count — because sector 0 might fail to decode even when
-    // other sectors succeed, giving a misleading count.
-    // If GuessDiskDensity correctly guessed HD, we start there instead.
-    {
-        auto hasDos = [](const std::vector<std::array<uint8_t,512>>& s) -> bool {
-            return !s.empty() && s[0][0]=='D' && s[0][1]=='O' && s[0][2]=='S';
-        };
+    // Helpers ------------------------------------------------------------------
 
-        // First attempt: use guessed density
-        std::vector<std::array<uint8_t, 512>> amigaSectors;
-        m_impl->writer.readAmigaTrack(isHD, 0, DiskSurface::dsLower, amigaSectors, 3);
-        std::cerr << "waffle-detect: Amiga try1 isHD=" << isHD
-                  << " valid=" << [&]{ unsigned n=0; for(auto& s:amigaSectors) for(uint8_t b:s) if(b){++n;break;} return n; }()
+    auto enableAndSeek = [&]() -> bool {
+        // enableReading(reset=true) rewinds to track 0 and selects dsUpper;
+        // we must select dsLower afterward.
+        return m_impl->writer.enableReading(true, true) == DiagnosticResponse::drOK &&
+               m_impl->writer.selectTrack(0)            == DiagnosticResponse::drOK &&
+               m_impl->writer.selectSurface(DiskSurface::dsLower) == DiagnosticResponse::drOK;
+    };
+
+    auto seekTrack0 = [&]() {
+        m_impl->writer.selectTrack(0);
+        m_impl->writer.selectSurface(DiskSurface::dsLower);
+    };
+
+    auto hasDos = [](const std::vector<std::array<uint8_t,512>>& s) -> bool {
+        return !s.empty() && s[0][0]=='D' && s[0][1]=='O' && s[0][2]=='S';
+    };
+
+    auto tryAmiga = [&](bool hd, const char* tag) -> bool {
+        std::vector<std::array<uint8_t, 512>> sects;
+        m_impl->writer.readAmigaTrack(hd, 0, DiskSurface::dsLower, sects, 2);
+        std::cerr << "waffle-detect: " << tag << " isHD=" << hd
                   << " bb=" << std::hex
-                  << (int)(amigaSectors.empty()?0:amigaSectors[0][0]) << ","
-                  << (int)(amigaSectors.empty()?0:amigaSectors[0][1]) << ","
-                  << (int)(amigaSectors.empty()?0:amigaSectors[0][2]) << ","
-                  << (int)(amigaSectors.empty()?0:amigaSectors[0][3])
+                  << (int)(sects.empty()?0:sects[0][0]) << ","
+                  << (int)(sects.empty()?0:sects[0][1]) << ","
+                  << (int)(sects.empty()?0:sects[0][2]) << ","
+                  << (int)(sects.empty()?0:sects[0][3]) << std::dec << "\n";
+        if (!hasDos(sects)) return false;
+        std::cerr << "waffle-detect: Amiga confirmed isHD=" << hd << "\n";
+        m_geo.isHD            = hd;
+        m_geo.format          = DiskFormat::Amiga_ADF;
+        m_geo.numHeads        = 2;
+        m_geo.sectorsPerTrack = hd ? 22u : 11u;
+        m_geo.numCylinders    = 80;
+        m_geo.bytesPerSector  = 512;
+        return true;
+    };
+
+    auto tryIBM = [&](bool hd, const char* tag) -> bool {
+        const uint32_t trySectors = hd ? 18u : 9u;
+        std::vector<std::vector<uint8_t>> sects;
+        bool ok = m_impl->writer.readIBMTrack(hd, 0, trySectors, sects, 2);
+        std::cerr << "waffle-detect: " << tag << " isHD=" << hd
+                  << " ok=" << ok
+                  << " sectors=" << sects.size()
+                  << " s0[0]=" << std::hex
+                  << (sects.empty()||sects[0].empty() ? 0 : (int)sects[0][0])
+                  << " s0[510]=" << (sects.empty()||sects[0].size()<512 ? 0 : (int)sects[0][510])
+                  << " s0[511]=" << (sects.empty()||sects[0].size()<512 ? 0 : (int)sects[0][511])
                   << std::dec << "\n";
-
-        if (m_forcedHD < 0 && !hasDos(amigaSectors)) {
-            // Retry with opposite density
-            bool altHD = !isHD;
-            m_impl->writer.selectTrack(0);
-            m_impl->writer.selectSurface(DiskSurface::dsLower);
-            std::vector<std::array<uint8_t, 512>> altSectors;
-            m_impl->writer.readAmigaTrack(altHD, 0, DiskSurface::dsLower, altSectors, 3);
-            std::cerr << "waffle-detect: Amiga try2 isHD=" << altHD
-                      << " valid=" << [&]{ unsigned n=0; for(auto& s:altSectors) for(uint8_t b:s) if(b){++n;break;} return n; }()
-                      << " bb=" << std::hex
-                      << (int)(altSectors.empty()?0:altSectors[0][0]) << ","
-                      << (int)(altSectors.empty()?0:altSectors[0][1]) << ","
-                      << (int)(altSectors.empty()?0:altSectors[0][2]) << ","
-                      << (int)(altSectors.empty()?0:altSectors[0][3])
-                      << std::dec << "\n";
-            if (hasDos(altSectors)) {
-                isHD = altHD;
-                m_geo.isHD = isHD;
-                amigaSectors = std::move(altSectors);
-            }
-        }
-
-        const unsigned int maxSect = isHD ? 22u : 11u;
-        if (hasDos(amigaSectors)) {
-            std::cerr << "waffle-detect: Amiga confirmed isHD=" << isHD << "\n";
-            m_geo.format          = DiskFormat::Amiga_ADF;
+        if (!ok || sects.empty() || sects[0].empty()) return false;
+        const uint8_t* boot = sects[0].data();
+        if (sects[0].size() < 512) return false;
+        if (!(boot[510]==0x55 && boot[511]==0xAA)) return false;
+        if (!(boot[0]==0xEB  || boot[0]==0xE9))    return false;
+        std::cerr << "waffle-detect: IBM/FAT confirmed isHD=" << hd << "\n";
+        m_geo.isHD           = hd;
+        m_geo.format         = DiskFormat::IBM_FAT;
+        m_geo.bytesPerSector = 512;
+        uint32_t serialNum, numHeads, totalSectors, sectPerTrack, bytesPerSec;
+        if (IBM::getTrackDetails_IBM(boot, serialNum, numHeads, totalSectors,
+                                     sectPerTrack, bytesPerSec)) {
+            m_geo.numHeads        = numHeads;
+            m_geo.sectorsPerTrack = sectPerTrack;
+            m_geo.bytesPerSector  = bytesPerSec;
+            m_geo.numCylinders    = totalSectors / (numHeads * sectPerTrack);
+        } else {
             m_geo.numHeads        = 2;
-            m_geo.sectorsPerTrack = maxSect;
+            m_geo.sectorsPerTrack = trySectors;
             m_geo.numCylinders    = 80;
-            m_geo.bytesPerSector  = 512;
-            return true;
         }
-    }
+        return true;
+    };
 
-    // ── Try IBM / FAT ─────────────────────────────────────────────────────────
-    // Only reached if Amiga decoding found no valid bootblock.
-    // Try both DD (9 sectors) and HD (18 sectors) so that GuessDiskDensity
-    // being wrong cannot cause a misidentification.
-    // Require BOTH the FAT signature (0x55AA) AND a valid jump instruction to
-    // avoid false positives from garbage MFM data.
-    {
-        // Order: try the density GuessDiskDensity suggested first.
-        const bool densities[2] = { isHD, !isHD };
-
-        for (bool tryHD : densities) {
-            m_impl->writer.selectTrack(0);
-            m_impl->writer.selectSurface(DiskSurface::dsLower);
-
-            const uint32_t trySectors = tryHD ? 18u : 9u;
-            std::vector<std::vector<uint8_t>> ibmSectors;
-            bool ok = m_impl->writer.readIBMTrack(tryHD, 0, trySectors, ibmSectors, 3);
-
-            std::cerr << "waffle-detect: IBM try isHD=" << tryHD
-                      << " ok=" << ok
-                      << " sectors=" << ibmSectors.size()
-                      << " s0size=" << (ibmSectors.empty() ? 0 : ibmSectors[0].size())
-                      << " s0[0]=" << std::hex << (ibmSectors.empty() || ibmSectors[0].empty() ? 0 : (int)ibmSectors[0][0])
-                      << " s0[510]=" << (ibmSectors.empty() || ibmSectors[0].size()<512 ? 0 : (int)ibmSectors[0][510])
-                      << " s0[511]=" << (ibmSectors.empty() || ibmSectors[0].size()<512 ? 0 : (int)ibmSectors[0][511])
-                      << std::dec << "\n";
-
-            if (!ok || ibmSectors.empty() || ibmSectors[0].empty()) continue;
-
-            const uint8_t* boot = ibmSectors[0].data();
-            bool fatSig = (ibmSectors[0].size() >= 512) &&
-                          (boot[510] == 0x55) && (boot[511] == 0xAA);
-            bool jmpOk  = (boot[0] == 0xEB || boot[0] == 0xE9);
-
-            if (!fatSig || !jmpOk) continue;
-
-            std::cerr << "waffle-detect: IBM/FAT confirmed isHD=" << tryHD << "\n";
-            m_geo.isHD           = tryHD;
-            m_geo.format         = DiskFormat::IBM_FAT;
-            m_geo.bytesPerSector = 512;
-
-            uint32_t serialNum, numHeads, totalSectors, sectPerTrack, bytesPerSec;
-            if (IBM::getTrackDetails_IBM(boot, serialNum, numHeads, totalSectors,
-                                         sectPerTrack, bytesPerSec)) {
-                m_geo.numHeads        = numHeads;
-                m_geo.sectorsPerTrack = sectPerTrack;
-                m_geo.bytesPerSector  = bytesPerSec;
-                m_geo.numCylinders    = totalSectors / (numHeads * sectPerTrack);
-            } else {
-                m_geo.numHeads        = 2;
-                m_geo.sectorsPerTrack = trySectors;
-                m_geo.numCylinders    = 80;
-            }
-            return true;
+    // One full detection pass in order: Amiga DD → PC DD → PC HD → Amiga HD.
+    // If m_forcedHD is set, skip the wrong-density variants.
+    auto runPass = [&]() -> bool {
+        // Amiga DD
+        if (m_forcedHD != 1) {
+            seekTrack0();
+            if (tryAmiga(false, "Amiga-DD")) return true;
         }
-    }
-
-    // Unknown — if all reads returned zeros the motor may not yet be at speed.
-    // Retry once after 1.5s before giving up.
-    if (m_geo.format == DiskFormat::Unknown) {
-        std::cerr << "waffle-detect: unknown format on first pass, waiting 1.5s for motor...\n";
-        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-
-        // Re-enable reading so the firmware waits again for motor if needed.
-        if (m_impl->writer.enableReading(true, true) == DiagnosticResponse::drOK &&
-            m_impl->writer.selectTrack(0)            == DiagnosticResponse::drOK &&
-            m_impl->writer.selectSurface(DiskSurface::dsLower) == DiagnosticResponse::drOK)
-        {
-            // Amiga retry
-            {
-                auto hasDos = [](const std::vector<std::array<uint8_t,512>>& s) -> bool {
-                    return !s.empty() && s[0][0]=='D' && s[0][1]=='O' && s[0][2]=='S';
-                };
-                std::vector<std::array<uint8_t, 512>> amigaSectors;
-                m_impl->writer.readAmigaTrack(isHD, 0, DiskSurface::dsLower, amigaSectors, 3);
-                std::cerr << "waffle-detect: Amiga retry isHD=" << isHD
-                          << " bb=" << std::hex
-                          << (int)(amigaSectors.empty()?0:amigaSectors[0][0]) << ","
-                          << (int)(amigaSectors.empty()?0:amigaSectors[0][1]) << ","
-                          << (int)(amigaSectors.empty()?0:amigaSectors[0][2]) << ","
-                          << (int)(amigaSectors.empty()?0:amigaSectors[0][3])
-                          << std::dec << "\n";
-                if (hasDos(amigaSectors)) {
-                    const unsigned int maxSect = isHD ? 22u : 11u;
-                    std::cerr << "waffle-detect: Amiga confirmed on retry isHD=" << isHD << "\n";
-                    m_geo.format          = DiskFormat::Amiga_ADF;
-                    m_geo.numHeads        = 2;
-                    m_geo.sectorsPerTrack = maxSect;
-                    m_geo.numCylinders    = 80;
-                    m_geo.bytesPerSector  = 512;
-                    return true;
-                }
-            }
-
-            // IBM retry
-            {
-                const bool densities[2] = { isHD, !isHD };
-                for (bool tryHD : densities) {
-                    m_impl->writer.selectTrack(0);
-                    m_impl->writer.selectSurface(DiskSurface::dsLower);
-                    const uint32_t trySectors = tryHD ? 18u : 9u;
-                    std::vector<std::vector<uint8_t>> ibmSectors;
-                    bool ok = m_impl->writer.readIBMTrack(tryHD, 0, trySectors, ibmSectors, 3);
-                    std::cerr << "waffle-detect: IBM retry isHD=" << tryHD << " ok=" << ok
-                              << " s0[0]=" << std::hex
-                              << (ibmSectors.empty()||ibmSectors[0].empty()?0:(int)ibmSectors[0][0])
-                              << " s0[510]=" << (ibmSectors.empty()||ibmSectors[0].size()<512?0:(int)ibmSectors[0][510])
-                              << " s0[511]=" << (ibmSectors.empty()||ibmSectors[0].size()<512?0:(int)ibmSectors[0][511])
-                              << std::dec << "\n";
-                    if (!ok || ibmSectors.empty() || ibmSectors[0].empty()) continue;
-                    const uint8_t* boot = ibmSectors[0].data();
-                    bool fatSig = (ibmSectors[0].size() >= 512) &&
-                                  (boot[510] == 0x55) && (boot[511] == 0xAA);
-                    bool jmpOk  = (boot[0] == 0xEB || boot[0] == 0xE9);
-                    if (!fatSig || !jmpOk) continue;
-                    std::cerr << "waffle-detect: IBM/FAT confirmed on retry isHD=" << tryHD << "\n";
-                    m_geo.isHD           = tryHD;
-                    m_geo.format         = DiskFormat::IBM_FAT;
-                    m_geo.bytesPerSector = 512;
-                    uint32_t serialNum, numHeads, totalSectors, sectPerTrack, bytesPerSec;
-                    if (IBM::getTrackDetails_IBM(boot, serialNum, numHeads, totalSectors,
-                                                 sectPerTrack, bytesPerSec)) {
-                        m_geo.numHeads        = numHeads;
-                        m_geo.sectorsPerTrack = sectPerTrack;
-                        m_geo.bytesPerSector  = bytesPerSec;
-                        m_geo.numCylinders    = totalSectors / (numHeads * sectPerTrack);
-                    } else {
-                        m_geo.numHeads        = 2;
-                        m_geo.sectorsPerTrack = trySectors;
-                        m_geo.numCylinders    = 80;
-                    }
-                    return true;
-                }
-            }
+        // PC DD
+        if (m_forcedHD != 1) {
+            seekTrack0();
+            if (tryIBM(false, "PC-DD")) return true;
         }
-    }
+        // PC HD
+        if (m_forcedHD != 0) {
+            seekTrack0();
+            if (tryIBM(true, "PC-HD")) return true;
+        }
+        // Amiga HD
+        if (m_forcedHD != 0) {
+            seekTrack0();
+            if (tryAmiga(true, "Amiga-HD")) return true;
+        }
+        return false;
+    };
 
-    // Unknown — still return true; the FUSE driver will present a raw image
+    // First pass ---------------------------------------------------------------
+    if (!enableAndSeek()) return false;
+    if (runPass()) return true;
+
+    // Second pass after motor spin-up wait ------------------------------------
+    std::cerr << "waffle-detect: unknown format on first pass, waiting 1.5s for motor...\n";
+    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+    if (!enableAndSeek()) return false;
+    if (runPass()) return true;
+
+    // Unrecognised — present as raw image with fallback geometry
     m_geo.format          = DiskFormat::Unknown;
     m_geo.numHeads        = 2;
-    m_geo.sectorsPerTrack = isHD ? 18 : 9;
+    m_geo.sectorsPerTrack = senseHD ? 18 : 9;
     m_geo.numCylinders    = 80;
     m_geo.bytesPerSector  = 512;
     return true;
