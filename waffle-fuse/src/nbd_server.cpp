@@ -136,24 +136,32 @@ bool NBDServer::run(const std::string& address, int port) {
         std::cout << "nbd: control socket at " << m_ctlPath << "\n";
     }
 
+    // When set, skip Phases 1+2: the disk port is already open after a
+    // format/dump command and we can go straight to accepting a new client.
+    bool skipToPhase3 = false;
+
     while (m_running) {
 
-        // ── Phase 1: probe until disk is detected (port is closed) ───────────
-        std::cout << "nbd: waiting for disk...\n";
-        while (m_running) {
-            VLOG("nbd: probing...");
-            if (m_disk->probePresent()) break;
-            // probe() itself takes ~100-500ms; add a small gap to avoid
-            // hammering the serial port between retries.
-            std::this_thread::sleep_for(std::chrono::milliseconds(2500));
-        }
-        if (!m_running) break;
+        if (!skipToPhase3) {
+            // ── Phase 1: probe until disk is detected (port is closed) ───────
+            std::cout << "nbd: waiting for disk...\n";
+            while (m_running) {
+                VLOG("nbd: probing...");
+                if (m_disk->probePresent()) break;
+                // probe() itself takes ~100-500ms; add a small gap to avoid
+                // hammering the serial port between retries.
+                std::this_thread::sleep_for(std::chrono::milliseconds(2500));
+            }
+            if (!m_running) break;
 
-        // ── Phase 2: open port (no geometry detection yet) ───────────────────
-        if (!m_disk->openDisk()) {
-            std::cerr << "nbd: failed to open port after probe, retrying...\n";
-            continue;
+            // ── Phase 2: open port (no geometry detection yet) ───────────────
+            if (!m_disk->openDisk()) {
+                std::cerr << "nbd: failed to open port after probe, retrying...\n";
+                continue;
+            }
         }
+        skipToPhase3 = false;
+
         // ── Phase 3+4: accept client and serve, with remount retry ───────────
         // If remount() fails (motor not yet at reading speed), keep the disk
         // port open so the motor continues spinning between attempts.
@@ -212,11 +220,12 @@ bool NBDServer::run(const std::string& address, int port) {
         // Port is open, motor is off (parkDisk was called after serve, or disk
         // was removed). checkPresence() uses only COMMAND_CHECKDISKEXISTS.
         // Skip this phase if format/dump just completed via control socket:
-        // the disk is still present and a new nbd-client will reconnect shortly.
+        // the disk port is still open and geometry already updated — go straight
+        // to Phase 3 to accept the reconnecting nbd-client.
         if (m_skipAbsentWait.exchange(false)) {
             std::cout << "nbd: skipping disk-absent wait (format/dump just completed)\n";
-            m_disk->closeDisk();
-            continue; // → Phase 1: probePresent() will find disk immediately
+            skipToPhase3 = true;
+            continue; // → skip Phase 1+2, go straight to Phase 3
         }
         if (!diskGone) {
             std::cout << "nbd: waiting for disk removal...\n";
