@@ -79,3 +79,4 @@ config.status
 config.log
 autom4te.cache/
 /waffle-fuse/waffle-nbd
+/waffle-fuse/.clang-format
