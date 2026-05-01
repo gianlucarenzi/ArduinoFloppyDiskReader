@@ -1,0 +1,18 @@
+/CapsAPI.o
+/CapsFDCEmulator.o
+/CapsFile.o
+/CapsFormatMFM.o
+/CapsImage.o
+/CapsImageStd.o
+/CapsLoader.o
+/DiskImage.o
+/DiskImageFactory.o
+/StreamCueImage.o
+/StreamImage.o
+/stdafx.o
+# Libraries
+/*.so
+/*.so.*
+/*.dll
+/*.dylib
+/CAPSImg.dll
