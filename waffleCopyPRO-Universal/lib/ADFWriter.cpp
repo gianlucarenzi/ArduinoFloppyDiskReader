@@ -3094,9 +3094,6 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
             uint32_t fluxSoFar = 0;
             uint32_t fluxSoFarOut = 0;
             uint32_t numbits = 0;
-            int64_t fluxTimeAtOverlap = 0;
-            int overlapPos = trackInfo.overlap % trackInfo.tracklen;
-            if (overlapPos < 0) overlapPos += trackInfo.tracklen;
             uint64_t totalTime = 0;
 
             for (size_t i = 0; i < data.size(); i++)
@@ -3176,26 +3173,18 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
                     break;
                 } 
 
-                // Count flux up until the index
-                if (i <= (DWORD)overlapPos+1)
-                    fluxTimeAtOverlap += (int64_t)time;
-
                 totalTime += fluxSoFarOut;
             }
             // This belongs at the start
             if (fluxSoFar)
             {
                 flux[0] += fluxSoFar;
-                fluxTimeAtOverlap -= fluxSoFar;
             }
 
             // Data is gap aligned. So add extra to the gap to ensure it fills the disk.
-
-            // Is splice at the index point?
-            bool terminateAtIndex = false;
-            if ((overlapPos <= 4) || (overlapPos >= (int)(data.size() - 4)))
+            // Ensure theres more data than needed by repeating the last few flux transitions a little slower
+            if (flux.size() > 16)
             {
-                // Ensure theres more data than needed by repeating the last few flux transitions a little slower
                 size_t startPoint = flux.size() - 15;
                 unsigned int count = 0;
                 while (totalTime < 220000000)
@@ -3205,14 +3194,6 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
                     flux.push_back(t);
                     totalTime += t;
                 }
-
-                // Yes.  This is INDEX to INDEX mode.
-                terminateAtIndex = true;
-                fluxTimeAtOverlap = 0;
-            }
-            else {
-                // No.  This is INDEX+Delay
-                terminateAtIndex = false;
             }
 
             // Now write the track
@@ -3223,12 +3204,12 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
             }
             // Reset to 01010101 etc
             m_device.eraseCurrentTrack();
-            DiagnosticResponse r = m_device.writeFlux(flux, (DWORD)fluxTimeAtOverlap, driveRPM, totalTime>220800000, terminateAtIndex);
+            DiagnosticResponse r = m_device.writeFlux(flux, 0, driveRPM, false, true);
             if ((r == DiagnosticResponse::drFramingError) || (r == DiagnosticResponse::drSerialOverrun))
             {
                 // Retry
                 m_device.eraseFluxOnTrack();
-                r = m_device.writeFlux(flux, (DWORD)fluxTimeAtOverlap, driveRPM, false, terminateAtIndex);
+                r = m_device.writeFlux(flux, 0, driveRPM, false, true);
             }           
             if (r != DiagnosticResponse::drOK) return ADFResult::adfrDriveError;
                         
