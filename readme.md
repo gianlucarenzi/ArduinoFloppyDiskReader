@@ -26,7 +26,14 @@ This **Visual Studio 2019** and **Linux** project contains two applications, a c
 and a Windows dialog based application allow reading and writing of Amiga 
 formatted DD floppy disks.
 Using the supplied makefile you should be able to **compile this on Linux**.  It has
-been tested with Raspberry Pi OS (Raspbian - Debian-based)
+been tested with Raspberry Pi OS (Raspbian - Debian-based). The CAPS/IPF decoder
+sources are now vendored under `ArduinoFloppyReader/lib/capsimg`, so DrawBridge
+does not depend on a separate CAPS library installation on Linux, macOS or Windows.
+With the bundled CAPS sources, DrawBridge can now reliably read and write/copy
+both **IPF** and **SuperCard Pro (`.SCP`)** images across the supported desktop
+platforms without relying on external CAPS packages.
+The vendored CAPS sources were also cleaned up to avoid the warnings triggered by
+recent compilers such as **gcc 14.2.0**.
 
 # FloppyDriverController.sketch
 This is the Arduino source code/sketch for all Floppy formats.
