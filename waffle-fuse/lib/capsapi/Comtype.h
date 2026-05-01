@@ -11,7 +11,7 @@ typedef uint16_t *PWORD;
 typedef uint32_t *PDWORD;
 #endif
 typedef char *PCHAR;
-typedef long IOREG;
+typedef int32_t IOREG;
 
 typedef unsigned char UBYTE;
 typedef unsigned short UWORD;
@@ -39,14 +39,14 @@ typedef SQUAD *PSQUAD;
 #define UBYTE_MAX UCHAR_MAX
 #define UWORD_MIN USHRT_MIN
 #define UWORD_MAX USHRT_MAX
-#define UDWORD_MIN ULONG_MIN
-#define UDWORD_MAX ULONG_MAX
+#define UDWORD_MIN UINT32_C(0)
+#define UDWORD_MAX UINT32_MAX
 #define SBYTE_MIN SCHAR_MIN
 #define SBYTE_MAX SCHAR_MAX
 #define SWORD_MIN SHRT_MIN
 #define SWORD_MAX SHRT_MAX
-#define SDWORD_MIN LONG_MIN
-#define SDWORD_MAX LONG_MAX
+#define SDWORD_MIN INT32_MIN
+#define SDWORD_MAX INT32_MAX
 
 enum {
     DB_0,

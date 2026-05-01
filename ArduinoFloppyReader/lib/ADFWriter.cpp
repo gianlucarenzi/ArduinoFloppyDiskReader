@@ -2649,28 +2649,43 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
 	if (CapsInit()!= imgeOk) return ADFResult::adfrIPFLibraryNotAvailable;
 
 	SDWORD image = CapsAddImage();
-	if (image<0) return ADFResult::adfrIPFLibraryNotAvailable;
+	if (image<0) {
+		CapsExit();
+		return ADFResult::adfrIPFLibraryNotAvailable;
+	}
+	bool imageLocked = false;
+	auto cleanupImage = [&]() {
+		if (imageLocked) {
+			CapsUnlockImage(image);
+			imageLocked = false;
+		}
+		if (image >= 0) {
+			CapsRemImage(image);
+			image = -1;
+		}
+		CapsExit();
+	};
 
 	std::string inputFileA;
 	quickw2a(inputFile, inputFileA);
 
 	// Load the image
 	if (CapsLockImage(image, (PCHAR)inputFileA.c_str()) != imgeOk) {
-		CapsRemImage(image);
+		cleanupImage();
 		return  ADFResult::adfrIPFLibraryNotAvailable;
 	}
+	imageLocked = true;
 
 	// Load the image
 	if (CapsLoadImage(image, DI_LOCK_DENVAR | DI_LOCK_UPDATEFD | DI_LOCK_TYPE | DI_LOCK_OVLBIT | DI_LOCK_TRKBIT) != imgeOk) {
-		CapsRemImage(image);
+		cleanupImage();
 		return  ADFResult::adfrIPFLibraryNotAvailable;
 	}
 
 	CapsImageInfo fileInfo;
 	// get image information
 	if (CapsGetImageInfo(&fileInfo, image) != imgeOk) {
-		CapsUnlockImage(image);
-		CapsRemImage(image);
+		cleanupImage();
 		return  ADFResult::adfrFileError;
 	}
 
@@ -2684,22 +2699,27 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
 
 		// Lets get into the cotrrect position
 		if (m_device.selectTrack((unsigned char)cyl) != DiagnosticResponse::drOK) {
-			CapsUnlockImage(image);
-			CapsRemImage(image);
+			cleanupImage();
 			return ADFResult::adfrDriveError;
 		}
 		
 		for (DWORD head = fileInfo.minhead; head <= fileInfo.maxhead; head++) {
+			bool trackLocked = false;
+			auto cleanupTrack = [&]() {
+				if (trackLocked) {
+					CapsUnlockTrack(image, cyl, head);
+					trackLocked = false;
+				}
+			};
+
 			if (m_device.selectSurface(head ? DiskSurface::dsUpper : DiskSurface::dsLower) != DiagnosticResponse::drOK) {
-				CapsUnlockImage(image);
-				CapsRemImage(image);
+				cleanupImage();
 				return ADFResult::adfrDriveError;
 			}
 
 			if (callback)
 				if (callback(cyl, head ? DiskSurface::dsUpper : DiskSurface::dsLower, false, CallbackOperation::coWriting) == WriteResponse::wrAbort) {
-					CapsUnlockImage(image);
-					CapsRemImage(image);
+					cleanupImage();
 					return ADFResult::adfrAborted;
 				}
 
@@ -2707,22 +2727,22 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
 			CapsTrackInfoT2 trackInfo = { 0 };
 			trackInfo.type = 2;
 			if (CapsLockTrack((PCAPSTRACKINFO)&trackInfo, image, cyl, head, DI_LOCK_DENVAR | DI_LOCK_UPDATEFD | DI_LOCK_TYPE | DI_LOCK_OVLBIT | DI_LOCK_TRKBIT) != imgeOk) {
-				CapsUnlockImage(image);
-				CapsRemImage(image);
+				cleanupImage();
 				return  ADFResult::adfrFileError;
 			}
+			trackLocked = true;
 
 			// Check for unformatted/empty track
 			if ((trackInfo.trackbuf == nullptr) || (trackInfo.tracklen<1)) {
 				// Unformatted track
 				if (m_device.eraseFluxOnTrack() != DiagnosticResponse::drOK) {
-					CapsUnlockTrack(image, cyl, head);
-					CapsUnlockImage(image);
-					CapsRemImage(image);
+					cleanupTrack();
+					cleanupImage();
 					return ADFResult::adfrDriveError;
 				}
 
 				// Done here!
+				cleanupTrack();
 				continue;
 			}
 
@@ -2745,9 +2765,8 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
 			for (size_t weak = 0; weak < trackInfo.weakcnt; weak++) {
 				CapsDataInfo wInfo;
 				if (CapsGetInfo(&wInfo, image, cyl, head, cgiitWeak, weak) != imgeOk) {
-					CapsUnlockTrack(image, cyl, head);
-					CapsUnlockImage(image);
-					CapsRemImage(image);
+					cleanupTrack();
+					cleanupImage();
 					return ADFResult::adfrIPFLibraryNotAvailable;
 				}
 
@@ -2763,7 +2782,7 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
 					data[previousBit].bit = BitType::btOff;
 				}
 				for (size_t bitPos = startPos; bitPos < wInfo.size; bitPos++) {
-					int outPos = (wInfo.start - trackInfo.overlap) % trackInfo.tracklen;
+					int outPos = (wInfo.start + bitPos - trackInfo.overlap) % trackInfo.tracklen;
 					if (outPos < 0) outPos += trackInfo.tracklen;
 					data[outPos].bit = BitType::btWeak;
 				}
@@ -2853,7 +2872,17 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
 			}
 			// This belongs at the start
 			if (fluxSoFar) {
+				if (flux.empty()) {
+					if (m_device.eraseFluxOnTrack() != DiagnosticResponse::drOK) {
+						cleanupTrack();
+						cleanupImage();
+						return ADFResult::adfrDriveError;
+					}
+					cleanupTrack();
+					continue;
+				}
 				flux[0] += fluxSoFar;
+				totalTime += fluxSoFar;
 			}
 
 			// Data is gap aligned. So add extra to the gap to ensure it fills the disk.
@@ -2882,14 +2911,17 @@ ADFResult ADFWriter::IPFToDisk(const std::wstring& inputFile, bool extraErases, 
 				m_device.eraseFluxOnTrack();
 				r = m_device.writeFlux(flux, 0, driveRPM, false, true);
 			}			
-			if (r != DiagnosticResponse::drOK) return ADFResult::adfrDriveError;
+			if (r != DiagnosticResponse::drOK) {
+				cleanupTrack();
+				cleanupImage();
+				return ADFResult::adfrDriveError;
+			}
 						
-			CapsUnlockTrack(image, cyl, head);
+			cleanupTrack();
 		}
 	}
 
-	CapsUnlockImage(image);
-	CapsRemImage(image);
+	cleanupImage();
 
 	return ADFResult::adfrComplete;
 }
@@ -2905,4 +2937,3 @@ ADFResult ADFWriter::GuessDiskDensity(bool& isHD) {
 
 	if (m_device.checkDiskCapacity(isHD) == DiagnosticResponse::drOK) return ADFResult::adfrComplete; else return ADFResult::adfrAborted;
 }
-
