@@ -1,76 +1,86 @@
 #
-# 'make depend' uses makedepend to automatically generate dependencies 
+# 'make depend' uses makedepend to automatically generate dependencies
 #               (dependencies are added to end of Makefile)
-# 'make'        build executable file 
-# 'make clean'  removes all .o and executable files
+# 'make'        build executable file
+# 'make clean'  removes generated executable files
 #
 
-# define the C compiler to use
-CC = g++
+# define the C++ compiler to use
+CXX = g++
+UNAME_S := $(shell uname -s)
 
 # define any compile-time flags -m32
 # Allow DEBUG=yes to enable debug build
 ifdef DEBUG
-CFLAGS = -Wall -std=c++14 -Wno-psabi -g -O0 -pthread
+CXXFLAGS = -Wall -std=c++14 -Wno-psabi -g -O0 -pthread
 else
-CFLAGS = -Wall -std=c++14 -Wno-psabi -O3 -pthread
+CXXFLAGS = -Wall -std=c++14 -Wno-psabi -O3 -pthread
 endif
 
 # define any directories containing header files other than /usr/include
-#
-INCLUDES = -I../lib
+CPPFLAGS = -DCAPS_USER \
+	-I../lib \
+	-I../lib/capsimg \
+	-I../lib/capsimg/inc \
+	-I../lib/capsimg/Core \
+	-I../lib/capsimg/LibIPF \
+	-I../lib/capsimg/Codec \
+	-I../lib/capsimg/Device \
+	-I../lib/capsimg/CAPSImg \
+	-I../lib/capsimg/CAPSImg/inc
 
-# define library paths in addition to /usr/lib
-#   if I wanted to include libraries not in /usr/lib I'd specify
-#   their path using -Lpath, something like:
-LFLAGS = -L../lib
-
-# define any libraries to link into executable:
-#   if I want to link in libraries (libx.so or libx.a) I use the -llibname 
-#   option, something like (this will link in libmylib.so and libm.so:
+# define any libraries to link into executable
+ifeq ($(UNAME_S),Darwin)
+LIBS =
+else
 LIBS = -ldl
+endif
 
-# define the C source files
-SRCS = Main.cpp ../lib/ftdi.cpp ../lib/SerialIO.cpp ../lib/RotationExtractor.cpp ../lib/pll.cpp ../lib/ArduinoInterface.cpp ../lib/ADFWriter.cpp ../lib/capsapi/CapsPlug.cpp ../lib/ibm_sectors.cpp
+# define the C++ source files
+SRCS = Main.cpp \
+	../lib/ftdi.cpp \
+	../lib/SerialIO.cpp \
+	../lib/RotationExtractor.cpp \
+	../lib/pll.cpp \
+	../lib/ArduinoInterface.cpp \
+	../lib/ADFWriter.cpp \
+	../lib/capsapi/CapsPlug.cpp \
+	../lib/ibm_sectors.cpp \
+	../lib/capsimg/CAPSImg/CAPSImg.cpp \
+	../lib/capsimg/CAPSImg/StreamImage.cpp \
+	../lib/capsimg/CAPSImg/CapsFormatMFM.cpp \
+	../lib/capsimg/CAPSImg/DiskImageFactory.cpp \
+	../lib/capsimg/CAPSImg/DiskImage.cpp \
+	../lib/capsimg/CAPSImg/CapsImage.cpp \
+	../lib/capsimg/CAPSImg/CapsFile.cpp \
+	../lib/capsimg/CAPSImg/CapsImageStd.cpp \
+	../lib/capsimg/CAPSImg/CapsAPI.cpp \
+	../lib/capsimg/CAPSImg/CapsLoader.cpp \
+	../lib/capsimg/CAPSImg/StreamCueImage.cpp \
+	../lib/capsimg/Codec/CTRawCodec.cpp \
+	../lib/capsimg/Codec/CTRawCodecDecompressor.cpp \
+	../lib/capsimg/Codec/DiskEncoding.cpp \
+	../lib/capsimg/Core/CRC.cpp \
+	../lib/capsimg/Core/DiskFile.cpp \
+	../lib/capsimg/Core/BitBuffer.cpp \
+	../lib/capsimg/Core/BaseFile.cpp \
+	../lib/capsimg/Core/MemoryFile.cpp
 
-# define the C object files 
-#
-# This uses Suffix Replacement within a macro:
-#   $(name:string1=string2)
-#         For each word in 'name' replace 'string1' with 'string2'
-# Below we are replacing the suffix .c of all words in the macro SRCS
-# with the .o suffix
-#
-OBJS = $(SRCS:.c=.o)
-
-# define the executable file 
+# define the executable file
 MAIN = drawbridge
-
-#
-# The following part of the makefile is generic; it can be used to 
-# build any executable just by changing the definitions above and by
-# deleting dependencies appended to the file from 'make depend'
-#
 
 .PHONY: depend clean
 
-all:    $(MAIN)
-		@echo  drawbridge ready
+all: $(MAIN)
+	@echo drawbridge ready
 
-$(MAIN): $(OBJS) 
-		$(CC) $(CFLAGS) $(INCLUDES) -o $(MAIN) $(OBJS) $(LFLAGS) $(LIBS)
-
-# this is a suffix replacement rule for building .o's from .c's
-# it uses automatic variables $<: the name of the prerequisite of
-# the rule(a .c file) and $@: the name of the target of the rule (a .o file) 
-# (see the gnu make manual section about automatic variables)
-.c.o:
-		$(CC) $(CFLAGS) $(INCLUDES) -c $<  -o $@
+$(MAIN): $(SRCS)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $(MAIN) $(SRCS) $(LIBS)
 
 clean:
-		$(RM) *.o *~ $(MAIN)
+	$(RM) *~ $(MAIN)
 
 depend: $(SRCS)
-		makedepend $(INCLUDES) $^
+	makedepend $(CPPFLAGS) $^
 
 # DO NOT DELETE THIS LINE -- make depend needs it

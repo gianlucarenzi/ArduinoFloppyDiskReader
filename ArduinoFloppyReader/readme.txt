@@ -9,6 +9,14 @@ This project started life in 2017 for fun and has grown into a useful and easy t
 # ArduinoFloppyReader
 This Visual Studio 2019 project contains two applications, a command line, and a Windows dialog based application
 
+The project now includes a vendored copy of the CAPS/IPF decoder sources under
+`lib/capsimg`, so DrawBridge can reliably read and write/copy both **IPF** and
+**SuperCard Pro (`.SCP`)** images without requiring a separate CAPS library
+installation on Linux, macOS or Windows.
+
+The imported CAPS sources were also updated to remove the warnings reported by
+recent compilers such as gcc 14.2.0.
+
 #FloppyDriverController.sketch
 This is the Ardunio source code/sketch
 

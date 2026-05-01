@@ -16,6 +16,25 @@
 #include "CapsAPI.h"
 #include "CapsPlug.h"
 
+#ifdef CAPS_USER
+extern "C" {
+	SDWORD CAPSInit();
+	SDWORD CAPSExit();
+	SDWORD CAPSAddImage();
+	SDWORD CAPSRemImage(SDWORD id);
+	SDWORD CAPSLockImage(SDWORD id, PCHAR name);
+	SDWORD CAPSLockImageMemory(SDWORD id, PUBYTE buffer, UDWORD length, UDWORD flag);
+	SDWORD CAPSUnlockImage(SDWORD id);
+	SDWORD CAPSLoadImage(SDWORD id, UDWORD flag);
+	SDWORD CAPSGetImageInfo(PCAPSIMAGEINFO pi, SDWORD id);
+	SDWORD CAPSLockTrack(PCAPSTRACKINFO pi, SDWORD id, UDWORD cylinder, UDWORD head, UDWORD flag);
+	SDWORD CAPSUnlockTrack(SDWORD id, UDWORD cylinder, UDWORD head);
+	SDWORD CAPSUnlockAllTracks(SDWORD id);
+	PCHAR CAPSGetPlatformName(UDWORD pid);
+	SDWORD CAPSGetInfo(void* si, SDWORD id, UDWORD cylinder, UDWORD head, UDWORD inftype, UDWORD infid);
+}
+#endif
+
 
 #ifdef _WIN32
 #include "windows.h"
@@ -63,6 +82,28 @@ SDWORD CapsInit()
 	if (capi)
 		return imgeOk;
 
+#ifdef CAPS_USER
+	cpr[0].proc = (void*)CAPSInit;
+	cpr[1].proc = (void*)CAPSExit;
+	cpr[2].proc = (void*)CAPSAddImage;
+	cpr[3].proc = (void*)CAPSRemImage;
+	cpr[4].proc = (void*)CAPSLockImage;
+	cpr[5].proc = (void*)CAPSUnlockImage;
+	cpr[6].proc = (void*)CAPSLoadImage;
+	cpr[7].proc = (void*)CAPSGetImageInfo;
+	cpr[8].proc = (void*)CAPSLockTrack;
+	cpr[9].proc = (void*)CAPSUnlockTrack;
+	cpr[10].proc = (void*)CAPSUnlockAllTracks;
+	cpr[11].proc = (void*)CAPSGetPlatformName;
+	cpr[12].proc = (void*)CAPSLockImageMemory;
+	cpr[13].proc = (void*)CAPSGetInfo;
+#ifdef _WIN32
+	capi = (HMODULE)1;
+#else
+	capi = (void*)1;
+#endif
+	return cpr[0].proc ? CAPSHOOKN(cpr[0].proc)() : imgeUnsupported;
+#else
 #ifdef WIN32
 	capi = LoadLibrary(L"CAPSImg.dll");
 #else
@@ -92,6 +133,7 @@ SDWORD CapsInit()
 	SDWORD res=cpr[0].proc ? CAPSHOOKN(cpr[0].proc)() : imgeUnsupported;
 
 	return res;
+#endif
 }
 
 // stop caps image support
@@ -99,6 +141,7 @@ SDWORD CapsExit()
 {
 	SDWORD res=cpr[1].proc ? CAPSHOOKN(cpr[1].proc)() : imgeUnsupported;
 
+#ifndef CAPS_USER
 	if (capi) {
 #ifdef _WIN32
 		FreeLibrary(capi);
@@ -107,6 +150,9 @@ SDWORD CapsExit()
 #endif
 		capi=NULL;
 	}
+#else
+	capi = NULL;
+#endif
 
 	for (int prc=0; cpr[prc].name; prc++)
 		cpr[prc].proc=NULL;
@@ -212,4 +258,3 @@ SDWORD CapsLockImageMemory(SDWORD id, PUBYTE buffer, UDWORD length, UDWORD flag)
 
 	return res;
 }
-
