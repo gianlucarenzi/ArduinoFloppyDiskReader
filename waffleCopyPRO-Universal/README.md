@@ -14,7 +14,7 @@ This project provides a complete, user-friendly solution for retro computing ent
 *   **Rich Localization**: The interface is fully translated into **16 languages** to feel native to users across the globe. Supported languages include: *English, Italian, German, Spanish, French, Portuguese, Polish, Greek, Hungarian, Russian, Ukrainian, Czech, Romanian, Serbian/Croatian, Japanese, and Simplified Chinese*.
 *   **Retro Look & Feel**: The UI is designed with an "old school" aesthetic that pays homage to the golden age of computing. Featuring the classic **Amiga Topaz font** and demoscene-inspired elements like a sine-scroller, it brings a touch of nostalgia to your workflow.
 *   **Adaptive UI for All Screens**: Whether you're using a small laptop or a large desktop monitor, the interface is designed to be clear and functional, ensuring a great user experience on any screen size.
-*   **Advanced Disk Format Support**: Reliably handles Amiga Disk Files (`.ADF`) and includes statically-linked support for the Interchangeable Preservation Format (`.IPF`) via the CAPS library, eliminating the need for external plugins or dependencies.
+*   **Advanced Disk Format Support**: Reliably handles Amiga Disk Files (`.ADF`) and includes statically-linked support for the Interchangeable Preservation Format (`.IPF`) via the CAPS library, eliminating the need for external plugins or dependencies. The same vendored CAPS/IPF source base is now also used by the DrawBridge project in this repository, so IPF and **SuperCard Pro (`.SCP`)** read/write support work there too without requiring a separate system installation.
 *   **Open Source**: The project is open source, encouraging community contributions and customization.
 
 ## Screenshots
@@ -42,6 +42,9 @@ The project is built with Qt 5.15.2. Detailed, platform-specific instructions ca
 *   **Linux**: Install `qt5-default`, `libqt5serialport5-dev`, `libmikmod-dev`, `libftdi1-dev`, then run `qmake && make`.
 *   **macOS**: Install dependencies like `libmikmod` via Homebrew, then use `qmake && make` to build the `.app` bundle.
 *   **Windows**: Use Visual Studio 2019 and the Qt 5.15.2 MSVC kit. Dependencies like `libmikmod` can be installed via `vcpkg`. Build using `qmake` and `msbuild`.
+
+Recent cleanup of the vendored CAPS sources also removes the warning noise seen
+with newer toolchains such as **gcc 14.2.0**.
 
 ## Usage Guide
 
