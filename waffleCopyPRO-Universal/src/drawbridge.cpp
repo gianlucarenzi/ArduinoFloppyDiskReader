@@ -562,7 +562,7 @@ void adf2Disk(const std::wstring& filename, bool verify, bool preComp, bool eras
 
     switch (result) {
     case ADFResult::adfrBadSCPFile:                 printf("\nBad, invalid or unsupported SCP file                                               "); lastResponse = DiagnosticResponse::drError; break;
-    case ADFResult::adfrComplete:                   printf("\rADF file written to disk                                                           "); lastResponse = DiagnosticResponse::drOK; break;
+    case ADFResult::adfrComplete:                   printf("\rImage file written to disk                                                         "); lastResponse = DiagnosticResponse::drOK; break;
     case ADFResult::adfrExtendedADFNotSupported:    printf("\nExtended ADF files are not currently supported.                                    "); lastResponse = DiagnosticResponse::drMediaTypeMismatch; break;
     case ADFResult::adfrMediaSizeMismatch:          if (isIPF)
                                                         printf("\nIPF writing is only supported for DD disks and images                          "); else
