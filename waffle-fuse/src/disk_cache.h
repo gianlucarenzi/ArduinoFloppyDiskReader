@@ -1,16 +1,24 @@
 #pragma once
 // waffle-fuse: disk cache / hardware abstraction layer
-// Bridges the DrawBridge/Waffle Arduino device to a generic LBA block device.
+// Bridges the DrawBridge/Waffle Arduino device (or a disk image file) to a
+// generic 512-byte LBA block device.
 
 #include <cstdint>
+#include <cstdio>
 #include <string>
 #include <vector>
-#include <array>
 #include <map>
 #include <mutex>
+#include <thread>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <functional>
 
 // ── Disk format ──────────────────────────────────────────────────────────────
 enum class DiskFormat { Unknown, IBM_FAT, Amiga_ADF };
+
+const char* diskFormatName(DiskFormat f);
 
 struct DiskGeometry {
     DiskFormat format        = DiskFormat::Unknown;
@@ -32,68 +40,155 @@ public:
     virtual uint32_t totalSectors()   const = 0;
     virtual bool     isWriteProtected() const = 0;
     virtual const DiskGeometry& geometry() const = 0;
-    virtual bool     flush() { return true; } // optional: flush dirty cache to hardware
+    virtual bool     flush() { return true; } // write any cached data to the medium
+};
+
+// ── ImageDisk ─────────────────────────────────────────────────────────────────
+// IDiskImage backed by a raw sector image (.adf / .img / .ima).  Used for
+// testing the filesystem layers without the hardware.
+class ImageDisk : public IDiskImage {
+public:
+    ImageDisk(const std::string& path, bool forceReadOnly);
+    ~ImageDisk() override;
+
+    bool open();
+
+    bool     readSector(uint32_t lba, uint8_t* buf512)        override;
+    bool     writeSector(uint32_t lba, const uint8_t* buf512) override;
+    uint32_t totalSectors()   const override { return m_sectors; }
+    bool     isWriteProtected() const override { return m_readOnly; }
+    const DiskGeometry& geometry() const override { return m_geo; }
+    bool     flush() override;
+
+private:
+    std::string  m_path;
+    bool         m_readOnly;
+    FILE*        m_file    = nullptr;
+    uint32_t     m_sectors = 0;
+    DiskGeometry m_geo;
 };
 
 // ── WaffleDisk ────────────────────────────────────────────────────────────────
-// Concrete IDiskImage backed by a DrawBridge/Waffle device connected over serial.
-// Tracks are cached in memory; dirty tracks are written back immediately.
+// IDiskImage backed by a DrawBridge/Waffle device connected over serial.
+//
+// Behaves like the Amiga trackdisk.device: whole tracks are cached, writes go
+// to the cache and are written back (and verified) by a background thread
+// shortly after the last change; the motor is switched off when idle and the
+// drive is polled for disk removal.
 class WaffleDisk : public IDiskImage {
 public:
-    // forcedHD: -1 = autodetect (default), 0 = force DD, 1 = force HD
-    explicit WaffleDisk(const std::string& portName,
-                        bool forceReadOnly = false,
-                        int  forcedHD = -1);
+    struct Options {
+        std::string port;
+        bool forceReadOnly = false;
+        int  forcedHD      = -1;    // -1 = autodetect, 0 = DD, 1 = HD
+        int  flushDelayMs  = 1000;  // write back a dirty track this long after its last change
+        int  motorOffMs    = 3000;  // switch the motor off after this much idle time
+        int  diskPollMs    = 3000;  // check for disk removal this often (trackdisk.device: ~2-3 s)
+        bool verifyWrites  = true;  // read every written track back and compare
+    };
+
+    enum class OpenResult { OK, PortError, NoDisk, DriveError, UnknownFormat };
+
+    enum class Event {
+        DiskRemoved,       // disk taken out, nothing was pending
+        DiskRemovedDirty,  // disk taken out while changes were still pending (lost)
+        WriteError,        // a track could not be written/verified
+    };
+
+    explicit WaffleDisk(const Options& opts);
     ~WaffleDisk() override;
 
-    // Open device, detect disk geometry and format.  Returns true on success.
-    bool open();
+    // Open the device, detect density, geometry and format.
+    OpenResult open();
     void close();
     bool isOpen() const { return m_open; }
 
-    // Lightweight probe: open port, check disk presence, close (no head movement).
-    // Returns:  0 = disk present
-    //           1 = no disk in drive
-    //           2 = port error / hardware not found
+    // Start/stop the background thread (write-back, motor off, disk-change polling).
+    // onEvent is called from that thread, without any lock held.
+    void startBackground(std::function<void(Event)> onEvent);
+    void stopBackground();
+
+    // Open the device for formatting: no format detection (the disk may be
+    // blank or in another format).  holeIsHD/holeKnown report the density
+    // hole of the inserted disk.
+    OpenResult openForFormat(bool& holeIsHD, bool& holeKnown);
+
+    // Write a complete image with the given geometry, track by track, each one
+    // erased first and verified after writing.  quick = only the tracks that
+    // contain non-zero data (the disk must already be formatted).
+    // progress(cylinder, head, ok) is called after each track.  Returns the
+    // number of tracks that could not be written, or -1 if write-protected.
+    int formatDisk(const DiskGeometry& geo, const std::vector<uint8_t>& image, bool quick,
+                   std::function<void(uint32_t, uint32_t, bool)> progress);
+
+    // One-shot disk presence check without spinning the motor up.
+    // Returns 0 = disk present, 1 = no disk, 2 = port/hardware error.
     static int probe(const std::string& portName);
+
+    // Keep the serial port open and poll until a disk is present (wantPresent=true)
+    // or absent.  timeoutSec <= 0 waits forever.
+    // Returns 0 = condition met, 1 = timeout, 2 = port/hardware error.
+    static int waitForDisk(const std::string& portName, bool wantPresent, int timeoutSec,
+                           int pollMs = 3000);
 
     // IDiskImage
     bool     readSector(uint32_t lba, uint8_t* buf512)        override;
     bool     writeSector(uint32_t lba, const uint8_t* buf512) override;
     uint32_t totalSectors()   const override;
-    bool     isWriteProtected() const override { return m_writeProtected || m_forceReadOnly; }
+    bool     isWriteProtected() const override { return m_writeProtected || m_opts.forceReadOnly; }
     const DiskGeometry& geometry() const override { return m_geo; }
+    bool     flush() override;
 
-    // Flush all dirty cached tracks to hardware.
-    bool flush();
+    // Read one track afresh (no retries beyond the normal ones); number of good sectors or -1
+    int scanTrack(uint32_t cylinder, uint32_t head);
+
+    bool diskRemoved() const { return m_removed; }
+    bool hasPendingWrites() const;
 
 private:
-    // Map (cylinder * 2 + head) → decoded sectors for that track.
-    // For Amiga: each entry is 512 bytes.
-    // For IBM:   each entry has bytesPerSector bytes.
     struct TrackCache {
-        std::vector<std::vector<uint8_t>> sectors; // indexed by sector number
-        bool dirty = false;
+        std::vector<std::vector<uint8_t>> sectors; // indexed by sector number, 512 bytes each
+        std::vector<bool> valid;                   // sector decoded with good checksums
+        bool dirty       = false;
+        bool writeFailed = false;                  // background retries stop after a failure
+        int  rereads     = 0;                      // extra reads tried for unreadable sectors
+        std::chrono::steady_clock::time_point firstDirty, lastWrite;
+        bool allValid() const;
     };
 
-    bool loadTrack(uint32_t cylinder, uint32_t head);
-    bool flushTrack(uint32_t cylinder, uint32_t head, TrackCache& tc);
+    using Clock = std::chrono::steady_clock;
+
+    bool ensureMotor();
+    bool seekTo(uint32_t cylinder, uint32_t head);
+    bool readTrackRaw(uint32_t cylinder, uint32_t head,
+                      std::vector<std::vector<uint8_t>>& sectors, std::vector<bool>& valid);
+    TrackCache* loadTrack(uint32_t cylinder, uint32_t head);
+    bool flushTrack(uint32_t key, TrackCache& tc);
+    bool flushLocked();
     void lbaToPhysical(uint32_t lba,
                        uint32_t& cylinder, uint32_t& head, uint32_t& sector) const;
-    bool detectGeometry();
+    int  detect(bool isHD);   // 1 = recognised, 0 = unknown format, -1 = drive error
+    void backgroundLoop();
 
-    std::string           m_portName;
-    bool                  m_forceReadOnly;
-    int                   m_forcedHD;      // -1=auto, 0=DD, 1=HD
-    bool                  m_open           = false;
-    bool                  m_writeProtected = false;
-    DiskGeometry          m_geo;
+    Options      m_opts;
+    bool         m_open           = false;
+    bool         m_writeProtected = false;
+    std::atomic<bool> m_removed{false};
+    bool         m_removalReported = false;
+    bool         m_motorOn        = false;
+    DiskGeometry m_geo;
+    Clock::time_point m_lastIO;
+    Clock::time_point m_lastDiskCheck;
 
-    // ADFWriter is held by value (it owns the ArduinoInterface)
-    // We forward-declare to avoid pulling Qt-free ADFWriter.h here.
-    struct Impl;
+    struct Impl;           // owns the ADFWriter (keeps Arduino headers out of here)
     Impl* m_impl = nullptr;
 
-    std::map<uint32_t, TrackCache> m_cache;
+    std::map<uint32_t, TrackCache> m_cache;  // key = cylinder * 2 + head
     mutable std::mutex             m_mtx;
+
+    std::thread              m_thread;
+    std::mutex               m_threadMtx;
+    std::condition_variable  m_threadCv;
+    bool                     m_threadStop = false;
+    std::function<void(Event)> m_onEvent;
 };

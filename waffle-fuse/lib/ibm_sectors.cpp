@@ -245,7 +245,7 @@ namespace IBM {
                         // Standardize the sector
                         DecodedSector sec;
                         sec.data = sector.data.data;
-                        sec.numErrors = sector.headerErrors + sector.dataValid ? 0 : 1;
+                        sec.numErrors = sector.headerErrors + (sector.dataValid ? 0 : 1);
 
                         // See if this already exists 
                         auto it = decodedTrack.sectors.find(sector.header.sector - 1);

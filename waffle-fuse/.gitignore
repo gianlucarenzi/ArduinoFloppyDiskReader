@@ -8,3 +8,4 @@ waffle-fuse
 # Mountpoint (empty dir kept via .gitkeep)
 mountpoint/*
 !mountpoint/.gitkeep
+__pycache__/

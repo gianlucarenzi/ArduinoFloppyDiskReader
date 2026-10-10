@@ -2926,50 +2926,48 @@ ADFResult ADFWriter::GuessDiskDensity(bool& isHD)
 
 bool ADFWriter::readAmigaTrack(bool isHD, unsigned int cylinder, DiskSurface side,
                                std::vector<std::array<uint8_t, 512>>& outSectors,
+                               std::vector<bool>& validOut,
                                int maxRetries)
 {
     const unsigned int maxSect = isHD ? NUM_SECTORS_PER_TRACK_HD : NUM_SECTORS_PER_TRACK_DD;
     const unsigned int readSize = isHD ? (unsigned int)sizeof(RawTrackDataHD)
                                        : (unsigned int)sizeof(RawTrackDataDD);
     outSectors.assign(maxSect, std::array<uint8_t, 512>{});
+    validOut.assign(maxSect, false);
 
     if (m_device.setDiskCapacity(isHD) != DiagnosticResponse::drOK) return false;
 
+    // Sectors with good checksums accumulate across retries (decodeSector skips
+    // the ones already found), so each extra revolution can only add sectors.
     DecodedTrack track;
-    bool ignoreChecksums = false;
-
     for (int retry = 0; retry < maxRetries; retry++) {
         RawTrackDataHD data;
         if (m_device.readCurrentTrack(data, (int)readSize, false) != DiagnosticResponse::drOK)
             return false;
-
-        findSectors(data, isHD, cylinder, side, AMIGA_WORD_SYNC, track, ignoreChecksums);
-
-        if (track.validSectors.size() >= maxSect)
-            break;
-
-        if (retry == maxRetries - 1) {
-            ignoreChecksums = true;
-            findSectors(data, isHD, cylinder, side, AMIGA_WORD_SYNC, track, ignoreChecksums);
-            mergeInvalidSectors(track, isHD);
-        }
+        findSectors(data, isHD, cylinder, side, AMIGA_WORD_SYNC, track, false);
+        if (track.validSectors.size() >= maxSect) break;
     }
 
     for (const DecodedSector& s : track.validSectors) {
-        if (s.sectorNumber < maxSect)
+        if (s.sectorNumber < maxSect) {
             memcpy(outSectors[s.sectorNumber].data(), s.data, 512);
+            validOut[s.sectorNumber] = true;
+        }
     }
-    return track.validSectors.size() >= maxSect;
+    return true;
 }
 
 bool ADFWriter::readIBMTrack(bool isHD, unsigned int trackNum, uint32_t expectedSectors,
                              std::vector<std::vector<uint8_t>>& outSectors,
+                             std::vector<bool>& validOut,
                              int maxRetries)
 {
     const unsigned int readSize = isHD ? (unsigned int)sizeof(RawTrackDataHD)
                                        : (unsigned int)sizeof(RawTrackDataDD);
     IBM::DecodedTrack track;
     bool nonStandard = false;
+    outSectors.assign(expectedSectors, std::vector<uint8_t>());
+    validOut.assign(expectedSectors, false);
 
     if (m_device.setDiskCapacity(isHD) != DiagnosticResponse::drOK) return false;
 
@@ -2977,56 +2975,63 @@ bool ADFWriter::readIBMTrack(bool isHD, unsigned int trackNum, uint32_t expected
         RawTrackDataHD data;
         if (m_device.readCurrentTrack(data, (int)readSize, false) != DiagnosticResponse::drOK)
             return false;
+        // expectedNumSectors=0: don't let the decoder pad the track with dummy sectors
+        IBM::findSectors_IBM(data, readSize * 8, isHD, trackNum, 0, track, nonStandard);
 
-        IBM::findSectors_IBM(data, readSize * 8, isHD, trackNum, expectedSectors,
-                             track, nonStandard);
-
-        if (track.sectors.size() >= expectedSectors && track.sectorsWithErrors == 0)
-            break;
+        uint32_t good = 0;
+        for (auto& kv : track.sectors)
+            if ((uint32_t)kv.first < expectedSectors && kv.second.numErrors == 0) good++;
+        if (good >= expectedSectors) break;
     }
 
-    outSectors.clear();
-    outSectors.resize(expectedSectors);
     for (auto& kv : track.sectors) {
-        if ((uint32_t)kv.first < expectedSectors)
-            outSectors[(uint32_t)kv.first] = kv.second.data;
+        if (kv.first < 0 || (uint32_t)kv.first >= expectedSectors) continue;
+        outSectors[(uint32_t)kv.first] = kv.second.data;
+        validOut[(uint32_t)kv.first] = (kv.second.numErrors == 0);
     }
-    return track.sectors.size() >= expectedSectors;
+    return true;
 }
 
-bool ADFWriter::writeAmigaTrack(bool isHD, unsigned int cylinder, DiskSurface side,
-                                const std::vector<std::array<uint8_t, 512>>& sectors,
-                                bool usePrecomp)
+// Mirrors the track layout used by ADFToDisk: 0xAA filler, the encoded
+// sectors, then the 8-byte trailer whose last byte depends on the final MFM bit.
+DiagnosticResponse ADFWriter::writeAmigaTrack(bool isHD, unsigned int cylinder, DiskSurface side,
+                                              const std::vector<std::array<uint8_t, 512>>& sectors,
+                                              bool usePrecomp)
 {
     const unsigned int maxSect = isHD ? NUM_SECTORS_PER_TRACK_HD : NUM_SECTORS_PER_TRACK_DD;
-    const size_t fillerBytes = 1654;
+    if (sectors.size() < maxSect) return DiagnosticResponse::drError;
 
-    size_t bufSize = isHD ? sizeof(FullDiskTrackHD) : sizeof(FullDiskTrackDD);
-    std::vector<unsigned char> mfmBuf(bufSize, 0xAA);
+    // The density selects the write routine (and the firmware timing)
+    DiagnosticResponse mode = m_device.setDiskCapacity(isHD);
+    if (mode != DiagnosticResponse::drOK) return mode;
 
-    unsigned char lastByte = 0;
-    for (unsigned int s = 0; s < maxSect && s < sectors.size(); s++) {
+    std::vector<unsigned char> buf(isHD ? sizeof(FullDiskTrackHD) : sizeof(FullDiskTrackDD), 0xAA);
+    const size_t fillerBytes = sizeof(FullDiskTrackDD::filler1);
+
+    unsigned char lastByte = buf[fillerBytes - 1];
+    for (unsigned int s = 0; s < maxSect; s++) {
         RawDecodedSector decoded;
         memcpy(decoded, sectors[s].data(), 512);
         RawEncodedSector enc;
         encodeSector(cylinder, side, isHD, s, decoded, enc, lastByte);
-        memcpy(mfmBuf.data() + fillerBytes + s * RAW_SECTOR_SIZE, enc, RAW_SECTOR_SIZE);
+        memcpy(buf.data() + fillerBytes + (size_t)s * RAW_SECTOR_SIZE, enc, RAW_SECTOR_SIZE);
     }
+    buf[buf.size() - 1] = (lastByte & 1) ? 0x2F : 0xFF;
 
-    DiagnosticResponse resp;
-    if (usePrecomp && cylinder >= 40)
-        resp = m_device.writeCurrentTrackPrecomp(mfmBuf.data(),
-                                                 (unsigned short)mfmBuf.size(), true, true);
-    else
-        resp = m_device.writeCurrentTrack(mfmBuf.data(),
-                                          (unsigned short)mfmBuf.size(), true);
-    return resp == DiagnosticResponse::drOK;
+    DiagnosticResponse resp = m_device.writeCurrentTrackPrecomp(buf.data(), (unsigned short)buf.size(),
+                                                                false, usePrecomp && cylinder >= 40);
+    if (resp == DiagnosticResponse::drOldFirmware)
+        resp = m_device.writeCurrentTrack(buf.data(), (unsigned short)buf.size(), false);
+    return resp;
 }
 
-bool ADFWriter::writeIBMTrack(bool isHD, unsigned int trackNum, bool useAtariTiming,
-                              const std::vector<std::vector<uint8_t>>& sectors,
-                              bool usePrecomp)
+DiagnosticResponse ADFWriter::writeIBMTrack(bool isHD, unsigned int trackNum, bool useAtariTiming,
+                                            const std::vector<std::vector<uint8_t>>& sectors,
+                                            bool usePrecomp)
 {
+    DiagnosticResponse mode = m_device.setDiskCapacity(isHD);
+    if (mode != DiagnosticResponse::drOK) return mode;
+
     IBM::DecodedTrack trk;
     for (uint32_t i = 0; i < (uint32_t)sectors.size(); i++) {
         IBM::DecodedSector sec;
@@ -3035,23 +3040,19 @@ bool ADFWriter::writeIBMTrack(bool isHD, unsigned int trackNum, bool useAtariTim
         trk.sectors.insert({(int)i, sec});
     }
 
-    std::vector<uint32_t> mfmBuffer(IBM::MaxTrackSize);
+    std::vector<uint32_t> mfmBuffer(IBM::MaxTrackSize / sizeof(uint32_t) + 1);
     const uint32_t bytes = IBM::encodeSectorsIntoMFM_IBM(
         isHD, useAtariTiming, &trk, trackNum,
         (uint32_t)(mfmBuffer.size() * sizeof(uint32_t)),
         mfmBuffer.data());
-    if (bytes == 0) return false;
+    if (bytes == 0) return DiagnosticResponse::drError;
 
     const unsigned int cylinder = trackNum / 2;
-    DiagnosticResponse resp;
-    if (usePrecomp && cylinder >= 40)
-        resp = m_device.writeCurrentTrackPrecomp(
-            reinterpret_cast<const unsigned char*>(mfmBuffer.data()),
-            (unsigned short)bytes, true, true);
-    else
-        resp = m_device.writeCurrentTrack(
-            reinterpret_cast<const unsigned char*>(mfmBuffer.data()),
-            (unsigned short)bytes, true);
-    return resp == DiagnosticResponse::drOK;
+    const unsigned char* data = reinterpret_cast<const unsigned char*>(mfmBuffer.data());
+    DiagnosticResponse resp = m_device.writeCurrentTrackPrecomp(data, (unsigned short)bytes,
+                                                                true, usePrecomp && cylinder >= 40);
+    if (resp == DiagnosticResponse::drOldFirmware)
+        resp = m_device.writeCurrentTrack(data, (unsigned short)bytes, true);
+    return resp;
 }
 

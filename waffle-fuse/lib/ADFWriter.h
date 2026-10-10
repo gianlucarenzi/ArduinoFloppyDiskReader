@@ -172,29 +172,37 @@ namespace ArduinoFloppyReader {
         // Low-level track I/O helpers for the FUSE driver
         // ----------------------------------------------------------------
 
-        // Read and decode an Amiga MFM track (cylinder already selected).
+        // Direct access to the underlying interface (motor control, disk-change polling)
+        ArduinoInterface& device() { return m_device; }
+
+        // Read and decode an Amiga MFM track (cylinder/surface already selected).
         // outSectors is filled with exactly (isHD ? 22 : 11) entries of 512 bytes each.
-        // Returns true if all sectors were recovered (possibly after retries).
+        // validOut[i] is true only for sectors whose header and data checksums matched:
+        // unreadable sectors are never "guessed", so callers can refuse to rewrite them.
+        // Returns false only on a drive/communication error.
         bool readAmigaTrack(bool isHD, unsigned int cylinder, DiskSurface side,
                             std::vector<std::array<uint8_t, 512>>& outSectors,
+                            std::vector<bool>& validOut,
                             int maxRetries = 5);
 
-        // Read and decode an IBM/FAT track (already positioned).
+        // Read and decode an IBM/FAT track (cylinder/surface already selected).
         // trackNum = cylinder*2 + (side==dsUpper ? 1 : 0).
-        // outSectors[sectorIndex] contains 512 bytes (or bytesPerSector if != 512).
+        // outSectors[i] holds the data of sector i+1; validOut[i] is true if it decoded without CRC errors.
+        // Returns false only on a drive/communication error.
         bool readIBMTrack(bool isHD, unsigned int trackNum, uint32_t expectedSectors,
                           std::vector<std::vector<uint8_t>>& outSectors,
+                          std::vector<bool>& validOut,
                           int maxRetries = 5);
 
-        // Encode and write an Amiga track back to disk.
-        bool writeAmigaTrack(bool isHD, unsigned int cylinder, DiskSurface side,
-                             const std::vector<std::array<uint8_t, 512>>& sectors,
-                             bool usePrecomp = false);
+        // Encode and write an Amiga track (cylinder/surface already selected).
+        DiagnosticResponse writeAmigaTrack(bool isHD, unsigned int cylinder, DiskSurface side,
+                                           const std::vector<std::array<uint8_t, 512>>& sectors,
+                                           bool usePrecomp);
 
-        // Encode and write an IBM/FAT track back to disk.
-        bool writeIBMTrack(bool isHD, unsigned int trackNum, bool useAtariTiming,
-                           const std::vector<std::vector<uint8_t>>& sectors,
-                           bool usePrecomp = false);
+        // Encode and write an IBM/FAT track (cylinder/surface already selected).
+        DiagnosticResponse writeIBMTrack(bool isHD, unsigned int trackNum, bool useAtariTiming,
+                                         const std::vector<std::vector<uint8_t>>& sectors,
+                                         bool usePrecomp);
     };
 
 

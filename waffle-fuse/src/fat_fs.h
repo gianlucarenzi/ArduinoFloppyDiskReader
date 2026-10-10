@@ -3,6 +3,7 @@
 
 #define FUSE_USE_VERSION 31
 #include <fuse3/fuse.h>
+#include <string>
 #include "disk_cache.h"
 
 // Returns filled fuse_operations for a FAT12/FAT16 disk.
@@ -20,4 +21,5 @@ void* fat_fs_new(IDiskImage* disk);
 void  fat_fs_free(void* ctx);
 
 // Query helpers (valid only when ctx != nullptr).
-bool  fat_is_fat16(void* ctx);  // false => FAT12
+bool        fat_is_fat16(void* ctx);      // false => FAT12
+std::string fat_volume_label(void* ctx);  // empty if the volume has no label
