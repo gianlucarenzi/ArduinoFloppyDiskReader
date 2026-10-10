@@ -4,6 +4,7 @@ src/*.d
 lib/*.o
 lib/*.d
 waffle-fuse
+src/icons_embedded.h
 
 # Mountpoint (empty dir kept via .gitkeep)
 mountpoint/*

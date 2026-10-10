@@ -71,7 +71,11 @@ if [ $AUTOSTART -eq 1 ]; then
 fi
 
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$APP_DST" 2>/dev/null || true
-command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -f -t "$HOME/.local/share/icons" 2>/dev/null || true
+# Running programs (file manager, desktop) rescan an icon theme only when the
+# theme directory itself changes: touch it so the new icons show up right away.
+# (No icon cache for the user's hicolor: GTK scans it, and a stale cache would
+# hide icons added later.)
+touch "$HOME/.local/share/icons/hicolor"
 
 if ! /usr/bin/python3 -c "import gi; gi.require_version('Gtk', '3.0')" 2>/dev/null; then
     echo ""

@@ -103,9 +103,12 @@ la porta seriale è aperta in modo esclusivo.
   sparisce, il volume viene smontato. Se c'erano ancora modifiche in sospeso arriva un
   avviso di errore, perché quelle modifiche sono perse: aspetta l'avviso "puoi estrarre"
   prima di togliere il disco, come su Amiga.
-* **Desktop**: nella radice del disco compare un `.xdg-volume-info` *virtuale* (in sola
-  lettura, mai scritto sul disco) con il nome del volume e l'icona Amiga o DOS, che i file
-  manager usano per l'icona sul desktop. Se il disco ne contiene già uno, viene nascosto.
+* **Desktop**: nella radice del disco compaiono un `.xdg-volume-info` e un
+  `.waffle-icon.svg` *virtuali* (in sola lettura, mai scritti sul disco) con il nome del
+  volume e l'icona Amiga o DOS, che i file manager usano per l'icona sul desktop. L'icona è
+  data come file (`IconFile`), perché con un nome di tema GTK preferirebbe l'icona generica
+  "disco rimovibile" del tema attivo. Un `.xdg-volume-info` già presente sul disco viene
+  nascosto.
 * **Niente cestino sul floppy**: le cartelle `.Trash`/`.Trash-<uid>` vengono rifiutate, così
   il file manager propone di eliminare definitivamente invece di riempire il disco con i
   file cancellati (opzione `trash` per riabilitarlo).

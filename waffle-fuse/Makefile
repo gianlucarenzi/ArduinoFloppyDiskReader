@@ -35,6 +35,16 @@ OBJS     := $(ALL_SRCS:.cpp=.o)
 
 TARGET   := waffle-fuse
 
+.DEFAULT_GOAL := all
+
+# Volume icons embedded in the binary (served as /.waffle-icon.svg)
+src/icons_embedded.h: icons/amiga-floppy.svg icons/dos-floppy.svg
+	{ echo '// Generated from icons/*.svg by the Makefile - do not edit'; \
+	  printf 'static const char kAmigaVolumeIcon[] = R"SVG('; cat icons/amiga-floppy.svg; echo ')SVG";'; \
+	  printf 'static const char kDosVolumeIcon[] = R"SVG('; cat icons/dos-floppy.svg; echo ')SVG";'; } > $@
+
+src/waffle_fuse.o: src/icons_embedded.h
+
 # ── Build rules ───────────────────────────────────────────────────────────────
 .PHONY: all clean install test
 
@@ -47,7 +57,7 @@ $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 clean:
-	rm -f $(OBJS) $(OBJS:.o=.d) $(TARGET)
+	rm -f $(OBJS) $(OBJS:.o=.d) $(TARGET) src/icons_embedded.h
 
 install: $(TARGET)
 	install -m 755 $(TARGET) $(PREFIX)/bin/$(TARGET)

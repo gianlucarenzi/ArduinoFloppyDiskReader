@@ -43,6 +43,7 @@
 #include "fat_fs.h"
 #include "affs_fs.h"
 #include "format.h"
+#include "icons_embedded.h"
 #include "debugmsg.h"
 
 // Exit codes (also documented in the README)
@@ -253,12 +254,24 @@ static void onDiskEvent(WaffleDisk::Event e)
 //   permanently instead of filling an 880K floppy with a trash can.
 
 static struct fuse_operations g_fsOps;          // the filesystem's own operations
-static std::string            g_volumeInfo;     // content of /.xdg-volume-info, "" = disabled
 static bool                   g_allowTrash = false;
-static const uint64_t         VOLINFO_FH = ~0ull;
-static const char* const      VOLINFO_PATH = "/.xdg-volume-info";
+static const uint64_t         VIRTUAL_FH = ~0ull;  // fh of a virtual file (content via path)
 
-static bool isVolumeInfo(const char* path) { return !g_volumeInfo.empty() && strcmp(path, VOLINFO_PATH) == 0; }
+// Virtual read-only files: path -> content ("" = absent).  The icon is given
+// as IconFile (a file, used as is) as well as Icon (a themed name): with a
+// themed name GTK prefers the theme's generic "drive-removable-media"
+// fallback over an icon that only exists in hicolor.
+static std::string g_volumeInfo;   // /.xdg-volume-info
+static std::string g_volumeIcon;   // /.waffle-icon.svg
+
+static const std::string* virtualFile(const char* path)
+{
+    if (!g_volumeInfo.empty() && strcmp(path, "/.xdg-volume-info") == 0) return &g_volumeInfo;
+    if (!g_volumeIcon.empty() && strcmp(path, "/.waffle-icon.svg") == 0)  return &g_volumeIcon;
+    return nullptr;
+}
+
+static bool isVolumeInfo(const char* path) { return virtualFile(path) != nullptr; }
 
 static bool isTrash(const char* path)
 {
@@ -269,11 +282,11 @@ static bool isTrash(const char* path)
 
 static int w_getattr(const char* path, struct stat* st, struct fuse_file_info* fi)
 {
-    if (isVolumeInfo(path)) {
+    if (const std::string* vf = virtualFile(path)) {
         memset(st, 0, sizeof(*st));
         st->st_mode  = S_IFREG | 0444;
         st->st_nlink = 1;
-        st->st_size  = (off_t)g_volumeInfo.size();
+        st->st_size  = (off_t)vf->size();
         st->st_uid   = getuid();
         st->st_gid   = getgid();
         return 0;
@@ -286,7 +299,7 @@ static int w_open(const char* path, struct fuse_file_info* fi)
 {
     if (isVolumeInfo(path)) {
         if ((fi->flags & O_ACCMODE) != O_RDONLY) return -EACCES;
-        fi->fh = VOLINFO_FH;
+        fi->fh = VIRTUAL_FH;
         return 0;
     }
     return g_fsOps.open(path, fi);
@@ -294,10 +307,11 @@ static int w_open(const char* path, struct fuse_file_info* fi)
 
 static int w_read(const char* path, char* buf, size_t size, off_t off, struct fuse_file_info* fi)
 {
-    if (fi && fi->fh == VOLINFO_FH) {
-        if (off >= (off_t)g_volumeInfo.size()) return 0;
-        size_t n = std::min(size, g_volumeInfo.size() - (size_t)off);
-        memcpy(buf, g_volumeInfo.data() + off, n);
+    if (fi && fi->fh == VIRTUAL_FH) {
+        const std::string* vf = virtualFile(path);
+        if (!vf || off >= (off_t)vf->size()) return 0;
+        size_t n = std::min(size, vf->size() - (size_t)off);
+        memcpy(buf, vf->data() + off, n);
         return (int)n;
     }
     return g_fsOps.read(path, buf, size, off, fi);
@@ -305,13 +319,13 @@ static int w_read(const char* path, char* buf, size_t size, off_t off, struct fu
 
 static int w_flush(const char* path, struct fuse_file_info* fi)
 {
-    if (fi && fi->fh == VOLINFO_FH) return 0;
+    if (fi && fi->fh == VIRTUAL_FH) return 0;
     return g_fsOps.flush ? g_fsOps.flush(path, fi) : 0;
 }
 
 static int w_release(const char* path, struct fuse_file_info* fi)
 {
-    if (fi && fi->fh == VOLINFO_FH) return 0;
+    if (fi && fi->fh == VIRTUAL_FH) return 0;
     return g_fsOps.release ? g_fsOps.release(path, fi) : 0;
 }
 
@@ -712,9 +726,12 @@ int main(int argc, char* argv[])
     if (readOnly) fuse_opt_add_arg(&args, "-oro");
 
     g_allowTrash = opts.trash;
-    if (!opts.novolinfo)
-        g_volumeInfo = "[Volume Info]\nName=" + displayName + "\nIcon=" +
-                       (useAFFS ? "waffle-amiga-floppy" : "waffle-dos-floppy") + "\n";
+    if (!opts.novolinfo) {
+        g_volumeIcon = useAFFS ? kAmigaVolumeIcon : kDosVolumeIcon;
+        g_volumeInfo = "[Volume Info]\nName=" + displayName +
+                       "\nIcon=" + (useAFFS ? "waffle-amiga-floppy" : "waffle-dos-floppy") +
+                       "\nIconFile=.waffle-icon.svg\n";
+    }
     struct fuse_operations ops = wrapOperations(useAFFS ? affs_get_operations() : fat_get_operations());
     g_fuse = fuse_new(&args, &ops, sizeof(ops), fsCtx);
     if (!g_fuse) {
