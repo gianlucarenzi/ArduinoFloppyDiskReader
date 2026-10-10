@@ -106,7 +106,8 @@ bool ImageDisk::writeSector(uint32_t lba, const uint8_t* buf512)
 {
     if (!m_file || m_readOnly || lba >= m_sectors) return false;
     if (fseek(m_file, (long)lba * 512, SEEK_SET) != 0) return false;
-    return fwrite(buf512, 1, 512, m_file) == 512;
+    // Straight to the file: a killed process must not lose buffered changes
+    return fwrite(buf512, 1, 512, m_file) == 512 && fflush(m_file) == 0;
 }
 
 bool ImageDisk::flush()
@@ -224,7 +225,7 @@ WaffleDisk::OpenResult WaffleDisk::openForFormat(bool& holeIsHD, bool& holeKnown
 }
 
 int WaffleDisk::writeImage(const DiskGeometry& geo, const std::vector<uint8_t>& image, WriteMode mode,
-                           std::function<void(uint32_t, uint32_t, int)> progress)
+                           std::function<bool(uint32_t, uint32_t, int)> progress)
 {
     std::lock_guard<std::mutex> lk(m_mtx);
     if (!m_open) return -1;
@@ -257,7 +258,7 @@ int WaffleDisk::writeImage(const DiskGeometry& geo, const std::vector<uint8_t>& 
                     for (uint32_t s = 0; same && s < spt; s++)
                         same = valid[s] && cur[s] == tc.sectors[s];
                     if (same) {
-                        if (progress) progress(cyl, head, 1);
+                        if (progress && !progress(cyl, head, 1)) { m_cache.clear(); return -2; }
                         continue;
                     }
                 }
@@ -275,11 +276,77 @@ int WaffleDisk::writeImage(const DiskGeometry& geo, const std::vector<uint8_t>& 
                 failed++;
                 if (isWriteProtected()) return -1;
             }
-            if (progress) progress(cyl, head, ok ? 0 : -1);
+            if (progress && !progress(cyl, head, ok ? 0 : -1)) { m_cache.clear(); return -2; }
         }
     }
     m_cache.clear();
     return failed;
+}
+
+int WaffleDisk::readImage(const DiskGeometry& geo, std::vector<uint8_t>& image,
+                          std::function<bool(uint32_t, uint32_t, int)> progress)
+{
+    std::lock_guard<std::mutex> lk(m_mtx);
+    if (!m_open) return -1;
+    m_geo = geo;
+    m_cache.clear();
+    const uint32_t spt = geo.sectorsPerTrack;
+    image.assign((size_t)geo.numCylinders * geo.numHeads * spt * 512, 0);
+
+    int bad = 0;
+    for (uint32_t cyl = 0; cyl < geo.numCylinders; cyl++) {
+        for (uint32_t head = 0; head < geo.numHeads; head++) {
+            std::vector<std::vector<uint8_t>> best(spt);
+            std::vector<bool> got(spt, false);
+            for (int attempt = 0; attempt < 3; attempt++) {
+                if (attempt > 0)   // re-settle the head like WaffleCopy does
+                    m_impl->writer.selectTrack((unsigned char)(cyl < 40 ? cyl + 30 : cyl - 30),
+                                               TrackSearchSpeed::tssSlow);
+                std::vector<std::vector<uint8_t>> sectors;
+                std::vector<bool> valid;
+                if (!readTrackRaw(cyl, head, sectors, valid)) return -1;
+                bool all = true;
+                for (uint32_t s = 0; s < spt && s < valid.size(); s++) {
+                    if (valid[s] && !got[s]) { best[s] = sectors[s]; got[s] = true; }
+                    all &= got[s];
+                }
+                if (all) break;
+            }
+            int good = 0;
+            const size_t base = ((size_t)(cyl * geo.numHeads + head) * spt) * 512;
+            for (uint32_t s = 0; s < spt; s++) {
+                if (got[s] && best[s].size() == 512) {
+                    memcpy(image.data() + base + (size_t)s * 512, best[s].data(), 512);
+                    good++;
+                }
+            }
+            bad += (int)spt - good;
+            if (progress && !progress(cyl, head, good)) return -2;
+        }
+    }
+    return bad;
+}
+
+int WaffleDisk::dumpSCP(const std::string& path, bool isHD, unsigned int tracks, unsigned int revolutions,
+                        std::function<bool(int, int)> progress)
+{
+    std::lock_guard<std::mutex> lk(m_mtx);
+    if (!m_open) return -1;
+    if (!ensureMotor()) return -1;
+    m_lastIO = Clock::now();
+    ADFResult r = m_impl->writer.DiskToSCP(toWide(path), isHD, tracks, (unsigned char)revolutions,
+        [&](const int track, const DiskSurface side, const int, const int, const int, const int,
+            const CallbackOperation op) {
+            if (op == CallbackOperation::coReading && progress &&
+                !progress(track, side == DiskSurface::dsUpper ? 1 : 0))
+                return WriteResponse::wrAbort;
+            return WriteResponse::wrContinue;
+        }, false);
+    m_lastIO = Clock::now();
+    if (r == ADFResult::adfrAborted) return -2;
+    if (r == ADFResult::adfrComplete) return 0;
+    if (r == ADFResult::adfrCompletedWithErrors) return 1;
+    return -1;
 }
 
 void WaffleDisk::close()

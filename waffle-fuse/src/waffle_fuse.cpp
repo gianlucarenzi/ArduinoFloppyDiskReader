@@ -24,6 +24,7 @@
 #include <fuse3/fuse_lowlevel.h>
 
 #include <cstdio>
+#include <csignal>
 #include <cstdlib>
 #include <cstring>
 #include <cerrno>
@@ -189,7 +190,8 @@ static void usage(const char* progname)
         "       " << progname << " --format-image <file> <amiga|ofs|ffs|amiga-intl|dos> <dd|hd> [label]\n"
         "       " << progname << " --write-image <serial-port> <file.adf|img> [--full] [--yes]\n"
         "       " << progname << " --scan <serial-port>        (good sectors per track)\n"
-        "       " << progname << " --dump <serial-port> <file> (read the whole disk into an image)\n"
+        "       " << progname << " --dump <serial-port> <file.adf|img|scp> [--format amiga|dos] [--density dd|hd]\n"
+        "                     (copy the whole disk; .scp = raw flux, for copy-protected disks)\n"
         "\n"
         "  --automount <dir>  mount at <dir>/<volume name> (created and removed automatically)\n"
         "  --probe            check if a disk is present (exit 0=disk, 1=no disk, 2=error)\n"
@@ -377,40 +379,126 @@ int main(int argc, char* argv[])
         return WaffleDisk::waitForDisk(argv[2], strcmp(argv[1], "--wait-disk") == 0, timeout, pollMs);
     }
 
-    // --dump <port> <file>: read the whole disk into an ADF/IMG, listing unreadable sectors
+    // Long disk operations stop between two tracks on SIGTERM/SIGINT, so the
+    // drive is left in a clean state (never in the middle of a track write)
+    static std::atomic<bool> stopRequested{false};
+    if (argc >= 2 && (strcmp(argv[1], "--write-image") == 0 || strcmp(argv[1], "--format") == 0 ||
+                      strcmp(argv[1], "--dump") == 0)) {
+        signal(SIGTERM, [](int) { stopRequested = true; });
+        signal(SIGINT,  [](int) { stopRequested = true; });
+    }
+
+    // --dump <port> <file> [--format amiga|dos] [--density dd|hd] [--tracks N] [--revs N]
+    // Copy the whole disk into an image: ADF/IMG (sectors) or, for a .scp file,
+    // the raw magnetic flux (copy-protected and non-DOS disks).
     if (argc >= 4 && strcmp(argv[1], "--dump") == 0) {
-        WaffleDisk::Options wo;
-        wo.port = argv[2];
-        wo.forceReadOnly = true;
-        WaffleDisk wd(wo);
-        if (wd.open() != WaffleDisk::OpenResult::OK) { std::cerr << "waffle-fuse: cannot read the disk\n"; return EXIT_DRIVE; }
-        FILE* out = fopen(argv[3], "wb");
-        if (!out) { perror(argv[3]); return EXIT_USAGE; }
-        const DiskGeometry& g = wd.geometry();
-        std::cerr << "waffle-fuse: " << diskFormatName(g.format) << (g.isHD ? " HD" : " DD")
-                  << ", " << wd.totalSectors() << " sectors\n";
-        uint32_t bad = 0;
-        for (uint32_t lba = 0; lba < wd.totalSectors(); lba++) {
-            uint8_t buf[512];
-            if (!wd.readSector(lba, buf)) {
-                const uint32_t spt = g.sectorsPerTrack;
-                std::cerr << "  unreadable sector " << lba << " (cylinder " << lba / (spt * g.numHeads)
-                          << ", head " << (lba / spt) % g.numHeads << ", sector " << lba % spt << ")\n";
-                bad++;
-            }
-            fwrite(buf, 1, 512, out);
+        const std::string port = argv[2], out = argv[3];
+        std::string forceFmt, forceDen;
+        unsigned int tracks = 80, revs = 3;
+        for (int i = 4; i + 1 < argc; i += 2) {
+            if (strcmp(argv[i], "--format") == 0)       forceFmt = argv[i + 1];
+            else if (strcmp(argv[i], "--density") == 0) forceDen = argv[i + 1];
+            else if (strcmp(argv[i], "--tracks") == 0)  tracks = (unsigned)atoi(argv[i + 1]);
+            else if (strcmp(argv[i], "--revs") == 0)    revs = (unsigned)atoi(argv[i + 1]);
         }
-        fclose(out);
+        const bool scp = out.size() > 4 && strcasecmp(out.c_str() + out.size() - 4, ".scp") == 0;
+
+        WaffleDisk::Options wo;
+        wo.port = port;
+        wo.forceReadOnly = true;
+        if (!forceDen.empty()) wo.forcedHD = forceDen == "hd" ? 1 : 0;
+        WaffleDisk wd(wo);
+
+        auto openRaw = [&](bool& isHD) -> int {
+            bool holeHD, holeKnown;
+            switch (wd.openForFormat(holeHD, holeKnown)) {
+            case WaffleDisk::OpenResult::OK: break;
+            case WaffleDisk::OpenResult::NoDisk:
+                std::cerr << "waffle-fuse: no disk in drive\n"; emit("error=nodisk"); return EXIT_NODISK;
+            default:
+                std::cerr << "waffle-fuse: cannot open device " << port << "\n"; emit("error=port"); return EXIT_PORT;
+            }
+            isHD = !forceDen.empty() ? forceDen == "hd" : (holeKnown && holeHD);
+            return 0;
+        };
+
+        if (scp) {
+            bool isHD;
+            if (int e = openRaw(isHD)) return e;
+            std::cerr << "waffle-fuse: flux dump (" << (isHD ? "HD" : "DD") << ", " << tracks
+                      << " cylinders, " << revs << " revolutions) to " << out << "\n";
+            int r = wd.dumpSCP(out, isHD, std::min(tracks, 84u), std::max(1u, std::min(revs, 5u)),
+                [](int cyl, int head) {
+                    std::cerr << "\r  cylinder " << (cyl < 10 ? "0" : "") << cyl << " head " << head << std::flush;
+                    emit("event=track cylinder=" + std::to_string(cyl) + " head=" + std::to_string(head) + " status=read");
+                    return !stopRequested;
+                });
+            std::cerr << "\n";
+            wd.close();
+            if (r == -2) { std::cerr << "waffle-fuse: stopped\n"; emit("error=stopped"); return EXIT_USAGE; }
+            if (r < 0) { std::cerr << "waffle-fuse: flux dump failed\n"; emit("error=dump-failed"); return EXIT_DRIVE; }
+            std::cerr << "waffle-fuse: flux dump complete" << (r ? " (some tracks had read problems)" : "") << "\n";
+            emit(std::string("event=dumped bad=") + (r ? "1" : "0"));
+            return r ? EXIT_DRIVE : EXIT_OK;
+        }
+
+        // Sector dump: detected format, or forced, or Amiga layout for non-DOS disks
+        DiskGeometry geo;
+        WaffleDisk::OpenResult opened = forceFmt.empty() ? wd.open() : WaffleDisk::OpenResult::UnknownFormat;
+        if (opened == WaffleDisk::OpenResult::OK) {
+            geo = wd.geometry();
+        } else if (opened == WaffleDisk::OpenResult::UnknownFormat || opened == WaffleDisk::OpenResult::DriveError) {
+            bool isHD;
+            if (int e = openRaw(isHD)) return e;
+            FormatSpec spec;
+            spec.kind = forceFmt == "dos" ? FormatSpec::Kind::FAT12 : FormatSpec::Kind::AmigaFFS;
+            spec.hd = isHD;
+            geo = formatGeometry(spec);
+            if (forceFmt.empty())
+                std::cerr << "waffle-fuse: not a DOS disk, copying it sector by sector as an Amiga "
+                          << (isHD ? "HD" : "DD") << " disk (use a .scp file for copy-protected disks)\n";
+        } else if (opened == WaffleDisk::OpenResult::NoDisk) {
+            std::cerr << "waffle-fuse: no disk in drive\n"; emit("error=nodisk"); return EXIT_NODISK;
+        } else {
+            std::cerr << "waffle-fuse: cannot open device " << port << "\n"; emit("error=port"); return EXIT_PORT;
+        }
+
+        std::cerr << "waffle-fuse: " << diskFormatName(geo.format) << (geo.isHD ? " HD" : " DD") << ", "
+                  << geo.numCylinders * geo.numHeads * geo.sectorsPerTrack << " sectors\n";
+        std::vector<uint8_t> image;
+        const uint32_t spt = geo.sectorsPerTrack;
+        int bad = wd.readImage(geo, image, [spt](uint32_t cyl, uint32_t head, int good) {
+            std::cerr << "\r  cylinder " << (cyl < 10 ? "0" : "") << cyl << " head " << head
+                      << (good == (int)spt ? "            " : "  bad sectors: " + std::to_string(spt - good) + "\n")
+                      << std::flush;
+            emit("event=track cylinder=" + std::to_string(cyl) + " head=" + std::to_string(head) +
+                 " status=" + (good == (int)spt ? "ok" : "bad"));
+            return !stopRequested;
+        });
+        std::cerr << "\n";
+        wd.close();
+        if (bad == -2) { std::cerr << "waffle-fuse: stopped\n"; emit("error=stopped"); return EXIT_USAGE; }
+        if (bad < 0) { std::cerr << "waffle-fuse: drive error\n"; emit("error=drive"); return EXIT_DRIVE; }
+        FILE* f = fopen(out.c_str(), "wb");
+        if (!f || fwrite(image.data(), 1, image.size(), f) != image.size()) {
+            perror(out.c_str());
+            if (f) fclose(f);
+            emit("error=file");
+            return EXIT_USAGE;
+        }
+        fclose(f);
         std::cerr << "waffle-fuse: " << bad << " unreadable sectors (written as zeros)\n";
+        emit("event=dumped bad=" + std::to_string(bad));
         return bad ? EXIT_DRIVE : EXIT_OK;
     }
 
     // Progress line shared by --format and --write-image
-    auto trackProgress = [](uint32_t cyl, uint32_t head, int status) {
+    auto trackProgress = [](uint32_t cyl, uint32_t head, int status) -> bool {
         std::cerr << "\r  cylinder " << (cyl < 10 ? "0" : "") << cyl << " head " << head
                   << (status == 0 ? " written   " : status == 1 ? " unchanged " : " FAILED\n") << std::flush;
         emit("event=track cylinder=" + std::to_string(cyl) + " head=" + std::to_string(head) +
              " status=" + (status == 0 ? "written" : status == 1 ? "unchanged" : "failed"));
+        return !stopRequested;
     };
 
     // --write-image <port> <file.adf|img> [--full] [--yes] [--force]: put an image on the disk
@@ -460,10 +548,11 @@ int main(int argc, char* argv[])
         std::cerr << "waffle-fuse: writing " << argv[3] << (full ? " (all tracks)" : " (changed tracks only)") << "...\n";
         int written = 0;
         int bad = wd.writeImage(geo, image, full ? WaffleDisk::WriteMode::Full : WaffleDisk::WriteMode::Changed,
-                                [&](uint32_t c, uint32_t h, int st) { if (st == 0) written++; trackProgress(c, h, st); });
+                                [&](uint32_t c, uint32_t h, int st) { if (st == 0) written++; return trackProgress(c, h, st); });
         std::cerr << "\n";
         wd.close();
-        if (bad < 0) { std::cerr << "waffle-fuse: the disk is write-protected\n"; return EXIT_WRITE_ERROR; }
+        if (bad == -2) { std::cerr << "waffle-fuse: stopped (" << written << " tracks written)\n"; emit("error=stopped"); return EXIT_USAGE; }
+        if (bad < 0) { std::cerr << "waffle-fuse: the disk is write-protected\n"; emit("error=write-protected"); return EXIT_WRITE_ERROR; }
         if (bad > 0) { std::cerr << "waffle-fuse: " << bad << " tracks could not be written\n"; return EXIT_WRITE_ERROR; }
         std::cerr << "waffle-fuse: done, " << written << " tracks written and verified\n";
         emit("event=written tracks=" + std::to_string(written));
@@ -539,6 +628,7 @@ int main(int argc, char* argv[])
                                 trackProgress);
         std::cerr << "\n";
         wd.close();
+        if (bad == -2) { std::cerr << "waffle-fuse: stopped: the disk is only partly formatted\n"; emit("error=stopped"); return EXIT_USAGE; }
         if (bad < 0) { std::cerr << "waffle-fuse: the disk is write-protected\n"; emit("error=write-protected"); return EXIT_WRITE_ERROR; }
         if (bad > 0) {
             std::cerr << "waffle-fuse: " << bad << " tracks could not be written: the disk is damaged\n";

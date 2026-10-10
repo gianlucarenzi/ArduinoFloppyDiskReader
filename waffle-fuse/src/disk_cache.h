@@ -119,11 +119,27 @@ public:
     //   NonEmpty – only tracks with non-zero data (quick format)
     //   Changed  – read each track, write only those that differ from the image
     // progress(cylinder, head, status) is called after each track, status:
-    // 0 = written, 1 = unchanged (skipped), -1 = failed.  Returns the number
-    // of tracks that could not be written, or -1 if write-protected.
+    // 0 = written, 1 = unchanged (skipped), -1 = failed; returning false stops
+    // between two tracks.  Returns the number of tracks that could not be
+    // written, -1 if write-protected, -2 if stopped.
     enum class WriteMode { Full, NonEmpty, Changed };
     int writeImage(const DiskGeometry& geo, const std::vector<uint8_t>& image, WriteMode mode,
-                   std::function<void(uint32_t, uint32_t, int)> progress);
+                   std::function<bool(uint32_t, uint32_t, int)> progress);
+
+    // Read every track of 'geo' into 'image' (unreadable sectors as zeros).
+    // A track with bad sectors is read again (after a seek away and back) a
+    // couple of times.  progress(cylinder, head, goodSectors) after each track;
+    // returning false stops the copy.  Returns the number of unreadable
+    // sectors, -1 on a drive error, -2 if stopped.
+    int readImage(const DiskGeometry& geo, std::vector<uint8_t>& image,
+                  std::function<bool(uint32_t, uint32_t, int)> progress);
+
+    // Flux-level dump to an SCP file (WaffleCopy's writer), for copy-protected
+    // or non-DOS disks.  progress(cylinder, head) before each track; returning
+    // false stops the copy.  Returns 0 = ok, 1 = done but some tracks had read
+    // problems, -1 = failed, -2 = stopped.
+    int dumpSCP(const std::string& path, bool isHD, unsigned int tracks, unsigned int revolutions,
+                std::function<bool(int, int)> progress);
 
     // One-shot disk presence check without spinning the motor up.
     // Returns 0 = disk present, 1 = no disk, 2 = port/hardware error.
