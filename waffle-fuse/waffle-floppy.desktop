@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Floppy (DrawBridge/Waffle)
+Name[it]=Floppy (DrawBridge/Waffle)
+Comment=Mount or eject the disk in the DrawBridge/Waffle drive (Amiga or PC, autodetected)
+Comment[it]=Monta o espelli il disco nel drive DrawBridge/Waffle (Amiga o PC, rilevato automaticamente)
+Exec=WAFFLE_DIR_PLACEHOLDER/scripts/waffle-mount.sh auto auto
+Icon=ICON_PATH_PLACEHOLDER/amiga-floppy.svg
+Terminal=false
+Categories=System;FileManager;
+Keywords=amiga;dos;floppy;drawbridge;waffle;adf;ofs;ffs;fat;
+StartupNotify=false

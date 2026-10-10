@@ -1,175 +1,90 @@
 #!/bin/sh
-# waffle-mount.sh – portable mount/unmount helper for waffle-fuse
+# waffle-mount.sh – one-click mount/unmount for waffle-fuse (desktop launchers)
 #
-# Usage: waffle-mount.sh [amiga|dos] [dd|hd] [/dev/ttyUSBx]
+# Usage: waffle-mount.sh [auto|amiga|dos] [auto|dd|hd] [/dev/ttyUSBx]
 #
-# Defaults: format=amiga, density=dd, port=auto-detect
+# Toggle: if a disk from the drive is mounted it is unmounted (pending
+# changes are written first), otherwise the inserted disk is mounted under
+# $WAFFLE_MOUNT_DIR/<volume name> (default ~/Floppy), where it shows up as a
+# volume on the desktop.  For automatic mounting on insert use the tray
+# daemon (waffle-diskflashback.py) instead.
 
-set -e
-
-# ── Arguments ────────────────────────────────────────────────────────────────
-FORMAT="${1:-amiga}"   # amiga | dos
-DENSITY="${2:-dd}"     # dd | hd
+FORMAT="${1:-auto}"    # auto | amiga | dos
+DENSITY="${2:-auto}"   # auto | dd | hd
 PORT="${3:-}"
+MOUNT_DIR="${WAFFLE_MOUNT_DIR:-$HOME/Floppy}"
 
-# ── Portable notification helper ─────────────────────────────────────────────
+# ── Notifications ────────────────────────────────────────────────────────────
 notify() {
-    TITLE="$1"
-    MSG="$2"
-    ICON="${3:-dialog-information}"   # freedesktop icon name
     if command -v notify-send >/dev/null 2>&1; then
-        notify-send -i "$ICON" "$TITLE" "$MSG"
+        notify-send -a Waffle -i "${3:-media-floppy}" "$1" "$2"
     elif command -v zenity >/dev/null 2>&1; then
-        zenity --info --title="$TITLE" --text="$MSG" &
-    elif command -v kdialog >/dev/null 2>&1; then
-        kdialog --title "$TITLE" --passivepopup "$MSG" 4
-    elif command -v xmessage >/dev/null 2>&1; then
-        xmessage -timeout 4 "$TITLE: $MSG" &
+        zenity --info --title="$1" --text="$2" &
     else
-        echo "$TITLE: $MSG" >&2
+        echo "$1: $2" >&2
     fi
 }
+notify_error() { notify "$1" "$2" dialog-error; }
 
-notify_error() {
-    TITLE="$1"
-    MSG="$2"
-    if command -v notify-send >/dev/null 2>&1; then
-        notify-send -i dialog-error "$TITLE" "$MSG"
-    elif command -v zenity >/dev/null 2>&1; then
-        zenity --error --title="$TITLE" --text="$MSG" &
-    elif command -v kdialog >/dev/null 2>&1; then
-        kdialog --title "$TITLE" --error "$MSG"
-    elif command -v xmessage >/dev/null 2>&1; then
-        xmessage -timeout 6 "ERROR – $TITLE: $MSG" &
-    else
-        echo "ERROR – $TITLE: $MSG" >&2
-    fi
-}
+# ── waffle-fuse binary ───────────────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+WAFFLE_BIN="$SCRIPT_DIR/../waffle-fuse"
+[ -x "$WAFFLE_BIN" ] || WAFFLE_BIN="waffle-fuse"
 
-# ── Auto-detect serial port ───────────────────────────────────────────────────
+# ── Serial port: first one that answers like a DrawBridge ────────────────────
 if [ -z "$PORT" ]; then
-    for candidate in /dev/ttyUSB0 /dev/ttyUSB1 /dev/ttyACM0 /dev/ttyACM1; do
-        if [ -e "$candidate" ]; then
-            PORT="$candidate"
-            break
-        fi
+    for candidate in /dev/serial/by-id/* /dev/ttyUSB* /dev/ttyACM*; do
+        [ -e "$candidate" ] || continue
+        "$WAFFLE_BIN" --probe "$candidate" >/dev/null 2>&1
+        case $? in 0|1) PORT="$candidate"; break ;; esac
     done
 fi
-
 if [ -z "$PORT" ]; then
-    notify_error "waffle-fuse" "No serial port found (tried /dev/ttyUSB0..1, /dev/ttyACM0..1)"
+    notify_error "Waffle" "DrawBridge not found (is it plugged in, or in use by another program?)"
     exit 1
 fi
 
-# ── Mountpoint ───────────────────────────────────────────────────────────────
-case "$FORMAT" in
-    amiga) LABEL="Amiga_Floppy" ;;
-    dos)   LABEL="DOS_Floppy"   ;;
-    *)     LABEL="Floppy"       ;;
-esac
-
-MNT="/tmp/waffle-${LABEL}"
-
-# ── Find waffle-fuse binary ───────────────────────────────────────────────────
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-WAFFLE_BIN="$SCRIPT_DIR/../waffle-fuse"
-if [ ! -x "$WAFFLE_BIN" ]; then
-    # Fall back to PATH
-    WAFFLE_BIN="waffle-fuse"
-fi
-
-# ── Toggle: unmount if already mounted ───────────────────────────────────────
-if mountpoint -q "$MNT" 2>/dev/null; then
-    fusermount3 -u "$MNT" 2>/dev/null || fusermount -u "$MNT" 2>/dev/null || umount "$MNT" 2>/dev/null
-    notify "waffle-fuse" "Disk unmounted from $MNT" "media-eject"
-    rmdir "$MNT" 2>/dev/null || true
+# ── Toggle: unmount if mounted ───────────────────────────────────────────────
+# /proc/mounts escapes spaces as \040
+MNT="$(awk -v src="waffle:$PORT" '$1 == src { print $2; exit }' /proc/mounts | sed 's/\\040/ /g')"
+if [ -n "$MNT" ]; then
+    if ! fusermount3 -u "$MNT" 2>/dev/null; then
+        notify_error "Disk in use" "Close the windows and terminals using $MNT, then try again."
+        exit 1
+    fi
+    # waffle-fuse writes pending changes, then removes the mountpoint and exits
+    i=0
+    while [ -d "$MNT" ] && [ $i -lt 120 ]; do sleep 1; i=$((i+1)); done
+    notify "Disk ejected" "All changes written: the disk can be removed." media-eject
     exit 0
 fi
 
-# ── Mount ─────────────────────────────────────────────────────────────────────
-mkdir -p "$MNT"
-
-case "$FORMAT" in
-    amiga) FUSE_FORMAT="affs" ;;
-    dos)   FUSE_FORMAT="fat"  ;;
-    *)     FUSE_FORMAT=""     ;;
-esac
-
+# ── Mount ────────────────────────────────────────────────────────────────────
 OPT=""
-[ -n "$FUSE_FORMAT" ] && OPT="format=${FUSE_FORMAT}"
-[ -n "$DENSITY" ]     && OPT="${OPT:+$OPT,}density=${DENSITY}"
+case "$FORMAT"  in amiga) OPT="format=affs" ;; dos) OPT="format=fat" ;; esac
+case "$DENSITY" in dd|hd) OPT="${OPT:+$OPT,}density=$DENSITY" ;; esac
 
+# Without -f waffle-fuse detects the disk, mounts, then goes to the
+# background: its exit code tells whether the mount worked.
 if [ -n "$OPT" ]; then
-    "$WAFFLE_BIN" "$PORT" "$MNT" -o "$OPT" &
+    OUT="$("$WAFFLE_BIN" "$PORT" --automount "$MOUNT_DIR" -o "$OPT" 2>&1)"
 else
-    "$WAFFLE_BIN" "$PORT" "$MNT" &
+    OUT="$("$WAFFLE_BIN" "$PORT" --automount "$MOUNT_DIR" 2>&1)"
 fi
+RC=$?
 
-WAFFLE_PID=$!
-
-# Wait for mount to become active (up to 60 s)
-i=0
-while [ $i -lt 60 ]; do
-    if mountpoint -q "$MNT" 2>/dev/null; then
-        break
-    fi
-    # Check the process is still alive
-    if ! kill -0 "$WAFFLE_PID" 2>/dev/null; then
-        notify_error "waffle-fuse" "Driver exited unexpectedly. Check that $PORT is connected and the disk is inserted."
-        rmdir "$MNT" 2>/dev/null || true
-        exit 1
-    fi
-    sleep 1
-    i=$((i+1))
-done
-
-if ! mountpoint -q "$MNT" 2>/dev/null; then
-    notify_error "waffle-fuse" "Mount timed out on $PORT"
-    kill "$WAFFLE_PID" 2>/dev/null || true
-    rmdir "$MNT" 2>/dev/null || true
-    exit 1
-fi
-
-# Trigger waffle_init by listing the root – this is where format detection
-# actually runs. Give it up to 60 more seconds (slow serial reads).
-i=0
-LS_OK=0
-while [ $i -lt 60 ]; do
-    if ls "$MNT" >/dev/null 2>&1; then
-        LS_OK=1
-        break
-    fi
-    # If the driver died during init (format mismatch), the mountpoint
-    # becomes inaccessible even though it was briefly registered.
-    if ! kill -0 "$WAFFLE_PID" 2>/dev/null; then
-        break
-    fi
-    sleep 1
-    i=$((i+1))
-done
-
-if [ $LS_OK -eq 0 ]; then
-    # Clean up the dead/broken mount
-    fusermount3 -u "$MNT" 2>/dev/null || fusermount -u "$MNT" 2>/dev/null || umount -l "$MNT" 2>/dev/null || true
-    rmdir "$MNT" 2>/dev/null || true
-    case "$FORMAT" in
-        dos)   HINT="Is there an Amiga disk in the drive? Try the Amiga launcher instead." ;;
-        amiga) HINT="Is there a PC/DOS disk in the drive? Try the DOS launcher instead." ;;
-        *)     HINT="The disk format may not match the selected launcher." ;;
-    esac
-    notify_error "waffle-fuse" "Cannot read the disk as ${LABEL} format. ${HINT}"
-    exit 1
-fi
-
-notify "waffle-fuse" "${LABEL} mounted at $MNT" "media-floppy"
-
-# Open file manager
-if command -v xdg-open >/dev/null 2>&1; then
-    xdg-open "$MNT" &
-elif command -v thunar >/dev/null 2>&1; then
-    thunar "$MNT" &
-elif command -v nautilus >/dev/null 2>&1; then
-    nautilus "$MNT" &
-elif command -v dolphin >/dev/null 2>&1; then
-    dolphin "$MNT" &
-fi
+case $RC in
+    0)
+        MNT="$(printf '%s\n' "$OUT" | sed -n 's/^WAFFLE event=mounted mountpoint=//p')"
+        VOL="$(basename "$MNT")"
+        notify "Disk inserted" "$VOL"
+        if command -v xdg-open >/dev/null 2>&1; then xdg-open "$MNT" & fi
+        ;;
+    2) notify_error "Waffle" "Cannot open $PORT (in use by another program?)" ;;
+    3) notify_error "Waffle" "No disk in the drive." ;;
+    4) notify_error "Cannot use this disk" "Not a DOS disk: unformatted, NDOS (game) or copy-protected." ;;
+    5) notify_error "Cannot use this disk" "Cannot read track 0: the disk may be damaged." ;;
+    6) notify_error "Cannot use this disk" "The filesystem on the disk is not valid." ;;
+    *) notify_error "Waffle" "Mount failed: $(printf '%s\n' "$OUT" | grep -v '^WAFFLE' | tail -1)" ;;
+esac
+exit $RC

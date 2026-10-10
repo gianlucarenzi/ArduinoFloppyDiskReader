@@ -1,495 +1,417 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """
-waffle-daemon – system tray daemon for DrawBridge/Waffle floppy reader.
+waffle-diskflashback – system tray daemon for the DrawBridge/Waffle floppy reader.
+
+Makes the drive behave like an Amiga disk drive on the Linux desktop:
+
+  * insert a disk  -> it is mounted automatically under ~/Floppy/<volume name>
+                      and shows up as a volume icon on the desktop / file manager
+  * eject          -> tray menu "Eject", or "Unmount" on the desktop icon;
+                      pending changes are written, then "safe to remove"
+  * take it out    -> if it was still mounted it is unmounted automatically
 
 States:
-  idle     – polling for serial port, no disk mounted
-  mounting – waffle-fuse running, waiting for mount + init
-  mounted  – disk mounted; tray shows eject button
-  ejecting – sync + unmount in progress
-
-On mount: autodetects format (Amiga OFS/FFS or FAT12/FAT16) and
-          density (DD/HD) from waffle-fuse stdout.
-On eject: sync, fusermount3 -u, back to idle.
+  no-port    no DrawBridge found, polling for the serial port
+  waiting    port open, waiting for a disk (waffle-fuse --wait-disk)
+  mounting   waffle-fuse reading the disk
+  mounted    disk mounted
+  ejecting   unmount requested, waiting for pending writes
+  remove     disk unmounted (or unreadable): waiting for it to be taken out
 """
+
+import argparse
+import glob
+import os
+import signal
+import subprocess
+import sys
+import threading
+import warnings
 
 import gi
 gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, GLib  # noqa: E402
 
-import os
-import sys
-import subprocess
-import threading
-import time
-import signal
-
-from gi.repository import Gtk, GLib
+# Gtk.StatusIcon is deprecated but still the simplest tray icon on MATE/XFCE
+warnings.filterwarnings('ignore', category=DeprecationWarning)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-SCRIPT_DIR  = os.path.dirname(os.path.realpath(__file__))
-WAFFLE_BIN  = os.path.normpath(os.path.join(SCRIPT_DIR, '..', 'waffle-fuse'))
-ICON_DIR    = os.path.normpath(os.path.join(SCRIPT_DIR, '..', 'icons'))
-MOUNTPOINT  = '/tmp/waffle-auto'
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+ICON_DIR = os.path.normpath(os.path.join(SCRIPT_DIR, '..', 'icons'))
 
-SERIAL_CANDIDATES = [
-    '/dev/ttyUSB0', '/dev/ttyUSB1',
-    '/dev/ttyACM0', '/dev/ttyACM1',
-]
 
-POLL_INTERVAL_MS  = 2000   # probe poll interval
-CHECK_INTERVAL_MS = 3000   # check mount health when mounted
+def find_waffle_bin():
+    local = os.path.normpath(os.path.join(SCRIPT_DIR, '..', 'waffle-fuse'))
+    if os.access(local, os.X_OK):
+        return local
+    for d in os.environ.get('PATH', '').split(os.pathsep):
+        p = os.path.join(d, 'waffle-fuse')
+        if os.access(p, os.X_OK):
+            return p
+    return local
 
-# ── Tray icon ─────────────────────────────────────────────────────────────────
+
+WAFFLE_BIN = find_waffle_bin()
+
 ICONS = {
     'idle':     os.path.join(ICON_DIR, 'tray-idle.svg'),
     'mounting': os.path.join(ICON_DIR, 'tray-mounting.svg'),
     'mounted':  os.path.join(ICON_DIR, 'tray-mounted.svg'),
 }
 
-# ── Notification helper ───────────────────────────────────────────────────────
+# waffle-fuse exit codes
+EXIT_OK, EXIT_PORT, EXIT_NODISK, EXIT_UNKNOWN_FMT, EXIT_DRIVE = 0, 2, 3, 4, 5
+EXIT_FILESYSTEM, EXIT_REMOVED, EXIT_REMOVED_DIRTY, EXIT_WRITE_ERROR = 6, 7, 8, 9
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
 def notify(title, msg, error=False):
     icon = 'dialog-error' if error else 'media-floppy'
-    for cmd in [['notify-send', '-i', icon, title, msg],
-                ['zenity', '--notification', '--text', f'{title}: {msg}']]:
+    try:
+        subprocess.Popen(['notify-send', '-a', 'Waffle', '-i', icon, title, msg],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except FileNotFoundError:
+        print(f'{title}: {msg}', file=sys.stderr)
+
+
+def open_file_manager(path):
+    for cmd in (['xdg-open', path], ['caja', path], ['nautilus', path],
+                ['thunar', path], ['dolphin', path], ['pcmanfm', path]):
         try:
             subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return
         except FileNotFoundError:
             continue
 
-# ── Mountpoint helpers ────────────────────────────────────────────────────────
-def is_mounted(path):
-    try:
-        return subprocess.run(
-            ['mountpoint', '-q', path],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        ).returncode == 0
-    except Exception:
+
+def candidate_ports():
+    """Serial ports that could be a DrawBridge, stable by-id names first."""
+    seen, ports = set(), []
+    for p in sorted(glob.glob('/dev/serial/by-id/*')) + \
+            sorted(glob.glob('/dev/ttyUSB*')) + sorted(glob.glob('/dev/ttyACM*')):
+        real = os.path.realpath(p)
+        if real not in seen and os.path.exists(real):
+            seen.add(real)
+            ports.append(p)
+    return ports
+
+
+def parse_event(line):
+    """'WAFFLE event=mounted mountpoint=/x y' -> {'event': 'mounted', 'mountpoint': '/x y'}"""
+    if not line.startswith('WAFFLE '):
+        return None
+    fields = {}
+    rest = line[7:].rstrip('\n')
+    while rest:
+        key, _, rest = rest.partition('=')
+        if key in ('volume', 'mountpoint'):   # always last: the value may contain anything
+            fields[key] = rest
+            break
+        val, _, rest = rest.partition(' ')
+        fields[key] = val
+    return fields
+
+
+class Proc:
+    """A waffle-fuse child whose stdout events and exit are delivered on the GTK loop."""
+
+    def __init__(self, args, on_event=None, on_exit=None):
+        self.p = subprocess.Popen([WAFFLE_BIN] + args, stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE, text=True, bufsize=1)
+        self.on_event, self.on_exit = on_event, on_exit
+        self.stderr_tail = []
+        self.cancelled = False
+        threading.Thread(target=self._stderr, daemon=True).start()
+        threading.Thread(target=self._stdout, daemon=True).start()
+
+    def _stderr(self):
+        for line in self.p.stderr:
+            self.stderr_tail = (self.stderr_tail + [line.strip()])[-5:]
+
+    def _stdout(self):
+        for line in self.p.stdout:
+            ev = parse_event(line)
+            if ev and self.on_event:
+                GLib.idle_add(self._deliver_event, ev)
+        code = self.p.wait()
+        GLib.idle_add(self._deliver_exit, code)
+
+    def _deliver_event(self, ev):
+        if not self.cancelled:
+            self.on_event(ev)
         return False
 
-def do_unmount(path):
-    for cmd in [['fusermount3', '-u', path],
-                ['fusermount',  '-u', path],
-                ['umount', path]]:
-        try:
-            if subprocess.run(cmd, stdout=subprocess.DEVNULL,
-                              stderr=subprocess.DEVNULL,
-                              timeout=10).returncode == 0:
-                return True
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            continue
-    # Lazy unmount as last resort
-    try:
-        subprocess.run(['umount', '-l', path],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        pass
-    return False
+    def _deliver_exit(self, code):
+        if not self.cancelled and self.on_exit:
+            self.on_exit(code)
+        return False
 
-def open_file_manager(path):
-    for cmd in [['xdg-open', path], ['thunar', path],
-                ['nautilus', path], ['dolphin', path], ['pcmanfm', path]]:
-        try:
-            subprocess.Popen(cmd, stdout=subprocess.DEVNULL,
-                             stderr=subprocess.DEVNULL)
-            return
-        except FileNotFoundError:
-            continue
+    def cancel(self):
+        """Stop a waiting helper (never used on a mounted driver)."""
+        self.cancelled = True
+        if self.p.poll() is None:
+            self.p.terminate()
+
 
 # ── Daemon ────────────────────────────────────────────────────────────────────
 class WaffleDaemon:
-    def __init__(self):
-        self.state      = 'idle'
-        self.port       = None
-        self.waffle_proc = None
-        self.disk_info  = ''      # e.g. "Amiga OFS (read-write)"
-        self._probing   = False   # True while a probe thread is running
+    def __init__(self, args):
+        self.args = args
+        self.mount_dir = os.path.expanduser(args.mount_dir)
+        self.state = None
+        self.port = args.port
+        self.proc = None          # current waffle-fuse child
+        self.driver = None        # the mounted waffle-fuse (subset of proc)
+        self.mountpoint = None
+        self.info = ''
 
-        self._setup_tray()
-        GLib.timeout_add(POLL_INTERVAL_MS, self._poll_tick)
-
-    # ── Tray setup ────────────────────────────────────────────────────────────
-    def _setup_tray(self):
         self.tray = Gtk.StatusIcon()
-        self._set_icon('idle')
-        self._set_tooltip('waffle-fuse: waiting for disk…')
         self.tray.set_visible(True)
-        self.tray.connect('activate',    self._on_activate)
-        self.tray.connect('popup-menu',  self._on_popup)
+        self.tray.connect('activate', self._on_activate)
+        self.tray.connect('popup-menu', self._on_popup)
 
-    def _set_icon(self, state):
-        path = ICONS.get(state, ICONS['idle'])
+        self._cleanup_stale_mounts()
+        self._find_port()
+
+    # ── UI ────────────────────────────────────────────────────────────────────
+    def _set_state(self, state, tooltip, icon):
+        self.state = state
+        self.tray.set_tooltip_text(tooltip)
         try:
-            self.tray.set_from_file(path)
+            self.tray.set_from_file(ICONS[icon])
         except Exception:
-            pass  # icon file missing – not fatal
+            self.tray.set_from_icon_name('media-floppy')
 
-    def _set_tooltip(self, text):
-        self.tray.set_tooltip_text(text)
-
-    # ── Context menu ─────────────────────────────────────────────────────────
-    def _make_menu(self):
-        menu = Gtk.Menu()
-
-        lbl = Gtk.MenuItem(label=self.disk_info or 'Waiting for disk…')
-        lbl.set_sensitive(False)
-        menu.append(lbl)
-
-        menu.append(Gtk.SeparatorMenuItem())
-
-        self._item_open = Gtk.MenuItem(label='📂  Open File Manager')
-        self._item_open.connect('activate', lambda _: open_file_manager(MOUNTPOINT))
-        self._item_open.set_sensitive(self.state == 'mounted')
-        menu.append(self._item_open)
-
-        self._item_eject = Gtk.MenuItem(label='⏏  Eject && Unmount')
-        self._item_eject.connect('activate', self._on_eject)
-        self._item_eject.set_sensitive(self.state == 'mounted')
-        menu.append(self._item_eject)
-
-        menu.append(Gtk.SeparatorMenuItem())
-
-        item_quit = Gtk.MenuItem(label='Quit')
-        item_quit.connect('activate', self._on_quit)
-        menu.append(item_quit)
-
-        menu.show_all()
-        return menu
-
-    def _on_activate(self, icon):
-        if self.state == 'mounted':
-            open_file_manager(MOUNTPOINT)
+    def _on_activate(self, _icon):
+        if self.state == 'mounted' and self.mountpoint:
+            open_file_manager(self.mountpoint)
 
     def _on_popup(self, icon, button, ts):
-        menu = self._make_menu()
+        menu = Gtk.Menu()
+
+        def item(label, cb=None, sensitive=True):
+            mi = Gtk.MenuItem(label=label)
+            mi.set_sensitive(sensitive and cb is not None)
+            if cb:
+                mi.connect('activate', lambda _w: cb())
+            menu.append(mi)
+
+        item(self.info or self.tray.get_tooltip_text())
+        menu.append(Gtk.SeparatorMenuItem())
+        mounted = self.state == 'mounted'
+        item('Open', lambda: open_file_manager(self.mountpoint), mounted)
+        item('Eject', self._eject, mounted)
+        item('Mount again', self._remount, self.state == 'remove')
+        menu.append(Gtk.SeparatorMenuItem())
+        item('Quit', self._quit)
+        menu.show_all()
         menu.popup(None, None, Gtk.StatusIcon.position_menu, icon, button, ts)
 
-    # ── Polling ───────────────────────────────────────────────────────────────
-    def _probe_port(self, port):
-        """Run waffle-fuse --probe <port>. Returns True if a disk is present."""
-        try:
-            r = subprocess.run(
-                [WAFFLE_BIN, '--probe', port],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                timeout=15
-            )
-            return r.returncode == 0  # 0 = disk present
-        except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
-            return False
-
-    def _poll_tick(self):
-        """Called every POLL_INTERVAL_MS while idle."""
-        if self.state != 'idle':
-            return False  # stop this timer
-
-        # Don't stack probes – skip tick if a probe thread is already running
-        if self._probing:
-            return True
-
-        ports = [p for p in SERIAL_CANDIDATES if os.path.exists(p)]
-        if ports:
-            self._probing = True
-            threading.Thread(target=self._probe_thread, args=(ports,),
-                             daemon=True).start()
-        return True  # keep timer alive
-
-    def _probe_thread(self, ports):
-        """Background thread: probe each candidate port, idle_add result."""
-        for port in ports:
-            if self._probe_port(port):
-                GLib.idle_add(self._on_disk_detected, port)
-                return
-        GLib.idle_add(self._on_probe_done)
-
-    def _on_disk_detected(self, port):
-        self._probing = False
-        self.port = port
-        self._start_mount()
-        return False
-
-    def _on_probe_done(self):
-        self._probing = False
-        return False
-
-    def _watch_mounted_tick(self):
-        """Called every CHECK_INTERVAL_MS while mounted; detects unexpected unmount."""
-        if self.state != 'mounted':
-            return False
-        if not is_mounted(MOUNTPOINT) or (
-                self.waffle_proc and self.waffle_proc.poll() is not None):
-            # Disk was removed or process crashed
-            GLib.idle_add(self._handle_unexpected_unmount)
-            return False
-        return True
-
-    # ── Mount flow ────────────────────────────────────────────────────────────
-    def _start_mount(self):
-        self.state = 'mounting'
-        self._set_icon('mounting')
-        self._set_tooltip(f'Reading disk on {self.port}…')
-        threading.Thread(target=self._mount_thread, daemon=True).start()
-
-    def _mount_thread(self):
-        # Always unmount any stale FUSE mountpoint before (re)creating it.
-        # A broken FUSE connection makes stat() fail, so do this before makedirs.
-        do_unmount(MOUNTPOINT)
-        try:
-            os.rmdir(MOUNTPOINT)
-        except Exception:
-            pass
-        try:
-            os.makedirs(MOUNTPOINT, exist_ok=True)
-        except Exception as e:
-            GLib.idle_add(self._mount_error, f'Cannot create mountpoint: {e}')
+    # ── Port discovery ────────────────────────────────────────────────────────
+    def _find_port(self):
+        self._set_state('no-port', 'Waffle: looking for the DrawBridge…', 'idle')
+        self.info = ''
+        if self.port:
+            self._wait_disk()
             return
+        threading.Thread(target=self._probe_ports, daemon=True).start()
 
-        # Launch waffle-fuse with full autodetect (no format/density forced)
-        try:
-            proc = subprocess.Popen(
-                [WAFFLE_BIN, self.port, MOUNTPOINT],
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True, bufsize=1
-            )
-        except FileNotFoundError:
-            GLib.idle_add(self._mount_error, 'waffle-fuse binary not found')
-            return
-
-        self.waffle_proc = proc
-
-        # Wait for mountpoint to become active (up to 90 s)
-        for _ in range(90):
-            if is_mounted(MOUNTPOINT):
-                break
-            if proc.poll() is not None:
-                output = proc.stdout.read()
-                GLib.idle_add(self._mount_error,
-                              f'Driver exited. {output.strip()}')
-                return
-            time.sleep(1)
-
-        if not is_mounted(MOUNTPOINT):
-            proc.kill()
-            GLib.idle_add(self._mount_error, 'Timed out waiting for mount.')
-            return
-
-        # Trigger waffle_init by listing the root (up to 60 s)
-        disk_info = ''
-        for _ in range(60):
+    def _probe_ports(self):
+        for port in candidate_ports():
             try:
-                os.listdir(MOUNTPOINT)
-                # Collect any output lines waffle-fuse has written so far
-                # (non-blocking peek via a reader thread)
-                disk_info = self._read_proc_output(proc, timeout=2)
-                break
-            except OSError:
-                if proc.poll() is not None:
-                    output = proc.stdout.read()
-                    GLib.idle_add(self._mount_error,
-                                  f'Format mismatch? {output.strip()}')
-                    return
-                time.sleep(1)
+                r = subprocess.run([WAFFLE_BIN, '--probe', port], capture_output=True, timeout=20)
+            except (OSError, subprocess.TimeoutExpired):
+                continue
+            if r.returncode in (0, 1):     # answered: it is a DrawBridge
+                GLib.idle_add(self._port_found, port)
+                return
+        GLib.timeout_add_seconds(3, self._retry_find_port)
+
+    def _retry_find_port(self):
+        if self.state == 'no-port':
+            self._find_port()
+        return False
+
+    def _port_found(self, port):
+        if self.state == 'no-port':
+            self.port = port
+            self._wait_disk()
+        return False
+
+    # ── Waiting for a disk ────────────────────────────────────────────────────
+    def _wait_disk(self):
+        self._set_state('waiting', f'Waffle: insert a disk ({os.path.basename(self.port)})', 'idle')
+        self.info = ''
+        self.proc = Proc(['--wait-disk', self.port], on_exit=self._wait_disk_done)
+
+    def _wait_disk_done(self, code):
+        self.proc = None
+        if code == 0:
+            self._mount()
         else:
-            proc.kill()
-            GLib.idle_add(self._mount_error,
-                          'Filesystem init timed out.')
+            # Port gone or busy (e.g. WaffleCopyPRO is using it): look again later
+            if not self.args.port:
+                self.port = None
+            GLib.timeout_add_seconds(3, self._retry_after_port_error)
+
+    def _retry_after_port_error(self):
+        if self.state == 'waiting':
+            self._find_port()
+        return False
+
+    # ── Mounting ──────────────────────────────────────────────────────────────
+    def _mount(self):
+        self._set_state('mounting', 'Waffle: reading disk…', 'mounting')
+        args = [self.port, '--automount', self.mount_dir, '-f']
+        if self.args.ro:
+            args += ['-o', 'ro']
+        self.proc = self.driver = Proc(args, on_event=self._driver_event, on_exit=self._driver_exit)
+
+    def _driver_event(self, ev):
+        name = ev.get('event')
+        if name == 'detected':
+            vol = ev.get('volume') or 'unnamed'
+            kind = 'Amiga' if ev.get('format') == 'amiga' else 'PC'
+            ro = ', read-only' if ev.get('readonly') == '1' else ''
+            self.info = f'{vol} – {kind} {ev.get("fs", "")} {ev.get("density", "")}{ro}'
+        elif name == 'mounted':
+            self.mountpoint = ev.get('mountpoint')
+            self._set_state('mounted', f'Waffle: {self.info}', 'mounted')
+            notify('Disk inserted', self.info)
+            if self.args.open:
+                open_file_manager(self.mountpoint)
+        elif name == 'write-error':
+            notify('Disk write error',
+                   'Some changes could not be written. Do not remove the disk; '
+                   'check that it is not write-protected or damaged.', error=True)
+
+    def _driver_exit(self, code):
+        stderr_tail = self.driver.stderr_tail if self.driver else []
+        self.proc = self.driver = None
+        self.mountpoint = None
+        if code == EXIT_OK:
+            notify('Disk ejected', 'All changes written: the disk can be removed.')
+            self._wait_removal()
+        elif code == EXIT_REMOVED:
+            notify('Disk removed', self.info or 'The disk was unmounted.')
+            self._wait_disk()
+        elif code == EXIT_REMOVED_DIRTY:
+            notify('Disk removed too early',
+                   'The disk was taken out while changes were still being written: '
+                   'they are lost.', error=True)
+            self._wait_disk()
+        elif code == EXIT_NODISK:
+            self._wait_disk()
+        elif code == EXIT_PORT:
+            self._find_port()
+        else:
+            msgs = {
+                EXIT_UNKNOWN_FMT: 'Not a DOS disk: unformatted, NDOS (game) or copy-protected.',
+                EXIT_DRIVE: 'Cannot read track 0: the disk may be damaged.',
+                EXIT_FILESYSTEM: 'The filesystem on the disk is not valid.',
+                EXIT_WRITE_ERROR: 'Some changes could not be written to the disk.',
+            }
+            detail = msgs.get(code, ' '.join(stderr_tail) or f'error {code}')
+            notify('Cannot use this disk', detail, error=True)
+            self.info = detail
+            self._wait_removal()
+
+    # ── Eject ─────────────────────────────────────────────────────────────────
+    def _eject(self):
+        if self.state != 'mounted' or not self.mountpoint:
             return
-
-        GLib.idle_add(self._mount_ok, disk_info)
-
-    def _read_proc_output(self, proc, timeout=2):
-        """Read available output from proc.stdout with a deadline."""
-        lines = []
-        deadline = time.time() + timeout
-        while time.time() < deadline:
-            try:
-                line = proc.stdout.readline()
-                if line:
-                    lines.append(line.strip())
-            except Exception:
-                break
-        return ' | '.join(lines)
-
-    def _mount_ok(self, raw_output):
-        self.state = 'mounted'
-        self._set_icon('mounted')
-
-        # Parse waffle-fuse output for human-readable info
-        info = self._parse_disk_info(raw_output)
-        self.disk_info = info
-        self._set_tooltip(f'Disk mounted: {info}  –  right-click for menu')
-        notify('waffle-fuse', f'Disk mounted: {info}')
-        open_file_manager(MOUNTPOINT)
-
-        # Start health-check timer
-        GLib.timeout_add(CHECK_INTERVAL_MS, self._watch_mounted_tick)
-        return False
-
-    def _mount_error(self, msg):
-        self.state    = 'idle'
-        self.port     = None
-        self.waffle_proc = None
-        self._probing = False
-        self._set_icon('idle')
-        self._set_tooltip('waffle-fuse: waiting for disk…')
-        self.disk_info = ''
-        notify('waffle-fuse: mount failed', msg, error=True)
-        do_unmount(MOUNTPOINT)
-        try:
-            os.rmdir(MOUNTPOINT)
-        except Exception:
-            pass
-        # Re-arm idle poll
-        GLib.timeout_add(POLL_INTERVAL_MS, self._poll_tick)
-        return False
-
-    def _parse_disk_info(self, raw):
-        """Extract human-readable info from waffle-fuse stdout lines."""
-        fmt, hd, how = '', '', ''
-        for line in raw.splitlines():
-            if 'disk opened' in line:
-                if 'Amiga/ADF' in line: fmt = 'Amiga'
-                elif 'IBM/FAT'  in line: fmt = 'PC/FAT'
-                hd = 'HD' if 'HD=yes' in line else 'DD'
-            if 'mounted as' in line:
-                # e.g. "mounted as Amiga OFS (read-write)"
-                how = line.split('mounted as', 1)[-1].strip()
-        if how:
-            return f'{how}  [{hd}]' if hd else how
-        if fmt:
-            return f'{fmt} {hd}'
-        return 'Disk mounted'
-
-    # ── Eject flow ────────────────────────────────────────────────────────────
-    def _on_eject(self, _widget=None):
-        if self.state != 'mounted':
+        r = subprocess.run(['fusermount3', '-u', self.mountpoint], capture_output=True, text=True)
+        if r.returncode != 0:
+            notify('Disk in use',
+                   'Close the windows and terminals that are using the disk, then eject again.',
+                   error=True)
             return
-        self.state = 'ejecting'
-        self._set_icon('idle')
-        self._set_tooltip('Ejecting…')
-        threading.Thread(target=self._eject_thread, daemon=True).start()
+        # waffle-fuse now writes any pending changes and exits (see _driver_exit)
+        self._set_state('ejecting', 'Waffle: writing changes, do not remove the disk…', 'mounting')
 
-    def _eject_thread(self):
-        try:
-            subprocess.run(['sync'], timeout=15,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        except Exception:
-            pass
-        do_unmount(MOUNTPOINT)
-        try:
-            os.rmdir(MOUNTPOINT)
-        except Exception:
-            pass
-        if self.waffle_proc:
+    # ── After eject: wait for the disk to be taken out ────────────────────────
+    def _wait_removal(self):
+        self._set_state('remove', f'Waffle: remove the disk ({self.info})' if self.info
+                        else 'Waffle: remove the disk', 'idle')
+        self.proc = Proc(['--wait-removal', self.port], on_exit=self._removal_done)
+
+    def _removal_done(self, code):
+        self.proc = None
+        if code == 0:
+            self._wait_disk()
+        else:
+            GLib.timeout_add_seconds(3, self._retry_after_port_error_remove)
+
+    def _retry_after_port_error_remove(self):
+        if self.state == 'remove':
+            self._find_port()
+        return False
+
+    def _remount(self):
+        if self.state != 'remove':
+            return
+        if self.proc:
+            self.proc.cancel()
             try:
-                self.waffle_proc.wait(timeout=5)
-            except Exception:
-                self.waffle_proc.kill()
-        GLib.idle_add(self._ejected)
+                self.proc.p.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.proc.p.kill()
+            self.proc = None
+        self._mount()
 
-    def _ejected(self):
-        self.state    = 'idle'
-        self.port     = None
-        self.waffle_proc = None
-        self.disk_info   = ''
-        self._probing    = False
-        self._set_icon('idle')
-        self._set_tooltip('waffle-fuse: waiting for disk…')
-        notify('waffle-fuse', 'Disk ejected. Safe to remove.')
-        GLib.timeout_add(POLL_INTERVAL_MS, self._poll_tick)
-        return False
+    # ── Startup / quit ────────────────────────────────────────────────────────
+    def _cleanup_stale_mounts(self):
+        """Remove mountpoints left behind by a crashed driver (ENOTCONN)."""
+        if not os.path.isdir(self.mount_dir):
+            return
+        for name in os.listdir(self.mount_dir):
+            path = os.path.join(self.mount_dir, name)
+            try:
+                os.stat(path)
+            except OSError:
+                subprocess.run(['fusermount3', '-u', '-z', path], capture_output=True)
+            try:
+                os.rmdir(path)   # only succeeds for empty, unmounted directories
+            except OSError:
+                pass
 
-    def _handle_unexpected_unmount(self):
-        self.state    = 'idle'
-        self.port     = None
-        self.waffle_proc = None
-        self.disk_info   = ''
-        self._probing    = False
-        self._set_icon('idle')
-        self._set_tooltip('waffle-fuse: waiting for disk…')
-        notify('waffle-fuse', 'Disk disconnected unexpectedly.', error=True)
-        try:
-            os.rmdir(MOUNTPOINT)
-        except Exception:
-            pass
-        GLib.timeout_add(POLL_INTERVAL_MS, self._poll_tick)
-        return False
-
-    # ── Quit ──────────────────────────────────────────────────────────────────
-    def _on_quit(self, _widget=None):
-        if self.state == 'mounted':
-            self._eject_thread()
-        self.tray.set_visible(False)
+    def _quit(self):
+        if self.driver and self.mountpoint:
+            # Unmount cleanly so pending writes reach the disk
+            subprocess.run(['fusermount3', '-u', self.mountpoint], capture_output=True)
+            try:
+                self.driver.p.wait(timeout=60)
+            except subprocess.TimeoutExpired:
+                pass
+        elif self.proc:
+            self.proc.cancel()
         Gtk.main_quit()
 
-    def run(self):
-        signal.signal(signal.SIGTERM, lambda *_: self._on_quit())
-        signal.signal(signal.SIGINT,  lambda *_: self._on_quit())
-        Gtk.main()
 
+def main():
+    ap = argparse.ArgumentParser(description='Automount floppies from a DrawBridge/Waffle drive')
+    ap.add_argument('--port', help='serial port (default: autodetect)')
+    ap.add_argument('--mount-dir', default='~/Floppy',
+                    help='where disks are mounted, as <dir>/<volume name> (default ~/Floppy). '
+                         'Must be inside your home directory to get desktop icons.')
+    ap.add_argument('--open', action='store_true', help='open a file manager window on insert')
+    ap.add_argument('--ro', action='store_true', help='always mount read-only')
+    args = ap.parse_args()
 
-# ── Entry point ───────────────────────────────────────────────────────────────
-
-def _startup_cleanup():
-    """Kill orphaned waffle-fuse processes and unmount stale mountpoints."""
-    import glob as _glob
-    # Find and kill any waffle-fuse processes holding our candidates
-    for port in SERIAL_CANDIDATES:
-        try:
-            lsof = subprocess.run(
-                ['lsof', '-t', port],
-                capture_output=True, text=True, timeout=5
-            )
-            for pid_str in lsof.stdout.split():
-                try:
-                    pid = int(pid_str)
-                    os.kill(pid, 9)
-                except (ValueError, ProcessLookupError):
-                    pass
-        except Exception:
-            pass
-    # Unmount stale FUSE mountpoint
-    do_unmount(MOUNTPOINT)
+    import fcntl
+    lock_path = os.path.join(os.environ.get('XDG_RUNTIME_DIR', '/tmp'), 'waffle-diskflashback.lock')
+    lock = open(lock_path, 'w')
     try:
-        os.rmdir(MOUNTPOINT)
-    except Exception:
-        pass
-
-if __name__ == '__main__':
-    import atexit, fcntl
-
-    # Prevent double-start
-    LOCK = '/tmp/waffle-daemon.lock'
-    lockfile = open(LOCK, 'w')
-    try:
-        fcntl.flock(lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
-        print('waffle-daemon is already running.', file=sys.stderr)
+        print('waffle-diskflashback is already running.', file=sys.stderr)
         sys.exit(1)
 
-    _startup_cleanup()
+    daemon = WaffleDaemon(args)
+    for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, lambda *_: daemon._quit() or False)
+    Gtk.main()
 
-    daemon = WaffleDaemon()
 
-    def _atexit_cleanup():
-        """Ensure waffle-fuse subprocess is killed on any exit."""
-        if daemon.waffle_proc and daemon.waffle_proc.poll() is None:
-            try:
-                daemon.waffle_proc.kill()
-                daemon.waffle_proc.wait(timeout=3)
-            except Exception:
-                pass
-        do_unmount(MOUNTPOINT)
-        try:
-            os.rmdir(MOUNTPOINT)
-        except Exception:
-            pass
-        try:
-            lockfile.close()
-            os.unlink(LOCK)
-        except Exception:
-            pass
-
-    atexit.register(_atexit_cleanup)
-
-    daemon.run()
-    _atexit_cleanup()
+if __name__ == '__main__':
+    main()
