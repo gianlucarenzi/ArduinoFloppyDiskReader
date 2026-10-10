@@ -8,7 +8,11 @@ Fa comportare il drive come un drive Amiga sul desktop Linux:
   come icona di volume sul desktop e nel file manager (come l'icona su Workbench);
 * **espelli** → dal menu dell'icona nel tray o con "Smonta" sull'icona del desktop:
   le modifiche in sospeso vengono scritte, poi arriva l'avviso "puoi estrarre il disco";
-* **estrai il disco** mentre è montato → viene smontato automaticamente.
+* **estrai il disco** mentre è montato → viene smontato automaticamente;
+* **doppio clic su un'immagine `.adf` o `.img`** → si apre come disco virtuale, in cui
+  aggiungere e togliere file;
+* **dal tray** si copia il disco in un'immagine (`.adf`, `.img` o `.scp`) e si scrive
+  un'immagine su un disco vero.
 
 Formati supportati (rilevati automaticamente, densità compresa):
 
@@ -48,7 +52,10 @@ e Ubuntu, `uucp` su Arch); poi bisogna rifare il login.
 * Debian 13 (trixie), MATE su X11, libfuse 3.17, gvfs 1.57, udisks2 2.10: lettura,
   scrittura e formattazione di Amiga DD/HD e DOS 720K/1.44M, demone nel tray, montaggio
   automatico in `/media/$USER`, icone sul desktop (Caja), estrazione a caldo, installer
-  grafico con autenticazione polkit.
+  grafico con autenticazione polkit, apertura di immagini ADF/IMG con doppio clic, copia
+  del disco in un'immagine e scrittura di un'immagine sul disco dal tray (ogni traccia
+  scritta viene riletta e verificata). Per gli ADF di giochi NDOS è stato verificato che
+  venga scelto Amiberry come programma a cui passarli, senza lanciarlo.
 
 **Previsto, non ancora provato** — il codice è scritto per funzionare con:
 
@@ -90,6 +97,8 @@ waffle-fuse se serve, poi:
   con l'icona nel tray) all'apertura della sessione grafica, con l'autostart XDG (GNOME, KDE,
   XFCE, MATE, Cinnamon, LXQt) oppure con un servizio utente systemd legato a
   `graphical-session.target` sui window manager senza autostart (sway, Hyprland, i3...);
+  se lasci la casella attiva, associa le immagini floppy (`.adf`, `.img`, `.ima`) a
+  waffle-fuse, così il doppio clic le apre come dischi virtuali (vedi sotto);
 * **per il sistema**: chiede la password di amministratore con la finestra standard di
   polkit (`pkexec`; in mancanza `sudo -A` con un askpass grafico) ed esegue
   `scripts/install-system.sh`, per montare i dischi dove li monta udisks e per dare
@@ -101,6 +110,47 @@ L'icona nel tray usa AppIndicator/StatusNotifierItem (pacchetto
 `gir1.2-ayatanaappindicator3-0.1` su Debian, `libayatana-appindicator` su Arch), necessaria
 su Wayland, GNOME (con l'estensione AppIndicator) e KDE; su X11 c'è un ripiego senza.
 Senza tray il demone funziona lo stesso, con le sole notifiche.
+
+### Il menu del tray
+
+| Voce | Cosa fa |
+|---|---|
+| **Open** | apre il disco montato nel file manager (anche con un clic sull'icona) |
+| **Eject** | smonta il disco: scrive le modifiche in sospeso, poi avvisa che si può estrarre |
+| **Mount again** | rimonta un disco smontato ma ancora nel drive |
+| **Copy disk to image file…** | copia il disco nel drive in un file: `.adf`/`.img` copia i settori (anche dei dischi NDOS di giochi, come disco Amiga), `.scp` registra il flusso magnetico grezzo, anche dei dischi protetti. Propone il nome del volume e la cartella `~/WaffleFolder` se esiste. Circa 1 minuto per un `.adf` DD |
+| **Write image to disk…** | scrive un'immagine `.adf`/`.img`/`.ima` sul disco nel drive, che viene sovrascritto (chiede conferma). Propone l'immagine aperta come disco virtuale e la chiude prima, così nel file c'è tutto. Di default riscrive solo le tracce diverse; la casella "Erase and rewrite every track" le cancella e riscrive tutte (circa 2 minuti e mezzo per un DD). Ogni traccia scritta viene riletta e verificata |
+| **Quit** | smonta il disco in modo pulito e chiude il demone |
+
+Durante una copia o una scrittura il disco montato viene smontato (la porta seriale serve
+all'operazione) e alla fine rimontato: dopo una scrittura con il nuovo contenuto. Una
+finestra mostra l'avanzamento traccia per traccia; **Cancel** ferma l'operazione tra una
+traccia e l'altra, mai a metà di una traccia. La copia viene fatta in un file temporaneo
+(`….part`) rinominato solo alla fine: annullando non si perde un file che si stava
+sovrascrivendo.
+
+### Immagini floppy come dischi virtuali
+
+Con il doppio clic su un'immagine `.adf`, `.img` o `.ima` (`scripts/waffle-open-image.py`):
+
+* le immagini AmigaDOS (OFS/FFS) e FAT vengono montate in lettura e scrittura nella stessa
+  cartella dei dischi veri, con l'icona sul desktop, e si apre il file manager. Le modifiche
+  finiscono direttamente nel file immagine; si chiude con "Smonta" sull'icona. Un secondo
+  doppio clic su un'immagine già aperta apre solo la finestra. Un file senza permesso di
+  scrittura viene aperto in sola lettura;
+* le immagini che waffle-fuse non sa montare (dischi di giochi NDOS, dischi protetti,
+  immagini più grandi di un floppy) vengono passate al programma che le apriva prima
+  (ad esempio Amiberry per gli ADF o il mounter di immagini del desktop).
+
+L'associazione segue gli standard XDG (shared-mime-info, `mimeapps.list`), quindi vale per
+tutti i desktop: i tipi interessati sono `application/x-amiga-disk-image`,
+`application/x-amiga-disk-format`, `application/vnd.efi.img` e
+`application/x-raw-disk-image`. I programmi associati prima vengono ricordati in
+`~/.config/waffle-fuse/previous-handlers` e riassociati alla disinstallazione.
+A mano: `scripts/install-desktop.sh --no-image-handler` toglie solo l'associazione.
+
+Attenzione: le modifiche fatte su un disco virtuale vanno nel file stesso. Per tenere
+intatto un ADF originale, aprine una copia.
 
 ### Dove vengono montati i dischi
 
@@ -175,11 +225,20 @@ Strumenti per il disco (senza montarlo):
 waffle-fuse --format <porta> <tipo> <dd|hd> [nome] [--quick] [--yes] [--force]
 waffle-fuse --format-image <file> <tipo> <dd|hd> [nome]   # crea un'immagine vuota
 waffle-fuse --scan <porta>                # mappa della superficie: settori buoni per traccia
-waffle-fuse --dump <porta> <file.adf>     # legge tutto il disco in un'immagine
-waffle-fuse --write-image <porta> <file.adf|img> [--full] [--yes]
+waffle-fuse --dump <porta> <file.adf|img|scp> [--format amiga|dos] [--density dd|hd]
+            [--tracks N] [--revs N]       # copia tutto il disco in un'immagine
+waffle-fuse --write-image <porta> <file.adf|img> [--full] [--yes] [--force]
                                           # scrive un'immagine sul disco: di default rilegge
                                           # ogni traccia e riscrive solo quelle diverse
 ```
+
+`--dump` sceglie il tipo di copia dall'estensione: `.adf`/`.img` copia i settori del
+formato riconosciuto (un disco non DOS viene copiato come disco Amiga, i settori
+illeggibili diventano zeri e vengono contati); `.scp` registra il flusso magnetico
+(`--tracks`, default 80, fino a 84; `--revs`, giri per traccia, default 3, fino a 5).
+`--write-image` rifiuta un'immagine DD su un disco HD (o viceversa) senza `--force`.
+`--dump`, `--write-image` e `--format` si fermano tra una traccia e l'altra con Ctrl+C o
+SIGTERM, lasciando il drive in uno stato pulito.
 
 `<tipo>`: `ffs` (o `amiga`), `ofs`, `amiga-intl`, `ofs-intl`, `dos`. La formattazione
 cancella ogni traccia, la riscrive e la rilegge per verificarla (circa 2 minuti), poi
@@ -312,9 +371,12 @@ scripts/
 ├── waffle-installer.py     – installer grafico (GTK o testo): utente + sistema via polkit
 ├── install-system.sh       – parte di sistema (root): /media o /run/media, porta seriale
 ├── install-desktop.sh      – launcher, icone e avvio automatico (usato dall'installer)
-├── waffle-diskflashback.py – demone tray: automount, espulsione, notifiche
+├── waffle-diskflashback.py – demone tray: automount, espulsione, copia e scrittura del disco
+├── waffle-open-image.py    – apre un'immagine floppy come disco virtuale (doppio clic)
 └── waffle-mount.sh         – monta/smonta con un clic (launcher)
 waffle-installer.desktop    – apre l'installer con un doppio clic
+waffle-open-image.desktop   – gestore delle immagini .adf/.img/.ima (non compare nel menu)
+mime/waffle-fuse.xml        – tipi MIME per *.adf e *.ima dove il sistema non li definisce
 icons/                      – icone dei dischi (incorporate anche nel binario) e del tray
 tests/run-tests.sh          – test dei filesystem su immagini
 ```

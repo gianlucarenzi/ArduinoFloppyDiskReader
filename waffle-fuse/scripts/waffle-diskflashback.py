@@ -112,6 +112,57 @@ def default_mount_dir():
     return os.path.expanduser('~/Floppy')
 
 
+FLOPPY_IMAGE_SIZES = {901120, 1802240, 737280, 1474560}
+
+
+def unescape_mount_field(text):
+    """/proc/mounts writes space, tab, newline and backslash as octal escapes."""
+    import re
+    return re.sub(r'\\([0-7]{3})', lambda m: chr(int(m.group(1), 8)), text)
+
+
+def mounted_images():
+    """[(image file, mountpoint)] of the floppy images open as virtual disks."""
+    out = []
+    try:
+        with open('/proc/mounts') as f:
+            for line in f:
+                src, mnt = (unescape_mount_field(x) for x in line.split()[:2])
+                if src.startswith('waffle:') and os.path.isfile(src[7:]):
+                    out.append((src[7:], mnt))
+    except OSError:
+        pass
+    return out
+
+
+def image_driver_running(image):
+    """Is a waffle-fuse --image process still serving this file?  (Exact
+    argument match: file names may contain regex characters.)"""
+    for pid in os.listdir('/proc'):
+        if not pid.isdigit():
+            continue
+        try:
+            with open(f'/proc/{pid}/cmdline', 'rb') as f:
+                argv = f.read().split(b'\0')
+        except OSError:
+            continue
+        if argv and argv[0].endswith(b'waffle-fuse') and b'--image' in argv and \
+                os.fsencode(image) in argv:
+            return True
+    return False
+
+
+def unmount_and_wait(mountpoint, image, timeout=30):
+    """Unmount a virtual disk and wait until its driver has written everything."""
+    if subprocess.run(['fusermount3', '-u', mountpoint], capture_output=True).returncode != 0:
+        return False
+    import time
+    deadline = time.time() + timeout
+    while time.time() < deadline and image_driver_running(image):
+        time.sleep(0.2)
+    return True
+
+
 def candidate_ports():
     """Serial ports that could be a DrawBridge, stable by-id names first."""
     seen, ports = set(), []
@@ -247,6 +298,10 @@ class WaffleDaemon:
         self.mountpoint = None
         self.info = ''
         self.tooltip = ''
+        self.volume = ''              # volume name / label of the current disk
+        self.fs_kind = ''             # 'amiga' or 'fat'
+        self.job = None               # disk job (dump / write image) in progress or queued
+        self.job_win = None
 
         self.tray = Tray(self._build_menu, self._on_activate) if have_display else None
 
@@ -280,6 +335,9 @@ class WaffleDaemon:
         item('Open', lambda: open_file_manager(self.mountpoint), mounted)
         item('Eject', self._eject, mounted)
         item('Mount again', self._remount, self.state == 'remove')
+        disk_in = self.state in ('mounted', 'remove')
+        item('Copy disk to image file…', self._dump_ask, disk_in)
+        item('Write image to disk…', self._write_ask, disk_in)
         menu.append(Gtk.SeparatorMenuItem())
         item('Quit', self._quit)
         return menu
@@ -348,6 +406,8 @@ class WaffleDaemon:
         name = ev.get('event')
         if name == 'detected':
             vol = ev.get('volume') or 'unnamed'
+            self.volume = ev.get('volume') or ''
+            self.fs_kind = ev.get('format', '')
             kind = 'Amiga' if ev.get('format') == 'amiga' else 'PC'
             ro = ', read-only' if ev.get('readonly') == '1' else ''
             self.info = f'{vol} – {kind} {ev.get("fs", "")} {ev.get("density", "")}{ro}'
@@ -366,7 +426,9 @@ class WaffleDaemon:
         stderr_tail = self.driver.stderr_tail if self.driver else []
         self.proc = self.driver = None
         self.mountpoint = None
-        if code == EXIT_OK:
+        if code == EXIT_OK and self.job:
+            self._start_job()               # unmounted to free the port for a disk job
+        elif code == EXIT_OK:
             notify('Disk ejected', 'All changes written: the disk can be removed.')
             self._wait_removal()
         elif code == EXIT_REMOVED:
@@ -424,17 +486,230 @@ class WaffleDaemon:
             self._find_port()
         return False
 
-    def _remount(self):
-        if self.state != 'remove':
-            return
-        if self.proc:
+    def _stop_helper(self):
+        """Stop a waiting helper (--wait-removal / --wait-disk) to free the port."""
+        if self.proc and self.proc is not self.driver:
             self.proc.cancel()
             try:
                 self.proc.p.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 self.proc.p.kill()
             self.proc = None
+
+    def _remount(self):
+        if self.state != 'remove':
+            return
+        self._stop_helper()
         self._mount()
+
+    # ── Disk jobs: copy the disk to an image file / write an image to the disk ─
+    def _file_dialog(self, title, action, button, filters):
+        dlg = Gtk.FileChooserDialog(title=title, action=action)
+        dlg.add_buttons('Cancel', Gtk.ResponseType.CANCEL, button, Gtk.ResponseType.ACCEPT)
+        for name, patterns in filters:
+            flt = Gtk.FileFilter()
+            flt.set_name(name)
+            for p in patterns:
+                flt.add_pattern(p)
+                flt.add_pattern(p.upper())
+            dlg.add_filter(flt)
+        folder = os.path.expanduser('~/WaffleFolder')
+        dlg.set_current_folder(folder if os.path.isdir(folder) else os.path.expanduser('~'))
+        return dlg
+
+    def _dump_ask(self):
+        if self.state not in ('mounted', 'remove'):
+            return
+        dlg = self._file_dialog('Copy disk to image file', Gtk.FileChooserAction.SAVE, 'Copy',
+                                (('Sector image (.adf, .img)', ['*.adf', '*.img', '*.ima']),
+                                 ('Flux image for copy-protected disks (.scp)', ['*.scp'])))
+        dlg.set_do_overwrite_confirmation(True)
+        base = self.volume or ('floppy' if self.fs_kind == 'fat' else 'disk')
+        ext = '.img' if self.fs_kind == 'fat' else '.adf'
+        dlg.set_current_name(base + ext)
+        dlg.set_extra_widget(Gtk.Label(label='.adf / .img: copy of the sectors (DOS and NDOS disks)\n'
+                                             '.scp: raw magnetic flux, also for copy-protected disks',
+                                       xalign=0))
+        resp = dlg.run()
+        path = dlg.get_filename()
+        dlg.destroy()
+        if resp != Gtk.ResponseType.ACCEPT or not path:
+            return
+        if not os.path.splitext(path)[1]:
+            path += ext
+        self._queue_job({'kind': 'dump', 'path': path})
+
+    def _write_ask(self):
+        if self.state not in ('mounted', 'remove'):
+            return
+        images = mounted_images()
+        dlg = self._file_dialog('Write image to disk', Gtk.FileChooserAction.OPEN, 'Next',
+                                (('Floppy images (.adf, .img, .ima)', ['*.adf', '*.img', '*.ima']),))
+        if images:                      # propose the image that is open as a virtual disk
+            dlg.set_filename(images[0][0])
+        resp = dlg.run()
+        path = dlg.get_filename()
+        dlg.destroy()
+        if resp != Gtk.ResponseType.ACCEPT or not path:
+            return
+        try:
+            size = os.path.getsize(path)
+        except OSError as e:
+            notify('Cannot write image', f'{os.path.basename(path)}: {e.strerror}', error=True)
+            return
+        if size not in FLOPPY_IMAGE_SIZES:
+            notify('Cannot write image', f'{os.path.basename(path)} is not an 880K/1.76M ADF or a '
+                                         '720K/1.44M PC floppy image.', error=True)
+            return
+
+        # Confirm: everything on the real disk is overwritten
+        target = self.volume or 'the disk in the drive'
+        dlg = Gtk.MessageDialog(message_type=Gtk.MessageType.WARNING, buttons=Gtk.ButtonsType.NONE,
+                                text=f'Write {os.path.basename(path)} to {target}?')
+        dlg.format_secondary_text('Everything on the disk in the drive will be overwritten. '
+                                  'Only the tracks that differ are rewritten, each one verified.')
+        full = Gtk.CheckButton(label='Erase and rewrite every track (slower, like formatting)')
+        dlg.get_message_area().pack_start(full, False, False, 0)
+        dlg.add_buttons('Cancel', Gtk.ResponseType.CANCEL, 'Write', Gtk.ResponseType.ACCEPT)
+        dlg.show_all()
+        resp = dlg.run()
+        erase = full.get_active()
+        dlg.destroy()
+        if resp != Gtk.ResponseType.ACCEPT:
+            return
+
+        # Close the image if it is open as a virtual disk, so every change is in the file
+        for img, mnt in images:
+            if img == os.path.realpath(path):
+                if not unmount_and_wait(mnt, img):
+                    notify('Image in use', 'Close the windows and terminals using the virtual disk '
+                                           f'{os.path.basename(mnt)}, then try again.', error=True)
+                    return
+        self._queue_job({'kind': 'write', 'path': path, 'full': erase})
+
+    def _queue_job(self, job):
+        """Free the port (unmount the real disk or stop the waiting helper), then run the job."""
+        if self.state not in ('mounted', 'remove'):
+            return                          # the disk went away meanwhile
+        self.job = job
+        # Remount afterwards: the same disk after a dump, the new content after a write
+        job['remount'] = self.state == 'mounted' or job['kind'] == 'write'
+        if self.state == 'mounted':
+            r = subprocess.run(['fusermount3', '-u', self.mountpoint], capture_output=True, text=True)
+            if r.returncode != 0:
+                self.job = None
+                notify('Disk in use', 'Close the windows and terminals using the disk, then try again.',
+                       error=True)
+                return
+            self._set_state('ejecting', 'Waffle: writing pending changes first…', 'mounting')
+            # _driver_exit starts the job once the driver has released the port
+        else:
+            self._stop_helper()
+            self._start_job()
+
+    def _start_job(self):
+        job = self.job
+        name = os.path.basename(job['path'])
+        job['tracks'] = 0
+        if job['kind'] == 'dump':
+            self._set_state('busy', f'Waffle: copying the disk to {name}…', 'mounting')
+            self._job_window('Copying disk', f'Copying the disk to\n{job["path"]}')
+            # Into a temporary file: an existing file is only replaced by a finished copy
+            job['tmp'] = job['path'] + '.part' + os.path.splitext(job['path'])[1]
+            args = ['--dump', self.port, job['tmp']]
+        else:
+            self._set_state('busy', f'Waffle: writing {name} to the disk…', 'mounting')
+            self._job_window('Writing image to disk', f'Writing\n{job["path"]}\nto the disk in the drive')
+            args = ['--write-image', self.port, job['path'], '--yes'] + (['--full'] if job['full'] else [])
+        self.proc = Proc(args, on_event=self._job_event, on_exit=self._job_exit)
+
+    def _job_window(self, title, text):
+        win = Gtk.Window(title=title)
+        win.set_default_size(420, -1)
+        win.set_border_width(12)
+        win.set_keep_above(True)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        win.add(box)
+        lbl = Gtk.Label(label=text, xalign=0)
+        lbl.set_line_wrap(True)
+        box.pack_start(lbl, False, False, 0)
+        bar = Gtk.ProgressBar(show_text=True)
+        box.pack_start(bar, False, False, 0)
+        cancel = Gtk.Button(label='Cancel')
+        cancel.connect('clicked', lambda _b: self._job_cancel())
+        btns = Gtk.Box()
+        btns.pack_end(cancel, False, False, 0)
+        box.pack_start(btns, False, False, 0)
+        win.connect('delete-event', lambda *_: True)   # close only through Cancel
+        win.show_all()
+        self.job_win, self.job_bar = win, bar
+
+    def _job_event(self, ev):
+        job = self.job
+        if not job:
+            return
+        name = ev.get('event')
+        if name == 'track':
+            job['tracks'] += 1
+            self.job_bar.set_fraction(min(1.0, job['tracks'] / 160))
+            status = ev.get('status', '')
+            self.job_bar.set_text(f'cylinder {ev.get("cylinder")}  head {ev.get("head")}'
+                                  + (f'  ({status})' if status in ('unchanged', 'failed', 'bad') else ''))
+        elif name == 'dumped':
+            job['bad'] = int(ev.get('bad', '0') or 0)
+        elif name == 'written':
+            job['written'] = int(ev.get('tracks', '0') or 0)
+
+    def _job_cancel(self):
+        if self.proc and self.job and self.state == 'busy':
+            self.job['cancelled'] = True
+            self.proc.p.terminate()          # waffle-fuse stops between two tracks
+
+    def _job_exit(self, code):
+        job, self.job = self.job, None
+        stderr_tail = self.proc.stderr_tail if self.proc else []
+        self.proc = None
+        if self.job_win:
+            self.job_win.destroy()
+            self.job_win = None
+        path, name = job['path'], os.path.basename(job['path'])
+        cancelled = job.get('cancelled', False)
+
+        if job['kind'] == 'dump':
+            tmp = job['tmp']
+            if os.path.exists(tmp) and code in (EXIT_OK, EXIT_DRIVE) and not cancelled:
+                os.replace(tmp, path)
+            else:
+                try:
+                    os.remove(tmp)           # never leave a half-written image around
+                except OSError:
+                    pass
+            if cancelled:
+                notify('Copy cancelled', name)
+            elif code == EXIT_OK:
+                notify('Disk copied', path)
+            elif code == EXIT_DRIVE and job.get('bad'):
+                notify('Disk copied with errors',
+                       f'{path}\n{job["bad"]} sectors could not be read (saved as zeros).', error=True)
+            elif code == EXIT_DRIVE and os.path.exists(path):
+                notify('Disk copied with errors', f'{path}\nSome tracks had read problems.', error=True)
+            else:
+                notify('Copy failed', f'{name}: ' + (' '.join(stderr_tail[-1:]) or f'error {code}'), error=True)
+        else:
+            if cancelled:
+                notify('Write stopped', 'The disk now holds part of the image only.', error=True)
+            elif code == EXIT_OK:
+                n = job.get('written')
+                notify('Image written', f'{name} written to the disk' +
+                       (f' ({n} tracks rewritten and verified).' if n is not None else '.'))
+            else:
+                detail = ' '.join(stderr_tail[-1:]).replace('waffle-fuse: ', '') or f'error {code}'
+                notify('Write failed', f'{name}: {detail}', error=True)
+
+        if job['remount'] and code != EXIT_NODISK:
+            self._mount()
+        else:
+            self._wait_removal()
 
     # ── Startup / quit ────────────────────────────────────────────────────────
     def _cleanup_stale_mounts(self):
@@ -462,6 +737,16 @@ class WaffleDaemon:
                 pass
         elif self.proc:
             self.proc.cancel()
+            if self.state == 'busy' and self.job:
+                try:
+                    self.proc.p.wait(timeout=30)     # waffle-fuse stops between two tracks
+                except subprocess.TimeoutExpired:
+                    pass
+                if self.job.get('tmp'):
+                    try:
+                        os.remove(self.job['tmp'])
+                    except OSError:
+                        pass
         self.loop_quit()
 
 

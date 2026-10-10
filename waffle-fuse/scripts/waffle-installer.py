@@ -281,11 +281,11 @@ def remove_autostart(log, quiet=False):
 
 
 def do_install(opts, log):
-    """opts: dict(media, autostart, start_now).  Returns (ok, notes)."""
+    """opts: dict(media, autostart, images, start_now).  Returns (ok, notes)."""
     notes = []
     if not build(log):
         return False, ['waffle-fuse could not be built']
-    run([DESKTOP_SCRIPT, '--no-autostart'], log)
+    run([DESKTOP_SCRIPT, '--no-autostart'] + ([] if opts.get('images', True) else ['--no-image-handler']), log)
 
     if opts['media']:
         if media_ready() and os.path.exists(TMPFILES_CONF):
@@ -351,6 +351,7 @@ def text_main():
         opts = {
             'media': ask(f'Mount disks under {udisks_base()}/{USER} like USB sticks (needs the admin password)?'),
             'autostart': ask('Start the tray daemon with the graphical session?'),
+            'images': ask('Open .adf/.img floppy images as virtual disks (double-click)?'),
             'start_now': ask('Start (or restart) the daemon now?'),
         }
         _, notes = do_install(opts, log)
@@ -404,9 +405,12 @@ def gtk_main():
     c_auto = Gtk.CheckButton(label='Start the tray daemon when I log in to the graphical session '
                                    f'({"XDG autostart" if autostart_kind() == "xdg" else "systemd user service"})')
     c_auto.set_active(True)
+    c_img = Gtk.CheckButton(label='Open .adf/.img floppy images as virtual disks when double-clicked '
+                                  '(images that cannot be mounted still open with their usual application)')
+    c_img.set_active(True)
     c_now = Gtk.CheckButton(label='Start (or restart) the daemon now')
     c_now.set_active(True)
-    for c in (c_media, c_auto, c_now):
+    for c in (c_media, c_auto, c_img, c_now):
         c.get_child().set_line_wrap(True)
         box.pack_start(c, False, False, 0)
 
@@ -464,7 +468,7 @@ def gtk_main():
 
     b_inst.connect('clicked', lambda _b: work(lambda: do_install(
         {'media': c_media.get_active(), 'autostart': c_auto.get_active(),
-         'start_now': c_now.get_active()}, log)))
+         'images': c_img.get_active(), 'start_now': c_now.get_active()}, log)))
     b_uninst.connect('clicked', lambda _b: work(lambda: do_uninstall(log)))
 
     win.show_all()
