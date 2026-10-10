@@ -13,6 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WAFFLE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 ICON_DST="$HOME/.local/share/icons/waffle-fuse"
+HICOLOR_DST="$HOME/.local/share/icons/hicolor/scalable/devices"
 APP_DST="$HOME/.local/share/applications"
 AUTOSTART_DST="$HOME/.config/autostart"
 
@@ -27,6 +28,7 @@ if [ "${1:-}" = "--uninstall" ]; then
         rm -f "$APP_DST/$name"
     done
     rm -rf "$ICON_DST"
+    rm -f "$HICOLOR_DST/waffle-amiga-floppy.svg" "$HICOLOR_DST/waffle-dos-floppy.svg"
     command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$APP_DST" 2>/dev/null || true
     echo "Launchers, icons and autostart entry removed."
     exit 0
@@ -42,7 +44,11 @@ mkdir -p "$ICON_DST" "$APP_DST"
 for icon in amiga-floppy.svg dos-floppy.svg tray-idle.svg tray-mounting.svg tray-mounted.svg; do
     cp "$WAFFLE_DIR/icons/$icon" "$ICON_DST/"
 done
-echo "Icons installed to $ICON_DST"
+# Themed device icons, named in the volume info waffle-fuse shows to file managers
+mkdir -p "$HICOLOR_DST"
+cp "$WAFFLE_DIR/icons/amiga-floppy.svg" "$HICOLOR_DST/waffle-amiga-floppy.svg"
+cp "$WAFFLE_DIR/icons/dos-floppy.svg"   "$HICOLOR_DST/waffle-dos-floppy.svg"
+echo "Icons installed to $ICON_DST and $HICOLOR_DST"
 
 chmod +x "$WAFFLE_DIR/scripts/waffle-mount.sh" "$WAFFLE_DIR/scripts/waffle-diskflashback.py"
 

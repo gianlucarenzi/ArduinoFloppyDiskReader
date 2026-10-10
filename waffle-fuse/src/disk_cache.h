@@ -113,13 +113,17 @@ public:
     // hole of the inserted disk.
     OpenResult openForFormat(bool& holeIsHD, bool& holeKnown);
 
-    // Write a complete image with the given geometry, track by track, each one
-    // erased first and verified after writing.  quick = only the tracks that
-    // contain non-zero data (the disk must already be formatted).
-    // progress(cylinder, head, ok) is called after each track.  Returns the
-    // number of tracks that could not be written, or -1 if write-protected.
-    int formatDisk(const DiskGeometry& geo, const std::vector<uint8_t>& image, bool quick,
-                   std::function<void(uint32_t, uint32_t, bool)> progress);
+    // Write a complete image with the given geometry, track by track, each
+    // written track verified.  Modes:
+    //   Full     – every track, erased first (formatting)
+    //   NonEmpty – only tracks with non-zero data (quick format)
+    //   Changed  – read each track, write only those that differ from the image
+    // progress(cylinder, head, status) is called after each track, status:
+    // 0 = written, 1 = unchanged (skipped), -1 = failed.  Returns the number
+    // of tracks that could not be written, or -1 if write-protected.
+    enum class WriteMode { Full, NonEmpty, Changed };
+    int writeImage(const DiskGeometry& geo, const std::vector<uint8_t>& image, WriteMode mode,
+                   std::function<void(uint32_t, uint32_t, int)> progress);
 
     // One-shot disk presence check without spinning the motor up.
     // Returns 0 = disk present, 1 = no disk, 2 = port/hardware error.

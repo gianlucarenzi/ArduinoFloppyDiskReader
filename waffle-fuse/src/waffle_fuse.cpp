@@ -68,6 +68,8 @@ struct WaffleOptions {
     int   flushdelay = 1000;
     int   noverify   = 0;
     int   diskpoll   = 3000;
+    int   trash      = 0;   // allow .Trash-* directories (file manager trash)
+    int   novolinfo  = 0;   // no virtual /.xdg-volume-info
 };
 
 #define WAFFLE_OPT(t, p, v) { t, offsetof(WaffleOptions, p), v }
@@ -80,6 +82,8 @@ static const struct fuse_opt waffle_opts[] = {
     WAFFLE_OPT("flushdelay=%d", flushdelay, 0),
     WAFFLE_OPT("noverify",      noverify,   1),
     WAFFLE_OPT("diskpoll=%d",   diskpoll,   0),
+    WAFFLE_OPT("trash",         trash,      1),
+    WAFFLE_OPT("novolumeinfo",  novolinfo,  1),
     FUSE_OPT_END
 };
 
@@ -182,6 +186,7 @@ static void usage(const char* progname)
         "       " << progname << " --wait-removal <serial-port> [timeout-s]\n"
         "       " << progname << " --format <serial-port> <amiga|ofs|ffs|amiga-intl|dos> <dd|hd> [label] [--quick] [--yes]\n"
         "       " << progname << " --format-image <file> <amiga|ofs|ffs|amiga-intl|dos> <dd|hd> [label]\n"
+        "       " << progname << " --write-image <serial-port> <file.adf|img> [--full] [--yes]\n"
         "       " << progname << " --scan <serial-port>        (good sectors per track)\n"
         "       " << progname << " --dump <serial-port> <file> (read the whole disk into an image)\n"
         "\n"
@@ -198,6 +203,8 @@ static void usage(const char* progname)
         "  flushdelay=MS      write changes back MS milliseconds after the last write (default 1000)\n"
         "  noverify           do not read back written tracks\n"
         "  diskpoll=MS        check for disk removal every MS milliseconds (default 3000)\n"
+        "  trash              let file managers create a .Trash-<uid> folder on the disk\n"
+        "  novolumeinfo       no virtual .xdg-volume-info (desktop name and icon)\n"
         "  debug_hw           hardware/serial debug messages\n"
         "  -f                 stay in the foreground\n"
         "\n"
@@ -237,6 +244,108 @@ static void onDiskEvent(WaffleDisk::Event e)
     if (g_fuse) fuse_exit(g_fuse);
     std::string mp = g_mountpoint;
     std::thread([mp] { struct stat st; stat(mp.c_str(), &st); }).detach();
+}
+
+// ── Desktop layer in front of the filesystem ─────────────────────────────────
+// * a virtual, read-only /.xdg-volume-info gives file managers the volume name
+//   and an Amiga/DOS icon; it is never written to the disk;
+// * .Trash / .Trash-<uid> folders are refused, so file managers offer to delete
+//   permanently instead of filling an 880K floppy with a trash can.
+
+static struct fuse_operations g_fsOps;          // the filesystem's own operations
+static std::string            g_volumeInfo;     // content of /.xdg-volume-info, "" = disabled
+static bool                   g_allowTrash = false;
+static const uint64_t         VOLINFO_FH = ~0ull;
+static const char* const      VOLINFO_PATH = "/.xdg-volume-info";
+
+static bool isVolumeInfo(const char* path) { return !g_volumeInfo.empty() && strcmp(path, VOLINFO_PATH) == 0; }
+
+static bool isTrash(const char* path)
+{
+    const char* base = strrchr(path, '/');
+    base = base ? base + 1 : path;
+    return !g_allowTrash && (strcmp(base, ".Trash") == 0 || strncmp(base, ".Trash-", 7) == 0);
+}
+
+static int w_getattr(const char* path, struct stat* st, struct fuse_file_info* fi)
+{
+    if (isVolumeInfo(path)) {
+        memset(st, 0, sizeof(*st));
+        st->st_mode  = S_IFREG | 0444;
+        st->st_nlink = 1;
+        st->st_size  = (off_t)g_volumeInfo.size();
+        st->st_uid   = getuid();
+        st->st_gid   = getgid();
+        return 0;
+    }
+    if (isTrash(path)) return -ENOENT;   // hide one left by an older driver, too
+    return g_fsOps.getattr(path, st, fi);
+}
+
+static int w_open(const char* path, struct fuse_file_info* fi)
+{
+    if (isVolumeInfo(path)) {
+        if ((fi->flags & O_ACCMODE) != O_RDONLY) return -EACCES;
+        fi->fh = VOLINFO_FH;
+        return 0;
+    }
+    return g_fsOps.open(path, fi);
+}
+
+static int w_read(const char* path, char* buf, size_t size, off_t off, struct fuse_file_info* fi)
+{
+    if (fi && fi->fh == VOLINFO_FH) {
+        if (off >= (off_t)g_volumeInfo.size()) return 0;
+        size_t n = std::min(size, g_volumeInfo.size() - (size_t)off);
+        memcpy(buf, g_volumeInfo.data() + off, n);
+        return (int)n;
+    }
+    return g_fsOps.read(path, buf, size, off, fi);
+}
+
+static int w_flush(const char* path, struct fuse_file_info* fi)
+{
+    if (fi && fi->fh == VOLINFO_FH) return 0;
+    return g_fsOps.flush ? g_fsOps.flush(path, fi) : 0;
+}
+
+static int w_release(const char* path, struct fuse_file_info* fi)
+{
+    if (fi && fi->fh == VOLINFO_FH) return 0;
+    return g_fsOps.release ? g_fsOps.release(path, fi) : 0;
+}
+
+static int w_mkdir(const char* path, mode_t mode)
+{
+    if (isTrash(path) || isVolumeInfo(path)) return -EPERM;
+    return g_fsOps.mkdir(path, mode);
+}
+
+static int w_create(const char* path, mode_t mode, struct fuse_file_info* fi)
+{
+    if (isTrash(path) || isVolumeInfo(path)) return -EPERM;
+    return g_fsOps.create(path, mode, fi);
+}
+
+static int w_rename(const char* from, const char* to, unsigned int flags)
+{
+    if (isTrash(to) || isVolumeInfo(to) || isVolumeInfo(from)) return -EPERM;
+    return g_fsOps.rename(from, to, flags);
+}
+
+static struct fuse_operations wrapOperations(const struct fuse_operations& fs)
+{
+    g_fsOps = fs;
+    struct fuse_operations ops = fs;
+    ops.getattr = w_getattr;
+    ops.open    = w_open;
+    ops.read    = w_read;
+    ops.flush   = w_flush;
+    ops.release = w_release;
+    ops.mkdir   = w_mkdir;
+    ops.create  = w_create;
+    ops.rename  = w_rename;
+    return ops;
 }
 
 // ── main ─────────────────────────────────────────────────────────────────────
@@ -280,6 +389,71 @@ int main(int argc, char* argv[])
         fclose(out);
         std::cerr << "waffle-fuse: " << bad << " unreadable sectors (written as zeros)\n";
         return bad ? EXIT_DRIVE : EXIT_OK;
+    }
+
+    // Progress line shared by --format and --write-image
+    auto trackProgress = [](uint32_t cyl, uint32_t head, int status) {
+        std::cerr << "\r  cylinder " << (cyl < 10 ? "0" : "") << cyl << " head " << head
+                  << (status == 0 ? " written   " : status == 1 ? " unchanged " : " FAILED\n") << std::flush;
+        emit("event=track cylinder=" + std::to_string(cyl) + " head=" + std::to_string(head) +
+             " status=" + (status == 0 ? "written" : status == 1 ? "unchanged" : "failed"));
+    };
+
+    // --write-image <port> <file.adf|img> [--full] [--yes] [--force]: put an image on the disk
+    if (argc >= 4 && strcmp(argv[1], "--write-image") == 0) {
+        bool full = false, yes = false, force = false;
+        for (int i = 4; i < argc; i++) {
+            if (strcmp(argv[i], "--full") == 0) full = true;
+            else if (strcmp(argv[i], "--yes") == 0) yes = true;
+            else if (strcmp(argv[i], "--force") == 0) force = true;
+        }
+        ImageDisk img(argv[3], true);
+        if (!img.open()) { std::cerr << "waffle-fuse: cannot read " << argv[3] << "\n"; return EXIT_USAGE; }
+        DiskGeometry geo = img.geometry();
+        const uint32_t sectors = img.totalSectors();
+        const bool known = (geo.format == DiskFormat::Amiga_ADF && (sectors == 1760 || sectors == 3520)) ||
+                           (geo.format == DiskFormat::IBM_FAT && (sectors == 1440 || sectors == 2880));
+        if (!known) {
+            std::cerr << "waffle-fuse: " << argv[3] << " is not an 880K/1.76M ADF or a 720K/1.44M PC image\n";
+            return EXIT_USAGE;
+        }
+        geo.numCylinders = sectors / (geo.numHeads * geo.sectorsPerTrack);
+        std::vector<uint8_t> image((size_t)sectors * 512);
+        for (uint32_t i = 0; i < sectors; i++) img.readSector(i, image.data() + (size_t)i * 512);
+
+        WaffleDisk::Options wo;
+        wo.port = argv[2];
+        WaffleDisk wd(wo);
+        bool holeHD, holeKnown;
+        switch (wd.openForFormat(holeHD, holeKnown)) {
+        case WaffleDisk::OpenResult::OK: break;
+        case WaffleDisk::OpenResult::NoDisk: std::cerr << "waffle-fuse: no disk in drive\n"; return EXIT_NODISK;
+        default: std::cerr << "waffle-fuse: cannot open device " << argv[2] << "\n"; return EXIT_PORT;
+        }
+        if (wd.isWriteProtected()) { std::cerr << "waffle-fuse: the disk is write-protected\n"; return EXIT_WRITE_ERROR; }
+        if (holeKnown && holeHD != geo.isHD && !force) {
+            std::cerr << "waffle-fuse: the image is " << (geo.isHD ? "HD" : "DD") << " but the disk is "
+                      << (holeHD ? "HD" : "DD") << " (use --force to try anyway)\n";
+            return EXIT_USAGE;
+        }
+        if (!yes) {
+            if (!isatty(0)) { std::cerr << "waffle-fuse: refusing to overwrite the disk without --yes\n"; return EXIT_USAGE; }
+            std::cerr << "The disk in " << argv[2] << " will be overwritten with " << argv[3] << ". Type YES: " << std::flush;
+            std::string answer;
+            std::getline(std::cin, answer);
+            if (answer != "YES") { std::cerr << "waffle-fuse: aborted\n"; return EXIT_USAGE; }
+        }
+        std::cerr << "waffle-fuse: writing " << argv[3] << (full ? " (all tracks)" : " (changed tracks only)") << "...\n";
+        int written = 0;
+        int bad = wd.writeImage(geo, image, full ? WaffleDisk::WriteMode::Full : WaffleDisk::WriteMode::Changed,
+                                [&](uint32_t c, uint32_t h, int st) { if (st == 0) written++; trackProgress(c, h, st); });
+        std::cerr << "\n";
+        wd.close();
+        if (bad < 0) { std::cerr << "waffle-fuse: the disk is write-protected\n"; return EXIT_WRITE_ERROR; }
+        if (bad > 0) { std::cerr << "waffle-fuse: " << bad << " tracks could not be written\n"; return EXIT_WRITE_ERROR; }
+        std::cerr << "waffle-fuse: done, " << written << " tracks written and verified\n";
+        emit("event=written tracks=" + std::to_string(written));
+        return EXIT_OK;
     }
 
     // --format <port> / --format-image <file>  <amiga|ofs|ffs|...|dos> <dd|hd> [label] [--quick] [--yes] [--force]
@@ -346,10 +520,9 @@ int main(int argc, char* argv[])
         }
 
         std::cerr << "waffle-fuse: formatting as " << what << (spec.hd ? " HD" : " DD") << (quick ? " (quick)" : "") << "...\n";
-        int bad = wd.formatDisk(formatGeometry(spec), image, quick, [](uint32_t cyl, uint32_t head, bool ok) {
-            std::cerr << "\r  cylinder " << (cyl < 10 ? "0" : "") << cyl << " head " << head << (ok ? "   " : " FAILED\n") << std::flush;
-            emit("event=format-progress cylinder=" + std::to_string(cyl) + " head=" + std::to_string(head) + " ok=" + (ok ? "1" : "0"));
-        });
+        int bad = wd.writeImage(formatGeometry(spec), image,
+                                quick ? WaffleDisk::WriteMode::NonEmpty : WaffleDisk::WriteMode::Full,
+                                trackProgress);
         std::cerr << "\n";
         wd.close();
         if (bad < 0) { std::cerr << "waffle-fuse: the disk is write-protected\n"; emit("error=write-protected"); return EXIT_WRITE_ERROR; }
@@ -517,10 +690,11 @@ int main(int argc, char* argv[])
     // ── Mountpoint ────────────────────────────────────────────────────────────
     bool createdDir = false;
     std::string mountpoint;
+    // Volume name / label if the disk has one, else e.g. FloppyHDAFFS
+    const std::string fallback = std::string("Floppy") + (geo.isHD ? "HD" : "DD") + (useAFFS ? "AFFS" : "DOS");
+    const std::string displayName = sanitizeName(volume, fallback);
     if (!automountBase.empty()) {
-        // Volume name / label if the disk has one, else e.g. FloppyHDAFFS
-        std::string fallback = std::string("Floppy") + (geo.isHD ? "HD" : "DD") + (useAFFS ? "AFFS" : "DOS");
-        mountpoint = makeAutomountDir(automountBase, sanitizeName(volume, fallback), createdDir);
+        mountpoint = makeAutomountDir(automountBase, displayName, createdDir);
         if (mountpoint.empty()) {
             std::cerr << "waffle-fuse: cannot create a mountpoint under " << automountBase << "\n";
             emit("error=mount");
@@ -537,7 +711,11 @@ int main(int argc, char* argv[])
     fuse_opt_add_arg(&args, fsopts.c_str());
     if (readOnly) fuse_opt_add_arg(&args, "-oro");
 
-    struct fuse_operations ops = useAFFS ? affs_get_operations() : fat_get_operations();
+    g_allowTrash = opts.trash;
+    if (!opts.novolinfo)
+        g_volumeInfo = "[Volume Info]\nName=" + displayName + "\nIcon=" +
+                       (useAFFS ? "waffle-amiga-floppy" : "waffle-dos-floppy") + "\n";
+    struct fuse_operations ops = wrapOperations(useAFFS ? affs_get_operations() : fat_get_operations());
     g_fuse = fuse_new(&args, &ops, sizeof(ops), fsCtx);
     if (!g_fuse) {
         freeFs();

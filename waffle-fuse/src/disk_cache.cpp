@@ -223,8 +223,8 @@ WaffleDisk::OpenResult WaffleDisk::openForFormat(bool& holeIsHD, bool& holeKnown
     return OpenResult::OK;
 }
 
-int WaffleDisk::formatDisk(const DiskGeometry& geo, const std::vector<uint8_t>& image, bool quick,
-                           std::function<void(uint32_t, uint32_t, bool)> progress)
+int WaffleDisk::writeImage(const DiskGeometry& geo, const std::vector<uint8_t>& image, WriteMode mode,
+                           std::function<void(uint32_t, uint32_t, int)> progress)
 {
     std::lock_guard<std::mutex> lk(m_mtx);
     if (!m_open) return -1;
@@ -247,11 +247,25 @@ int WaffleDisk::formatDisk(const DiskGeometry& geo, const std::vector<uint8_t>& 
                 tc.sectors[s].assign(image.begin() + base + s * 512, image.begin() + base + (s + 1) * 512);
                 for (uint8_t b : tc.sectors[s]) if (b) { empty = false; break; }
             }
-            if (quick && empty) continue;
+            if (mode == WriteMode::NonEmpty && empty) continue;
+
+            if (mode == WriteMode::Changed) {
+                std::vector<std::vector<uint8_t>> cur;
+                std::vector<bool> valid;
+                if (readTrackRaw(cyl, head, cur, valid)) {
+                    bool same = cur.size() == spt;
+                    for (uint32_t s = 0; same && s < spt; s++)
+                        same = valid[s] && cur[s] == tc.sectors[s];
+                    if (same) {
+                        if (progress) progress(cyl, head, 1);
+                        continue;
+                    }
+                }
+            }
 
             // A full format starts from a clean track: no leftovers of an older
             // (maybe different) format after the end of the new data
-            if (!quick && seekTo(cyl, head)) {
+            if (mode == WriteMode::Full && seekTo(cyl, head)) {
                 m_impl->writer.device().setDiskCapacity(geo.isHD);
                 m_impl->writer.device().eraseCurrentTrack();
             }
@@ -261,7 +275,7 @@ int WaffleDisk::formatDisk(const DiskGeometry& geo, const std::vector<uint8_t>& 
                 failed++;
                 if (isWriteProtected()) return -1;
             }
-            if (progress) progress(cyl, head, ok);
+            if (progress) progress(cyl, head, ok ? 0 : -1);
         }
     }
     m_cache.clear();

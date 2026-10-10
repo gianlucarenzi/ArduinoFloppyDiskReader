@@ -103,6 +103,12 @@ la porta seriale è aperta in modo esclusivo.
   sparisce, il volume viene smontato. Se c'erano ancora modifiche in sospeso arriva un
   avviso di errore, perché quelle modifiche sono perse: aspetta l'avviso "puoi estrarre"
   prima di togliere il disco, come su Amiga.
+* **Desktop**: nella radice del disco compare un `.xdg-volume-info` *virtuale* (in sola
+  lettura, mai scritto sul disco) con il nome del volume e l'icona Amiga o DOS, che i file
+  manager usano per l'icona sul desktop. Se il disco ne contiene già uno, viene nascosto.
+* **Niente cestino sul floppy**: le cartelle `.Trash`/`.Trash-<uid>` vengono rifiutate, così
+  il file manager propone di eliminare definitivamente invece di riempire il disco con i
+  file cancellati (opzione `trash` per riabilitarlo).
 * **Smontaggio**: dopo `fusermount3 -u` (o "Smonta"/"Espelli") il processo scrive ciò
   che resta, libera il drive e rimuove la directory di mount.
 
@@ -126,6 +132,9 @@ waffle-fuse --format <porta> <tipo> <dd|hd> [nome] [--quick] [--yes] [--force]
 waffle-fuse --format-image <file> <tipo> <dd|hd> [nome]   # crea un'immagine vuota
 waffle-fuse --scan <porta>                # mappa della superficie: settori buoni per traccia
 waffle-fuse --dump <porta> <file.adf>     # legge tutto il disco in un'immagine
+waffle-fuse --write-image <porta> <file.adf|img> [--full] [--yes]
+                                          # scrive un'immagine sul disco: di default rilegge
+                                          # ogni traccia e riscrive solo quelle diverse
 ```
 
 `<tipo>`: `ffs` (o `amiga`), `ofs`, `amiga-intl`, `ofs-intl`, `dos`. La formattazione
@@ -153,6 +162,8 @@ illeggibile il comando esce con un errore e non lascia mountpoint appesi.
 | `flushdelay=MS`   | Ritardo della scrittura differita (default 1000 ms) |
 | `noverify`        | Non rilegge le tracce scritte (più veloce, meno sicuro) |
 | `diskpoll=MS`     | Intervallo del controllo di estrazione (default 3000 ms, come trackdisk.device) |
+| `trash`           | Permette ai file manager di creare il cestino `.Trash-<uid>` sul disco |
+| `novolumeinfo`    | Niente `.xdg-volume-info` virtuale (nome e icona sul desktop) |
 | `debug_hw`        | Output di debug hardware/seriale |
 | `-f`              | Resta in foreground |
 

@@ -205,7 +205,15 @@ for _ in $(seq 50); do mountpoint -q "$WORK/auto/WAFFLE" && break; sleep 0.1; do
 if mountpoint -q "$WORK/auto/WAFFLE"; then
     ok "mounted on <dir>/<volume label>"
     grep -q "^WAFFLE event=mounted mountpoint=$WORK/auto/WAFFLE" "$WORK/auto.log" && ok "mounted event" || bad "mounted event"
+    grep -qx "Name=WAFFLE" "$WORK/auto/WAFFLE/.xdg-volume-info" && grep -qx "Icon=waffle-dos-floppy" "$WORK/auto/WAFFLE/.xdg-volume-info" \
+        && ok "virtual .xdg-volume-info (name and icon)" || bad "virtual .xdg-volume-info"
+    if mkdir "$WORK/auto/WAFFLE/.Trash-$(id -u)" 2>/dev/null; then bad ".Trash folder refused"; else ok ".Trash folder refused"; fi
     fusermount3 -u "$WORK/auto/WAFFLE"; wait "$PID"; PID=
+    if "$TEST_PYTHON" -c "import pyfatfs" 2>/dev/null; then
+        rm -rf "$WORK/auto-out"
+        "$TEST_PYTHON" "$HERE/extract.py" "$WORK/fat-720.img" "$WORK/auto-out" 2>/dev/null
+        [ ! -e "$WORK/auto-out/.xdg-volume-info" ] && ok "volume info never written to the disk" || bad "volume info written to the disk"
+    fi
     [ ! -e "$WORK/auto/WAFFLE" ] && ok "mountpoint removed after unmount" || bad "mountpoint removed after unmount"
 else
     bad "automount"; cat "$WORK/auto.log"
