@@ -1,265 +1,236 @@
 # waffle-fuse
 
 Un driver FUSE userspace per il lettore di floppy **DrawBridge / Waffle** su Arduino.
-Una volta montato, i normali strumenti Linux (`ls`, `cp`, `diff`, `tar`, …) lavorano
-direttamente sul disco fisico — senza creare file immagine intermedi.
+Fa comportare il drive come un drive Amiga sul desktop Linux:
 
-Formati supportati:
+* **inserisci un disco** → viene montato da solo in `~/Floppy/<nome volume>` e compare
+  come icona di volume sul desktop e nel file manager (come l'icona su Workbench);
+* **espelli** → dal menu dell'icona nel tray o con "Smonta" sull'icona del desktop:
+  le modifiche in sospeso vengono scritte, poi arriva l'avviso "puoi estrarre il disco";
+* **estrai il disco** mentre è montato → viene smontato automaticamente.
 
-| Formato | Accesso | Descrizione |
-|---------|---------|-------------|
-| FAT12   | lettura + scrittura | Floppy PC 720 KB / 1.2 MB / 1.44 MB |
-| FAT16   | lettura + scrittura | Volumi FAT16 (raro su floppy) |
-| Amiga OFS | lettura + scrittura | Floppy Amiga DD/HD, Old Filesystem |
-| Amiga FFS | lettura + scrittura | Floppy Amiga DD/HD, Fast Filesystem |
+Formati supportati (rilevati automaticamente, densità compresa):
+
+| Disco | Filesystem | Accesso |
+|-------|------------|---------|
+| Amiga 880 KB (DD) / 1.76 MB (HD) | OFS, FFS, INTL (`DOS0`–`DOS3`) | lettura + scrittura |
+| Amiga con DirCache (`DOS4`/`DOS5`) | | sola lettura |
+| PC 720 KB (DD) / 1.44 MB (HD) | FAT12 (anche FAT16), nomi lunghi VFAT | lettura + scrittura |
 
 ---
 
 ## Dipendenze
 
 ```bash
-sudo apt install libfuse3-dev build-essential
+sudo apt install libfuse3-dev fuse3 build-essential pkg-config
+sudo apt install python3-gi gir1.2-gtk-3.0 libnotify-bin   # icona nel tray e notifiche
 ```
 
-Il driver accede all'hardware via seriale (`/dev/ttyUSB0` o simile) usando il
-firmware DrawBridge — non serve nessun modulo kernel aggiuntivo.
+Il driver accede all'hardware via seriale (`/dev/ttyUSB0` o simile): serve essere nel
+gruppo `dialout` (o `plugdev`, a seconda della distribuzione):
+`sudo usermod -aG dialout $USER`, poi rifare il login.
 
 ---
 
-## Compilazione
+## Compilazione e installazione
 
 ```bash
 cd waffle-fuse
 make
+./scripts/install-desktop.sh
 ```
 
-Il binario risultante è `waffle-fuse/waffle-fuse`.
+`install-desktop.sh` installa le icone, i launcher nel menu Applicazioni → Sistema e
+l'avvio automatico al login di **Waffle DiskFlashback** (l'icona nel tray).
+Per avviarlo subito senza rifare il login:
+
+```bash
+./scripts/waffle-diskflashback.py &
+```
+
+Opzioni del demone: `--port /dev/ttyUSB0` (default: autodetect), `--mount-dir DIR`
+(default `~/Floppy`, deve stare dentro la home perché compaiano le icone sul desktop),
+`--open` (apre il file manager all'inserimento), `--ro` (monta sempre in sola lettura).
+
+Per usare la porta con WaffleCopyPRO bisogna prima chiudere il demone (menu → Quit):
+la porta seriale è aperta in modo esclusivo.
 
 ---
 
-## Uso
+## Come si comporta (come trackdisk.device)
+
+* **Cache per traccia**: si legge sempre una traccia intera; le letture successive sulla
+  stessa traccia non toccano il disco.
+* **Scrittura differita**: le scritture vanno in cache e la traccia viene scritta circa
+  1 secondo dopo l'ultima modifica (opzione `flushdelay`), poi **riletta e verificata**
+  (fino a 3 tentativi). Copiare un file non riscrive più la stessa traccia decine di volte.
+* **Nessun dato inventato**: un settore illeggibile non viene mai "indovinato". Il file
+  che lo contiene dà errore di I/O, e una traccia con settori illeggibili non viene mai
+  riscritta, così i settori rovinati non vengono sovrascritti con zeri.
+* **Motore**: si spegne dopo 3 secondi di inattività e si riaccende quando serve.
+* **Estrazione**: a disco fermo il drive viene interrogato ogni 3 secondi (come
+  trackdisk.device; regolabile con `diskpoll`). Se il disco
+  sparisce, il volume viene smontato. Se c'erano ancora modifiche in sospeso arriva un
+  avviso di errore, perché quelle modifiche sono perse: aspetta l'avviso "puoi estrarre"
+  prima di togliere il disco, come su Amiga.
+* **Smontaggio**: dopo `fusermount3 -u` (o "Smonta"/"Espelli") il processo scrive ciò
+  che resta, libera il drive e rimuove la directory di mount.
+
+---
+
+## Uso manuale
 
 ```
-waffle-fuse <porta-seriale> <mountpoint> [opzioni-fuse]
+waffle-fuse <porta-seriale> <mountpoint> [opzioni]
+waffle-fuse <porta-seriale> --automount <dir> [opzioni]     # monta in <dir>/<nome volume>
+waffle-fuse --image <file.adf|file.img> <mountpoint> [opzioni]
+waffle-fuse --probe <porta>          # 0 = disco presente, 1 = nessun disco, 2 = errore
+waffle-fuse --wait-disk <porta>      # attende l'inserimento di un disco
+waffle-fuse --wait-removal <porta>   # attende l'estrazione del disco
 ```
 
-### Opzioni (passate con `-o chiave[=valore]`)
+Strumenti per il disco (senza montarlo):
+
+```
+waffle-fuse --format <porta> <tipo> <dd|hd> [nome] [--quick] [--yes] [--force]
+waffle-fuse --format-image <file> <tipo> <dd|hd> [nome]   # crea un'immagine vuota
+waffle-fuse --scan <porta>                # mappa della superficie: settori buoni per traccia
+waffle-fuse --dump <porta> <file.adf>     # legge tutto il disco in un'immagine
+```
+
+`<tipo>`: `ffs` (o `amiga`), `ofs`, `amiga-intl`, `ofs-intl`, `dos`. La formattazione
+cancella ogni traccia, la riscrive e la rilegge per verificarla (circa 2 minuti), poi
+crea il filesystem: AmigaDOS come Format di AmigaOS (DD 880K, HD 1.76M), FAT12 come
+MS-DOS (720K, 1.44M). `--quick` riscrive solo le tracce con le strutture del
+filesystem e richiede un disco già formattato. Senza `--yes` chiede di scrivere YES.
+Un disco DD non viene formattato come HD (o viceversa) senza `--force`.
+
+```bash
+./waffle-fuse --format /dev/ttyUSB0 ffs dd "Work"
+./waffle-fuse --format /dev/ttyUSB0 dos hd "DATI"
+```
+
+Il disco viene letto e riconosciuto **prima** del mount: con un disco sbagliato o
+illeggibile il comando esce con un errore e non lascia mountpoint appesi.
+
+### Opzioni (`-o chiave[=valore],...`)
 
 | Opzione | Descrizione |
 |---------|-------------|
 | `format=fat\|affs` | Forza il tipo di filesystem (default: autodetect) |
-| `density=dd\|hd`  | Forza la densità del disco (default: autodetect) |
-| `ro`              | Monta in sola lettura (sempre attivo per AFFS) |
-| `debug_hw`        | Abilita output debug hardware/seriale |
-| `-f`              | Esegui in foreground (utile per debug) |
-| `-d`              | Foreground con output debug FUSE |
+| `density=dd\|hd`  | Forza la densità (default: autodetect, provando entrambe) |
+| `ro`              | Monta in sola lettura |
+| `flushdelay=MS`   | Ritardo della scrittura differita (default 1000 ms) |
+| `noverify`        | Non rilegge le tracce scritte (più veloce, meno sicuro) |
+| `diskpoll=MS`     | Intervallo del controllo di estrazione (default 3000 ms, come trackdisk.device) |
+| `debug_hw`        | Output di debug hardware/seriale |
+| `-f`              | Resta in foreground |
+
+### Esempi
+
+```bash
+# Monta il disco inserito in ~/Floppy/<nome volume>, in background
+./waffle-fuse /dev/ttyUSB0 --automount ~/Floppy
+
+# In un mountpoint fisso, in foreground con debug
+mkdir -p /tmp/floppy
+./waffle-fuse /dev/ttyUSB0 /tmp/floppy -f -o debug_hw
+
+# Smontare (scrive le modifiche in sospeso)
+fusermount3 -u ~/Floppy/Workbench3.1
+
+# Lavorare su un'immagine ADF/IMG invece che sul drive
+./waffle-fuse --image workbench.adf /tmp/wb
+```
+
+C'è anche `scripts/waffle-mount.sh [auto|amiga|dos] [auto|dd|hd] [porta]`, usato dai
+launcher del menu: se il disco è montato lo smonta, altrimenti lo monta.
+
+### Codici di uscita
+
+| Codice | Significato |
+|--------|-------------|
+| 0 | smontato normalmente, tutte le modifiche scritte |
+| 1 | errore negli argomenti o nel mount |
+| 2 | porta seriale non apribile (scollegata o in uso) |
+| 3 | nessun disco nel drive |
+| 4 | disco non DOS: non formattato, NDOS (giochi) o protetto |
+| 5 | errore del drive leggendo la traccia 0 |
+| 6 | filesystem non valido |
+| 7 | disco estratto: smontato automaticamente |
+| 8 | disco estratto con modifiche ancora in sospeso (perse) |
+| 9 | alcune modifiche non sono state scritte |
+
+Su stdout viene stampata una riga per evento (`WAFFLE event=detected ...`,
+`WAFFLE event=mounted mountpoint=...`, `WAFFLE event=removed`, ...), letta dal demone.
 
 ---
 
-## Montare un disco
+## Test
 
-### Prima di iniziare
-
-```bash
-# Creare il punto di mount (una volta sola)
-mkdir -p /mnt/floppy
-
-# Assicurarsi di essere nel gruppo plugdev (per accedere a /dev/ttyUSB0)
-# Se necessario: sudo usermod -aG plugdev $USER  (poi ri-login)
-```
-
-### Disco Amiga 880K DS/DD (OFS o FFS)
+I filesystem si provano su immagini disco, senza hardware:
 
 ```bash
-# Autodetect (rileva il formato dal boot block)
-./waffle-fuse /dev/ttyUSB0 /mnt/floppy
-
-# Oppure con formato e densità espliciti
-./waffle-fuse /dev/ttyUSB0 /mnt/floppy -o format=affs,density=dd
+make test
 ```
 
-### Disco PC FAT12 720K DS/DD
+Il test copia un albero di file su immagini appena formattate (OFS, FFS, FFS-INTL,
+FFS HD, FAT 720K e 1.44M), poi sposta, rinomina, tronca, accoda, cancella e riempie il
+disco. Infine confronta il risultato tre volte: dal mount, dopo un nuovo mount e con
+strumenti indipendenti (`xdfscan`/`xdftool` di [amitools](https://github.com/cnvogelg/amitools)
+per AmigaDOS, `fsck.fat` e [pyfatfs](https://github.com/nathanhi/pyfatfs) per FAT). Se
+gli strumenti stanno in un virtualenv:
 
 ```bash
-./waffle-fuse /dev/ttyUSB0 /mnt/floppy -o density=dd
-```
-
-### Disco PC FAT12 1.44 MB HD
-
-```bash
-./waffle-fuse /dev/ttyUSB0 /mnt/floppy
-# oppure esplicitamente:
-./waffle-fuse /dev/ttyUSB0 /mnt/floppy -o density=hd
-```
-
-### Con debug visibile (foreground)
-
-```bash
-./waffle-fuse /dev/ttyUSB0 /mnt/floppy -f -o debug_hw
-```
-
-Output atteso per un disco Amiga:
-```
-waffle-fuse: disk opened  format=Amiga/ADF  HD=no  sectors=1760
-waffle-fuse: mounted as Amiga OFS (read-write)
-```
-
----
-
-## Lavorare con i file
-
-```bash
-# Elencare la root
-ls /mnt/floppy
-
-# Copiare un file dal disco
-cp /mnt/floppy/s/startup-sequence .
-
-# Copiare tutta la directory C:
-cp -r /mnt/floppy/C/ ~/backup-amiga-C/
-
-# Fare il backup completo del disco
-cp -r /mnt/floppy/ ~/backup-amiga/
-
-# Cercare file per nome
-find /mnt/floppy -name "*.mod"
-
-# Leggere un file di testo
-cat /mnt/floppy/S/Startup-Sequence
-
-# Copiare un file SUL disco (FAT e Amiga)
-cp mio_file.txt /mnt/floppy/
-
-# Creare una directory sul disco Amiga
-mkdir /mnt/floppy/MYDIR
-
-# Rinominare/spostare un file sul disco Amiga
-mv /mnt/floppy/OLDNAME /mnt/floppy/NEWNAME
-
-# Cancellare un file dal disco Amiga
-rm /mnt/floppy/MYFILE
-```
-
-> **Nota:** Il disco fisico viene scritto direttamente a ogni operazione di scrittura.
-> Smontare sempre con `fusermount3 -u` prima di estrarre il floppy.
-
----
-
-## Smontare il disco
-
-**Smontare sempre il disco prima di estrarlo o cambiarlo.**
-
-```bash
-fusermount3 -u /mnt/floppy
-```
-
-Se il driver è in foreground (`-f`), smontare dal secondo terminale:
-```bash
-# Terminale 2
-fusermount3 -u /mnt/floppy
-# Il processo waffle-fuse termina automaticamente
-```
-
----
-
-## Cambiare disco (cambio fisico del floppy)
-
-Il driver non supporta il cambio a caldo del disco: ogni mount legge la geometria
-e il formato una volta sola all'avvio. Per passare a un disco diverso:
-
-```bash
-# 1. Smontare il disco corrente
-fusermount3 -u /mnt/floppy
-
-# 2. Estrarre il floppy dall'unità e inserire il nuovo
-
-# 3. Rimontare (il driver rileva automaticamente il nuovo formato)
-./waffle-fuse /dev/ttyUSB0 /mnt/floppy
-```
-
-Se il secondo disco ha un formato diverso (es. da Amiga a FAT), l'autodetect
-lo riconosce senza opzioni aggiuntive. Per forzare il formato:
-
-```bash
-# Passare da un disco Amiga a uno FAT
-fusermount3 -u /mnt/floppy
-# ... cambia il disco ...
-./waffle-fuse /dev/ttyUSB0 /mnt/floppy -o format=fat,density=dd
-
-# Passare da un disco FAT a uno Amiga
-fusermount3 -u /mnt/floppy
-# ... cambia il disco ...
-./waffle-fuse /dev/ttyUSB0 /mnt/floppy -o format=affs,density=dd
+python3 -m venv ~/waffle-venv && ~/waffle-venv/bin/pip install amitools pyfatfs "setuptools<70"
+XDFTOOL=~/waffle-venv/bin/xdftool XDFSCAN=~/waffle-venv/bin/xdfscan \
+TEST_PYTHON=~/waffle-venv/bin/python make test
 ```
 
 ---
 
 ## Risoluzione problemi
 
-### "Permission denied" sul mountpoint
+**"Transport endpoint is not connected" su una directory in `~/Floppy`**: è rimasta da un
+crash. Si pulisce con `fusermount3 -uz <directory>`; il demone lo fa da solo all'avvio.
 
-Il mountpoint è rimasto in stato inconsistente dopo un arresto forzato:
+**"cannot open device"**: verifica `ls -l /dev/ttyUSB0`, di essere nel gruppo `dialout`
+e che nessun altro programma (WaffleCopyPRO, un altro `waffle-fuse`) stia usando la porta.
 
-```bash
-fusermount3 -u /mnt/floppy   # prova a smontare
-rmdir /mnt/floppy             # rimuovi se vuoto
-mkdir /mnt/floppy             # ricrea
-```
+**"Disk in use" all'espulsione**: una finestra del file manager o un terminale è dentro il
+disco. Chiudili e riprova.
 
-### "cannot open device"
-
-```bash
-ls -l /dev/ttyUSB0            # verifica che esista
-groups                        # verifica di essere in plugdev
-sudo chmod a+rw /dev/ttyUSB0  # soluzione temporanea
-```
-
-### Il disco viene montato come formato sbagliato
-
-Usa `-o format=affs` o `-o format=fat` per forzarlo:
-
-```bash
-./waffle-fuse /dev/ttyUSB0 /mnt/floppy -f -o format=affs,density=dd,debug_hw
-```
-
-### File/directory mancanti dopo il mount
-
-Controlla che il disco non sia HD montato come DD o viceversa:
-
-```bash
-# Se il disco è HD (1.76 MB Amiga / 1.44 MB PC)
-./waffle-fuse /dev/ttyUSB0 /mnt/floppy -o density=hd
-
-# Se il disco è DD (880 KB Amiga / 720 KB PC)
-./waffle-fuse /dev/ttyUSB0 /mnt/floppy -o density=dd
-```
+**Disco riconosciuto male**: forza formato e densità, ad esempio
+`-o format=affs,density=dd`.
 
 ---
 
 ## Architettura
 
 ```
-waffle_fuse.cpp          – main(), parsing opzioni, hook init/destroy
-├── disk_cache.h/cpp     – interfaccia IDiskImage + implementazione WaffleDisk
-│   └── ADFWriter        – encode/decode MFM, I/O seriale hardware
-├── fat_fs.h/cpp         – callback FUSE FAT12/FAT16 (lettura+scrittura)
-└── affs_fs.h/cpp        – callback FUSE Amiga OFS/FFS (sola lettura)
+waffle_fuse.cpp          – main(): rileva il disco, sceglie il filesystem, monta, eventi
+├── disk_cache.h/cpp     – IDiskImage; WaffleDisk (cache per traccia, scrittura differita
+│   │                      e verificata, motore, rilevamento estrazione); ImageDisk (file)
+│   └── ADFWriter        – encode/decode MFM Amiga e IBM, I/O seriale
+├── fat_fs.h/cpp         – FAT12/FAT16 con nomi lunghi VFAT
+├── format.h/cpp         – immagini vuote AmigaDOS OFS/FFS e FAT12 (DD e HD)
+└── affs_fs.h/cpp        – Amiga OFS/FFS (nomi ISO-8859-1 ↔ UTF-8, date in ora locale)
+scripts/
+├── waffle-diskflashback.py – demone tray: automount, espulsione, notifiche
+├── waffle-mount.sh         – monta/smonta con un clic (launcher)
+└── install-desktop.sh      – installa launcher, icone e avvio automatico
+tests/run-tests.sh          – test dei filesystem su immagini
 ```
-
-**WaffleDisk** espone `readSector(lba)` / `writeSector(lba)` con cache per traccia,
-riducendo al minimo i lenti round-trip seriali. La geometria viene rilevata
-automaticamente al primo `open()`.
-
-**Ordine di rilevamento del formato:**
-1. Legge traccia 0 con decoder IBM/MFM; controlla firma `0x55 0xAA` → FAT
-2. Se fallisce, legge traccia 0 con decoder Amiga/MFM; controlla `DOS` nel boot block → AFFS
 
 ---
 
 ## Limitazioni note
 
-* AFFS è **sola lettura** — la scrittura richiederebbe il ricalcolo dei checksum su più tipi di blocco.
-* FAT32 non è supportato (praticamente mai usato su floppy).
-* Le immagini Amiga partizionate (RDB) non sono supportate; solo ADF standard a singola partizione.
-* I nomi LFN vengono decodificati in lettura; i nuovi file vengono creati con nomi 8.3.
-* La libreria CAPS/IPF è esclusa intenzionalmente; i file `.ipf` non possono essere letti.
+* Su AmigaDOS i nomi possono avere al massimo 30 caratteri (ISO-8859-1); i link (hard
+  e soft) si leggono ma non si possono modificare.
+* I volumi Amiga con bitmap non validata (disco da "validare") vengono montati in sola
+  lettura: validali su un Amiga o in un emulatore.
+* FAT32, settori diversi da 512 byte e dischi Amiga partizionati (RDB) non sono supportati.
+* Un cambio di disco più veloce dell'intervallo di controllo (3 s) può non essere notato (il drive segnala il
+  cambio solo con la linea DSKCHG): smonta sempre prima di cambiare disco.
+* I file `.ipf` non sono supportati.
