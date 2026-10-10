@@ -518,7 +518,8 @@ int main(int argc, char* argv[])
     bool createdDir = false;
     std::string mountpoint;
     if (!automountBase.empty()) {
-        std::string fallback = useAFFS ? "Amiga Floppy" : "DOS Floppy";
+        // Volume name / label if the disk has one, else e.g. FloppyHDAFFS
+        std::string fallback = std::string("Floppy") + (geo.isHD ? "HD" : "DD") + (useAFFS ? "AFFS" : "DOS");
         mountpoint = makeAutomountDir(automountBase, sanitizeName(volume, fallback), createdDir);
         if (mountpoint.empty()) {
             std::cerr << "waffle-fuse: cannot create a mountpoint under " << automountBase << "\n";
