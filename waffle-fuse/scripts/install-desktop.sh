@@ -3,6 +3,7 @@
 #
 #   ./scripts/install-desktop.sh            install for the current user
 #   ./scripts/install-desktop.sh --no-autostart
+#   ./scripts/install-desktop.sh --uninstall
 #
 # Run once after building waffle-fuse.
 
@@ -17,6 +18,19 @@ AUTOSTART_DST="$HOME/.config/autostart"
 
 AUTOSTART=1
 [ "${1:-}" = "--no-autostart" ] && AUTOSTART=0
+
+if [ "${1:-}" = "--uninstall" ]; then
+    rm -f "$AUTOSTART_DST/waffle-diskflashback.desktop"
+    for name in waffle-diskflashback.desktop waffle-floppy.desktop \
+                waffle-amiga-dd.desktop waffle-amiga-hd.desktop \
+                waffle-dos-dd.desktop waffle-dos-hd.desktop; do
+        rm -f "$APP_DST/$name"
+    done
+    rm -rf "$ICON_DST"
+    command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$APP_DST" 2>/dev/null || true
+    echo "Launchers, icons and autostart entry removed."
+    exit 0
+fi
 
 if [ ! -x "$WAFFLE_DIR/waffle-fuse" ]; then
     echo "Build waffle-fuse first (make)." >&2

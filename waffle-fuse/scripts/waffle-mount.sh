@@ -5,14 +5,24 @@
 #
 # Toggle: if a disk from the drive is mounted it is unmounted (pending
 # changes are written first), otherwise the inserted disk is mounted under
-# $WAFFLE_MOUNT_DIR/<volume name> (default ~/Floppy), where it shows up as a
+# $WAFFLE_MOUNT_DIR/<volume name> (default /media/$USER or /run/media/$USER if
+# writable, else ~/Floppy), where it shows up as a
 # volume on the desktop.  For automatic mounting on insert use the tray
 # daemon (waffle-diskflashback.py) instead.
 
 FORMAT="${1:-auto}"    # auto | amiga | dos
 DENSITY="${2:-auto}"   # auto | dd | hd
 PORT="${3:-}"
-MOUNT_DIR="${WAFFLE_MOUNT_DIR:-$HOME/Floppy}"
+# Default: where udisks mounts (/run/media/$USER or /media/$USER) if we may
+# create directories there
+# (see install-system.sh), otherwise ~/Floppy
+MOUNT_DIR="${WAFFLE_MOUNT_DIR:-}"
+if [ -z "$MOUNT_DIR" ]; then
+    MOUNT_DIR="$HOME/Floppy"
+    for base in /run/media /media; do
+        if [ -d "$base/$USER" ] && [ -w "$base/$USER" ]; then MOUNT_DIR="$base/$USER"; break; fi
+    done
+fi
 
 # ── Notifications ────────────────────────────────────────────────────────────
 notify() {

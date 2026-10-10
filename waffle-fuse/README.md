@@ -3,7 +3,8 @@
 Un driver FUSE userspace per il lettore di floppy **DrawBridge / Waffle** su Arduino.
 Fa comportare il drive come un drive Amiga sul desktop Linux:
 
-* **inserisci un disco** → viene montato da solo in `~/Floppy/<nome volume>` e compare
+* **inserisci un disco** → viene montato da solo in `/media/$USER/<nome volume>` (o
+  `~/Floppy/<nome volume>`, vedi sotto) e compare
   come icona di volume sul desktop e nel file manager (come l'icona su Workbench);
 * **espelli** → dal menu dell'icona nel tray o con "Smonta" sull'icona del desktop:
   le modifiche in sospeso vengono scritte, poi arriva l'avviso "puoi estrarre il disco";
@@ -37,20 +38,49 @@ gruppo `dialout` (o `plugdev`, a seconda della distribuzione):
 ```bash
 cd waffle-fuse
 make
-./scripts/install-desktop.sh
+./scripts/waffle-installer.py        # oppure doppio clic su waffle-installer.desktop
 ```
 
-`install-desktop.sh` installa le icone, i launcher nel menu Applicazioni → Sistema e
-l'avvio automatico al login di **Waffle DiskFlashback** (l'icona nel tray).
-Per avviarlo subito senza rifare il login:
+L'installer grafico (GTK, funziona su X11 e Wayland, con qualsiasi desktop, da Debian ad
+Arch) controlla le dipendenze e suggerisce i pacchetti mancanti per la tua distribuzione,
+compila waffle-fuse se serve, poi:
 
-```bash
-./scripts/waffle-diskflashback.py &
-```
+* **per l'utente**: installa launcher e icone e avvia **Waffle DiskFlashback** (il demone
+  con l'icona nel tray) all'apertura della sessione grafica, con l'autostart XDG (GNOME, KDE,
+  XFCE, MATE, Cinnamon, LXQt) oppure con un servizio utente systemd legato a
+  `graphical-session.target` sui window manager senza autostart (sway, Hyprland, i3...);
+* **per il sistema**: chiede la password di amministratore con la finestra standard di
+  polkit (`pkexec`; in mancanza `sudo -A` con un askpass grafico) ed esegue
+  `scripts/install-system.sh`, per montare i dischi dove li monta udisks e per dare
+  accesso alla porta seriale (gruppo `dialout` o `uucp`, solo se serve).
+
+Ha anche un pulsante per disinstallare. Senza interfaccia grafica: `waffle-installer.py --text`.
+
+L'icona nel tray usa AppIndicator/StatusNotifierItem (pacchetto
+`gir1.2-ayatanaappindicator3-0.1` su Debian, `libayatana-appindicator` su Arch), necessaria
+su Wayland, GNOME (con l'estensione AppIndicator) e KDE; su X11 c'è un ripiego senza.
+Senza tray il demone funziona lo stesso, con le sole notifiche.
+
+### Dove vengono montati i dischi
+
+La cartella di mount prende il nome del volume Amiga o dell'etichetta FAT; se il disco
+non ne ha uno si chiama `FloppyDDAFFS`, `FloppyHDAFFS`, `FloppyDDDOS` o `FloppyHDDOS`.
+Viene creata dove udisks monta le chiavette USB, `/media/$USER` (Debian, Ubuntu) o
+`/run/media/$USER` (Arch, Fedora...), se la parte di sistema è installata; altrimenti in
+`~/Floppy`.
+
+udisks2 crea quella cartella da solo, di root con un'ACL in sola lettura per l'utente, e
+solo quando monta un dispositivo a blocchi; waffle-fuse invece gira come utente e lì non
+può creare cartelle. `scripts/install-system.sh` (lanciato dall'installer, oppure a mano
+con `sudo`, `--uninstall` per toglierlo) installa `/etc/tmpfiles.d/waffle-fuse.conf`, con
+cui systemd crea la cartella a ogni avvio con un'ACL che dà all'utente anche la scrittura,
+e la applica subito. udisks2 imposta i suoi permessi solo quando crea la cartella, quindi
+continua a funzionare come prima.
 
 Opzioni del demone: `--port /dev/ttyUSB0` (default: autodetect), `--mount-dir DIR`
-(default `~/Floppy`, deve stare dentro la home perché compaiano le icone sul desktop),
-`--open` (apre il file manager all'inserimento), `--ro` (monta sempre in sola lettura).
+(default come sopra; deve stare sotto `/media`, `/run/media` o nella home perché compaiano
+le icone sul desktop), `--open` (apre il file manager all'inserimento), `--ro` (monta
+sempre in sola lettura).
 
 Per usare la porta con WaffleCopyPRO bisogna prima chiudere il demone (menu → Quit):
 la porta seriale è aperta in modo esclusivo.

@@ -4,7 +4,9 @@ waffle-diskflashback – system tray daemon for the DrawBridge/Waffle floppy rea
 
 Makes the drive behave like an Amiga disk drive on the Linux desktop:
 
-  * insert a disk  -> it is mounted automatically under ~/Floppy/<volume name>
+  * insert a disk  -> it is mounted automatically where udisks would mount it,
+                      /media/$USER/<volume> or /run/media/$USER/<volume> (needs
+                      scripts/install-system.sh once), else ~/Floppy/<volume>
                       and shows up as a volume icon on the desktop / file manager
   * eject          -> tray menu "Eject", or "Unmount" on the desktop icon;
                       pending changes are written, then "safe to remove"
@@ -28,12 +30,26 @@ import sys
 import threading
 import warnings
 
+import importlib
+
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GLib  # noqa: E402
 
-# Gtk.StatusIcon is deprecated but still the simplest tray icon on MATE/XFCE
+# Gtk.StatusIcon (fallback tray on X11) is deprecated: keep the log quiet
 warnings.filterwarnings('ignore', category=DeprecationWarning)
+
+
+def load_appindicator():
+    """StatusNotifierItem support: works on Wayland and X11 (KDE, XFCE, MATE,
+    Cinnamon, GNOME with the AppIndicator extension, waybar...)."""
+    for ns in ('AyatanaAppIndicator3', 'AppIndicator3'):
+        try:
+            gi.require_version(ns, '0.1')
+            return importlib.import_module('gi.repository.' + ns)
+        except (ValueError, ImportError):
+            continue
+    return None
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -82,6 +98,18 @@ def open_file_manager(path):
             return
         except FileNotFoundError:
             continue
+
+
+def default_mount_dir():
+    """Where udisks mounts removable media - /media/$USER (Debian, Ubuntu) or
+    /run/media/$USER (Arch, Fedora...) - when we may create directories there
+    (see scripts/install-system.sh), else ~/Floppy."""
+    user = os.environ.get('USER') or os.getlogin()
+    for base in ('/run/media', '/media'):
+        d = os.path.join(base, user)
+        if os.path.isdir(d) and os.access(d, os.W_OK | os.X_OK):
+            return d
+    return os.path.expanduser('~/Floppy')
 
 
 def candidate_ports():
@@ -153,22 +181,74 @@ class Proc:
             self.p.terminate()
 
 
+# ── Tray icon ─────────────────────────────────────────────────────────────────
+class Tray:
+    """AppIndicator (StatusNotifierItem) when available, else Gtk.StatusIcon on
+    X11 (XEmbed trays), else no icon at all: the daemon then works with
+    notifications only."""
+
+    def __init__(self, build_menu, on_activate):
+        self.build_menu = build_menu
+        self.on_activate = on_activate
+        self.kind = None
+        ai = load_appindicator()
+        if ai:
+            self.ai = ai
+            self.ind = ai.Indicator.new('waffle-diskflashback', ICONS['idle'],
+                                        ai.IndicatorCategory.HARDWARE)
+            self.ind.set_status(ai.IndicatorStatus.ACTIVE)
+            self.ind.set_title('Waffle')
+            self.kind = 'indicator'
+            self.refresh_menu()
+        elif os.environ.get('XDG_SESSION_TYPE') != 'wayland' and os.environ.get('DISPLAY'):
+            self.icon = Gtk.StatusIcon()
+            self.icon.set_visible(True)
+            self.icon.connect('activate', lambda _i: self.on_activate())
+            self.icon.connect('popup-menu', self._popup)
+            self.kind = 'statusicon'
+
+    def set(self, tooltip, icon):
+        path = ICONS.get(icon, ICONS['idle'])
+        if self.kind == 'indicator':
+            if os.path.exists(path):
+                self.ind.set_icon_full(path, tooltip)
+            else:
+                self.ind.set_icon_full('media-floppy', tooltip)
+            self.refresh_menu()
+        elif self.kind == 'statusicon':
+            self.icon.set_tooltip_text(tooltip)
+            if os.path.exists(path):
+                self.icon.set_from_file(path)
+            else:
+                self.icon.set_from_icon_name('media-floppy')
+
+    def refresh_menu(self):
+        # An indicator has no click callback: the menu is the whole UI
+        if self.kind == 'indicator':
+            menu = self.build_menu()
+            menu.show_all()
+            self.ind.set_menu(menu)
+
+    def _popup(self, icon, button, ts):
+        menu = self.build_menu()
+        menu.show_all()
+        menu.popup(None, None, Gtk.StatusIcon.position_menu, icon, button, ts)
+
+
 # ── Daemon ────────────────────────────────────────────────────────────────────
 class WaffleDaemon:
-    def __init__(self, args):
+    def __init__(self, args, have_display=True):
         self.args = args
-        self.mount_dir = os.path.expanduser(args.mount_dir)
+        self.mount_dir = os.path.expanduser(args.mount_dir or default_mount_dir())
         self.state = None
         self.port = args.port
         self.proc = None          # current waffle-fuse child
         self.driver = None        # the mounted waffle-fuse (subset of proc)
         self.mountpoint = None
         self.info = ''
+        self.tooltip = ''
 
-        self.tray = Gtk.StatusIcon()
-        self.tray.set_visible(True)
-        self.tray.connect('activate', self._on_activate)
-        self.tray.connect('popup-menu', self._on_popup)
+        self.tray = Tray(self._build_menu, self._on_activate) if have_display else None
 
         self._cleanup_stale_mounts()
         self._find_port()
@@ -176,17 +256,15 @@ class WaffleDaemon:
     # ── UI ────────────────────────────────────────────────────────────────────
     def _set_state(self, state, tooltip, icon):
         self.state = state
-        self.tray.set_tooltip_text(tooltip)
-        try:
-            self.tray.set_from_file(ICONS[icon])
-        except Exception:
-            self.tray.set_from_icon_name('media-floppy')
+        self.tooltip = tooltip
+        if self.tray:
+            self.tray.set(tooltip, icon)
 
-    def _on_activate(self, _icon):
+    def _on_activate(self):
         if self.state == 'mounted' and self.mountpoint:
             open_file_manager(self.mountpoint)
 
-    def _on_popup(self, icon, button, ts):
+    def _build_menu(self):
         menu = Gtk.Menu()
 
         def item(label, cb=None, sensitive=True):
@@ -196,7 +274,7 @@ class WaffleDaemon:
                 mi.connect('activate', lambda _w: cb())
             menu.append(mi)
 
-        item(self.info or self.tray.get_tooltip_text())
+        item(self.info or self.tooltip or 'Waffle')
         menu.append(Gtk.SeparatorMenuItem())
         mounted = self.state == 'mounted'
         item('Open', lambda: open_file_manager(self.mountpoint), mounted)
@@ -204,8 +282,7 @@ class WaffleDaemon:
         item('Mount again', self._remount, self.state == 'remove')
         menu.append(Gtk.SeparatorMenuItem())
         item('Quit', self._quit)
-        menu.show_all()
-        menu.popup(None, None, Gtk.StatusIcon.position_menu, icon, button, ts)
+        return menu
 
     # ── Port discovery ────────────────────────────────────────────────────────
     def _find_port(self):
@@ -385,15 +462,16 @@ class WaffleDaemon:
                 pass
         elif self.proc:
             self.proc.cancel()
-        Gtk.main_quit()
+        self.loop_quit()
 
 
 def main():
     ap = argparse.ArgumentParser(description='Automount floppies from a DrawBridge/Waffle drive')
     ap.add_argument('--port', help='serial port (default: autodetect)')
-    ap.add_argument('--mount-dir', default='~/Floppy',
-                    help='where disks are mounted, as <dir>/<volume name> (default ~/Floppy). '
-                         'Must be inside your home directory to get desktop icons.')
+    ap.add_argument('--mount-dir', default=None,
+                    help='where disks are mounted, as <dir>/<volume name> (default /media/$USER '
+                         'like udisks if writable, see scripts/install-system.sh, else ~/Floppy). '
+                         'Must be under /media or your home directory to get desktop icons.')
     ap.add_argument('--open', action='store_true', help='open a file manager window on insert')
     ap.add_argument('--ro', action='store_true', help='always mount read-only')
     args = ap.parse_args()
@@ -407,10 +485,19 @@ def main():
         print('waffle-diskflashback is already running.', file=sys.stderr)
         sys.exit(1)
 
-    daemon = WaffleDaemon(args)
+    # Without a display (e.g. started too early) run with notifications only
+    have_display = Gtk.init_check(sys.argv)[0] if hasattr(Gtk, 'init_check') else True
+    daemon = WaffleDaemon(args, have_display)
+    if have_display:
+        daemon.loop_quit = Gtk.main_quit
+        run = Gtk.main
+    else:
+        loop = GLib.MainLoop()
+        daemon.loop_quit = loop.quit
+        run = loop.run
     for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
         GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, lambda *_: daemon._quit() or False)
-    Gtk.main()
+    run()
 
 
 if __name__ == '__main__':
