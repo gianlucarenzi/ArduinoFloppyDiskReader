@@ -22,14 +22,54 @@ Formati supportati (rilevati automaticamente, densità compresa):
 
 ## Dipendenze
 
-```bash
-sudo apt install libfuse3-dev fuse3 build-essential pkg-config
-sudo apt install python3-gi gir1.2-gtk-3.0 libnotify-bin   # icona nel tray e notifiche
-```
+L'installer grafico le controlla e mostra il comando giusto per la tua distribuzione.
+A mano:
 
-Il driver accede all'hardware via seriale (`/dev/ttyUSB0` o simile): serve essere nel
-gruppo `dialout` (o `plugdev`, a seconda della distribuzione):
-`sudo usermod -aG dialout $USER`, poi rifare il login.
+| Distribuzione | Compilazione | Demone, tray, notifiche, installer |
+|---|---|---|
+| Debian / Ubuntu | `sudo apt install build-essential pkg-config libfuse3-dev fuse3` | `sudo apt install python3-gi gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1 libnotify-bin acl` |
+| Arch / Manjaro | `sudo pacman -S --needed base-devel pkgconf fuse3` | `sudo pacman -S --needed python-gobject gtk3 libayatana-appindicator libnotify acl` |
+| Fedora | `sudo dnf install gcc-c++ make pkgconf fuse3-devel` | `sudo dnf install python3-gobject gtk3 libayatana-appindicator-gtk3 libnotify acl` |
+| openSUSE | `sudo zypper install gcc-c++ make pkg-config fuse3-devel` | `sudo zypper install python3-gobject typelib-1_0-Gtk-3_0 typelib-1_0-AyatanaAppIndicator3-0_1 libnotify-tools acl` |
+
+Il pacchetto AppIndicator serve per l'icona nel tray su Wayland, GNOME e KDE; su X11 il
+demone ha un ripiego che ne fa a meno.
+
+Il driver accede all'hardware via seriale (`/dev/ttyUSB0` o simile). Se il tuo utente non
+può aprire la porta, l'installer lo aggiunge al gruppo che la possiede (`dialout` su Debian
+e Ubuntu, `uucp` su Arch); poi bisogna rifare il login.
+
+---
+
+## Compatibilità
+
+**Provato** (con un drive Waffle reale, FTDI FT230X):
+
+* Debian 13 (trixie), MATE su X11, libfuse 3.17, gvfs 1.57, udisks2 2.10: lettura,
+  scrittura e formattazione di Amiga DD/HD e DOS 720K/1.44M, demone nel tray, montaggio
+  automatico in `/media/$USER`, icone sul desktop (Caja), estrazione a caldo, installer
+  grafico con autenticazione polkit.
+
+**Previsto, non ancora provato** — il codice è scritto per funzionare con:
+
+* **Distribuzioni**: Debian 11 e 12, Ubuntu 20.04 e successive, Arch e derivate, Fedora,
+  openSUSE. Requisiti: libfuse ≥ 3.0 (si usa solo l'API della 3.0), compilatore C++17
+  (gcc ≥ 7), Python ≥ 3.7 con PyGObject e GTK 3, systemd (tmpfiles e servizio utente),
+  polkit. Su **Debian 11** ci sono tutti: libfuse 3.10, gcc 10, Python 3.9, systemd 247,
+  udisks2 2.9 (monta in `/media/$USER`), `gir1.2-ayatanaappindicator3-0.1`. L'unico punto
+  da verificare è l'icona personalizzata sul desktop, che usa la chiave `IconFile` di
+  `.xdg-volume-info` letta da gvfs: se una versione vecchia non la supportasse, comparirebbe
+  l'icona generica del tema per i dischi rimovibili.
+* **Desktop**: GNOME, KDE Plasma, XFCE, MATE, Cinnamon, LXQt (avvio con l'autostart XDG);
+  sway, Hyprland, i3 e altri window manager (servizio utente systemd legato a
+  `graphical-session.target`). X11 e Wayland.
+* **Icona nel tray**: AppIndicator/StatusNotifierItem su KDE, XFCE, MATE, Cinnamon, waybar e
+  GNOME con l'estensione "AppIndicator"; su GNOME senza estensione non c'è tray e il demone
+  funziona con le sole notifiche.
+* **Icone dei dischi sul desktop**: file manager basati su GIO (Caja, Nautilus, Nemo,
+  Thunar, PCManFM). Dolphin (KDE) usa Solid e non è stato verificato.
+
+Se lo provi su un'altra combinazione, il risultato è utile da aggiungere qui.
 
 ---
 
@@ -41,9 +81,10 @@ make
 ./scripts/waffle-installer.py        # oppure doppio clic su waffle-installer.desktop
 ```
 
-L'installer grafico (GTK, funziona su X11 e Wayland, con qualsiasi desktop, da Debian ad
-Arch) controlla le dipendenze e suggerisce i pacchetti mancanti per la tua distribuzione,
-compila waffle-fuse se serve, poi:
+L'installer grafico (GTK; pensato per X11 e Wayland, per qualsiasi desktop e per Debian,
+Arch, Fedora e openSUSE: vedi Compatibilità per cosa è stato provato) controlla le
+dipendenze e suggerisce i pacchetti mancanti per la tua distribuzione, compila
+waffle-fuse se serve, poi:
 
 * **per l'utente**: installa launcher e icone e avvia **Waffle DiskFlashback** (il demone
   con l'icona nel tray) all'apertura della sessione grafica, con l'autostart XDG (GNOME, KDE,
@@ -235,8 +276,16 @@ TEST_PYTHON=~/waffle-venv/bin/python make test
 
 ## Risoluzione problemi
 
-**"Transport endpoint is not connected" su una directory in `~/Floppy`**: è rimasta da un
-crash. Si pulisce con `fusermount3 -uz <directory>`; il demone lo fa da solo all'avvio.
+**"Transport endpoint is not connected" su una directory di mount** (in `/media/$USER`,
+`/run/media/$USER` o `~/Floppy`): è rimasta da un crash. Si pulisce con
+`fusermount3 -uz <directory>`; il demone lo fa da solo all'avvio.
+
+**Sul desktop il disco ha l'icona di una chiavetta USB**: il file manager non usa l'icona
+fornita dal disco virtuale (vedi Compatibilità); nome e funzionamento non cambiano. Dopo
+aver installato le icone può servire riavviare il file manager (`caja -q`, `nautilus -q`).
+
+**L'icona nel tray non compare**: su Wayland, GNOME e KDE serve il pacchetto AppIndicator
+(vedi Dipendenze); su GNOME anche l'estensione "AppIndicator and KStatusNotifierItem".
 
 **"cannot open device"**: verifica `ls -l /dev/ttyUSB0`, di essere nel gruppo `dialout`
 e che nessun altro programma (WaffleCopyPRO, un altro `waffle-fuse`) stia usando la porta.
@@ -260,9 +309,13 @@ waffle_fuse.cpp          – main(): rileva il disco, sceglie il filesystem, mon
 ├── format.h/cpp         – immagini vuote AmigaDOS OFS/FFS e FAT12 (DD e HD)
 └── affs_fs.h/cpp        – Amiga OFS/FFS (nomi ISO-8859-1 ↔ UTF-8, date in ora locale)
 scripts/
+├── waffle-installer.py     – installer grafico (GTK o testo): utente + sistema via polkit
+├── install-system.sh       – parte di sistema (root): /media o /run/media, porta seriale
+├── install-desktop.sh      – launcher, icone e avvio automatico (usato dall'installer)
 ├── waffle-diskflashback.py – demone tray: automount, espulsione, notifiche
-├── waffle-mount.sh         – monta/smonta con un clic (launcher)
-└── install-desktop.sh      – installa launcher, icone e avvio automatico
+└── waffle-mount.sh         – monta/smonta con un clic (launcher)
+waffle-installer.desktop    – apre l'installer con un doppio clic
+icons/                      – icone dei dischi (incorporate anche nel binario) e del tray
 tests/run-tests.sh          – test dei filesystem su immagini
 ```
 
@@ -272,8 +325,9 @@ tests/run-tests.sh          – test dei filesystem su immagini
 
 * Su AmigaDOS i nomi possono avere al massimo 30 caratteri (ISO-8859-1); i link (hard
   e soft) si leggono ma non si possono modificare.
-* I volumi Amiga con bitmap non validata (disco da "validare") vengono montati in sola
-  lettura: validali su un Amiga o in un emulatore.
+* I volumi Amiga con bitmap non validata (disco da "validare") o con il checksum del blocco
+  root sbagliato vengono montati in sola lettura (il motivo è scritto nel log): validali su
+  un Amiga o in un emulatore. Per riparare un disco da un'immagine buona c'è `--write-image`.
 * FAT32, settori diversi da 512 byte e dischi Amiga partizionati (RDB) non sono supportati.
 * Un cambio di disco più veloce dell'intervallo di controllo (3 s) può non essere notato (il drive segnala il
   cambio solo con la linea DSKCHG): smonta sempre prima di cambiare disco.
