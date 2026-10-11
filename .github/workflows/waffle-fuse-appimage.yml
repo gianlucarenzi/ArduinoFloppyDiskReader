@@ -8,7 +8,7 @@ on:
       - master
     paths:
       - 'waffle-fuse/**'
-      - '.github/workflows/waffle-appimage.yml'
+      - '.github/workflows/waffle-fuse-appimage.yml'
   pull_request:
     branches:
       - master
