@@ -1,0 +1,18 @@
+#!/bin/bash
+# AppRun wrapper for waffle-fuse AppImage
+# Executes the installer when the AppImage is launched
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APPIMAGE_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Run the installer from within the AppImage
+export PATH="${APPIMAGE_DIR}/usr/bin:${APPIMAGE_DIR}/usr/local/bin:$PATH"
+export LD_LIBRARY_PATH="${APPIMAGE_DIR}/usr/lib:${APPIMAGE_DIR}/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
+
+# Execute the installer (GUI if available, otherwise text)
+if [ -x "${APPIMAGE_DIR}/opt/waffle-fuse/scripts/waffle-installer.py" ]; then
+    exec python3 "${APPIMAGE_DIR}/opt/waffle-fuse/scripts/waffle-installer.py" "$@"
+else
+    echo "Error: waffle-installer.py not found in AppImage"
+    exit 1
+fi

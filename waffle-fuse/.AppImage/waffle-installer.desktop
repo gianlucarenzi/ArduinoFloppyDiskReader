@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Waffle Installer
+Comment=Floppy disk reader installer for Arduino DrawBridge / Waffle
+Icon=waffle-fuse
+Exec=waffle-installer
+Categories=System;Utility;
+Terminal=false
+StartupNotify=true

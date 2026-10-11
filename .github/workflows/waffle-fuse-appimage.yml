@@ -1,0 +1,75 @@
+name: Build waffle-fuse AppImage
+
+on:
+  push:
+    tags:
+      - 'waffle-fuse-v*'
+    branches:
+      - master
+    paths:
+      - 'waffle-fuse/**'
+      - '.github/workflows/waffle-appimage.yml'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'waffle-fuse/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-appimage:
+    name: Build AppImage on Ubuntu 20.04
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Get all tags for version detection
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            pkg-config \
+            libfuse3-dev \
+            fuse3 \
+            python3 \
+            python3-gi \
+            gir1.2-gtk-3.0 \
+            libnotify-bin \
+            wget
+
+      - name: Download appimagetool
+        run: |
+          mkdir -p ~/.local/bin
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O ~/.local/bin/appimagetool
+          chmod +x ~/.local/bin/appimagetool
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Build AppImage
+        working-directory: waffle-fuse
+        run: |
+          chmod +x .AppImage/build-appimage.sh
+          .AppImage/build-appimage.sh
+
+      - name: Upload AppImage as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: waffle-fuse-appimage-ubuntu2004
+          path: waffle-fuse/dist/Waffle-Fuse-*.AppImage
+          if-no-files-found: error
+
+      - name: Create Release and Upload Asset
+        if: startsWith(github.ref, 'refs/tags/waffle-fuse-v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: waffle-fuse/dist/Waffle-Fuse-*.AppImage
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          tag_name: ${{ github.ref_name }}
