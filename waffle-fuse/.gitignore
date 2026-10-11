@@ -10,3 +10,8 @@ src/icons_embedded.h
 mountpoint/*
 !mountpoint/.gitkeep
 __pycache__/
+
+# Packaging output (packaging/stage.sh, nfpm)
+stage/
+dist/
+generic/

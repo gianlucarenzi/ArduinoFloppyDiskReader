@@ -110,8 +110,9 @@ cp "$WAFFLE_DIR/icons/amiga-floppy.svg" "$HICOLOR_DST/waffle-amiga-floppy.svg"
 cp "$WAFFLE_DIR/icons/dos-floppy.svg"   "$HICOLOR_DST/waffle-dos-floppy.svg"
 echo "Icons installed to $ICON_DST and $HICOLOR_DST"
 
-chmod +x "$WAFFLE_DIR/scripts/waffle-mount.sh" "$WAFFLE_DIR/scripts/waffle-diskflashback.py" \
-         "$WAFFLE_DIR/scripts/waffle-open-image.py"
+# Source checkout only: an installed /opt/waffle-fuse is root-owned and already executable
+[ -w "$WAFFLE_DIR/scripts" ] && chmod +x "$WAFFLE_DIR/scripts/waffle-mount.sh" \
+         "$WAFFLE_DIR/scripts/waffle-diskflashback.py" "$WAFFLE_DIR/scripts/waffle-open-image.py"
 
 install_desktop() {
     sed -e "s|ICON_PATH_PLACEHOLDER|$ICON_DST|g" \

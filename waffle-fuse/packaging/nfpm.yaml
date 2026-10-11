@@ -1,0 +1,86 @@
+# nFPM configuration: .deb, .rpm and Arch packages from the same build.
+#
+#   VERSION=1.0.0 nfpm package -f packaging/nfpm.yaml -p deb|rpm|archlinux -t dist/
+#
+# Run from the waffle-fuse directory after packaging/stage.sh <binary> stage/waffle-fuse
+
+name: waffle-fuse
+arch: amd64
+platform: linux
+version: ${VERSION}
+version_schema: none
+release: 1
+section: utils
+priority: optional
+maintainer: Gianluca Renzi <icjtqr@gmail.com>
+description: |
+  FUSE driver for the DrawBridge / Waffle Arduino floppy reader.
+  Mounts Amiga (AFFS) and PC (FAT) floppies on the Linux desktop, with
+  automount, a tray daemon and .adf/.img images opened as virtual disks.
+vendor: Gianluca Renzi
+homepage: https://github.com/gianlucarenzi/ArduinoFloppyDiskReader
+license: GPL-3.0-or-later
+
+contents:
+  - src: ./stage/waffle-fuse
+    dst: /opt/waffle-fuse
+    type: tree
+  - src: /opt/waffle-fuse/waffle-fuse
+    dst: /usr/bin/waffle-fuse
+    type: symlink
+  - src: /opt/waffle-fuse/scripts/waffle-installer.py
+    dst: /usr/bin/waffle-installer
+    type: symlink
+  - src: ./packaging/waffle-installer.desktop
+    dst: /usr/share/applications/waffle-installer.desktop
+    file_info:
+      mode: 0644
+  - src: ./icons/amiga-floppy.svg
+    dst: /usr/share/icons/hicolor/scalable/apps/waffle-fuse.svg
+    file_info:
+      mode: 0644
+
+scripts:
+  postinstall: ./packaging/postinstall.sh
+  preremove: ./packaging/preremove.sh
+
+overrides:
+  deb:
+    depends:
+      - fuse3
+      - python3
+      - python3-gi
+      - gir1.2-gtk-3.0
+      - acl
+    recommends:
+      - gir1.2-ayatanaappindicator3-0.1
+      - libnotify-bin
+      - pkexec | policykit-1
+  rpm:
+    # Fedora and openSUSE: GTK is "gtk3" on Fedora, "typelib-1_0-Gtk-3_0" on
+    # openSUSE (rich dependency); missing weak dependencies are ignored
+    depends:
+      - fuse3
+      - python3
+      - python3-gobject
+      - acl
+      - (gtk3 or typelib-1_0-Gtk-3_0)
+    recommends:
+      - libayatana-appindicator-gtk3
+      - typelib-1_0-AyatanaAppIndicator3-0_1
+      - libnotify
+      - libnotify-tools
+  archlinux:
+    depends:
+      - fuse3
+      - python
+      - python-gobject
+      - gtk3
+      - acl
+    # nFPM has no optdepends for Arch: waffle-installer names the missing
+    # libayatana-appindicator (tray icon) and libnotify packages
+
+archlinux:
+  packager: Gianluca Renzi <icjtqr@gmail.com>
+  scripts:
+    postupgrade: ./packaging/postinstall.sh
