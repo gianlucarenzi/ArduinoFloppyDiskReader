@@ -81,26 +81,48 @@ If you test it on another combination, the result is useful to add here.
 
 ## Building and installing
 
-### AppImage (easiest on Linux)
+### Packages (any distribution)
 
-An AppImage is a self-contained executable that works on any Linux distribution. No installation
-needed, just download, make executable, and run:
+Ready-made packages are attached to each release
+(https://github.com/gianlucarenzi/ArduinoFloppyDiskReader/releases, tags `waffle-fuse-v*`).
+They are built on Debian 11 and run on **any x86_64 distribution with glibc ≥ 2.31**
+(Debian 11 and later, Ubuntu 20.04 and later, Fedora, openSUSE, Arch...): libfuse3,
+libstdc++ and libgcc are linked into the binary, only glibc comes from the system.
+
+| Distribution | File | Install with |
+|---|---|---|
+| Debian, Ubuntu, Mint... | `waffle-fuse_<version>-1_amd64.deb` | `sudo apt install ./waffle-fuse_*.deb` |
+| Fedora | `waffle-fuse-<version>-1.x86_64.rpm` | `sudo dnf install ./waffle-fuse-*.rpm` |
+| openSUSE | `waffle-fuse-<version>-1.x86_64.rpm` | `sudo zypper install --allow-unsigned-rpm ./waffle-fuse-*.rpm` |
+| Arch, Manjaro, EndeavourOS... | `waffle-fuse-<version>-1-x86_64.pkg.tar.zst` | `sudo pacman -U ./waffle-fuse-*.pkg.tar.zst` |
+| any other | `waffle-fuse-<version>-linux-x86_64.tar.gz` | unpack, then `./install.sh` (asks for the password with sudo or pkexec) |
+
+The package manager asks for the administrator password and installs the dependencies
+(FUSE 3, Python 3 with GTK 3, acl; for the generic archive install them yourself). Everything
+goes to `/opt/waffle-fuse`, with the `waffle-fuse` and `waffle-installer` commands in the PATH
+and a **Waffle Installer** entry in the applications menu. The system setup (mount
+directory and serial port group, see below) is done at install time for the user who ran
+`sudo`; then each user starts **Waffle Installer** once for the launchers, the image
+association and the tray daemon. The downloaded file can be deleted afterwards.
+
+To remove: `sudo apt remove waffle-fuse` (or `dnf remove`, `zypper remove`,
+`pacman -R`); generic archive: `/opt/waffle-fuse/install.sh --uninstall`. Use the
+**Uninstall** button of Waffle Installer first to remove each user's launchers and
+autostart.
+
+The packages are built and tested (install and removal on Debian 11 and 13, Ubuntu 24.04,
+Fedora, openSUSE Tumbleweed and Arch) by the GitHub workflow
+`.github/workflows/waffle-fuse-build.yml`: run it from the Actions tab for test builds
+(version `0.0.0.devN`), or push a tag to publish a release:
 
 ```bash
-chmod +x Waffle-Fuse-*.AppImage
-./Waffle-Fuse-*.AppImage
+git tag waffle-fuse-v1.0.0 && git push origin waffle-fuse-v1.0.0
 ```
 
-This launches the graphical installer with all dependencies bundled. AppImages are available:
+Packaging files are in `packaging/` (`nfpm.yaml` for [nFPM](https://nfpm.goreleaser.com/),
+install/remove scripts, generic `install.sh`).
 
-* **From releases**: https://github.com/gianlucarenzi/ArduinoFloppyDiskReader/releases (look for
-  `Waffle-Fuse-*.AppImage`)
-* **Automatically built** on every push to master and on tagged releases via GitHub Actions
-* **Ubuntu 20.04 LTS and later** (and Debian-based distributions)
-
-For building the AppImage locally, see [waffle-fuse/.AppImage/README.md](.AppImage/README.md).
-
-### Traditional installation from source
+### Installation from source
 
 ```bash
 cd waffle-fuse
