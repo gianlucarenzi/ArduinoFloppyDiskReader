@@ -9,7 +9,13 @@ CXXFLAGS := -std=c++17 -O2 -Wall -Wextra \
             -Isrc -Ilib -Ilib/capsapi -Iinc \
             $(shell pkg-config --cflags fuse3)
 
-LDFLAGS  := $(shell pkg-config --libs fuse3) -lpthread
+# Release builds (CI) link libfuse3 statically: its soname changed from
+# libfuse3.so.3 to libfuse3.so.4 in fuse 3.17, so a dynamic link only runs on
+# distributions with the same fuse version as the build machine.
+FUSE_LIBS ?= $(shell pkg-config --libs fuse3)
+LDFLAGS  := $(FUSE_LIBS) -lpthread
+# EXTRA_LDFLAGS: e.g. -static-libstdc++ -static-libgcc (CI release builds)
+LDFLAGS  += $(EXTRA_LDFLAGS)
 
 PREFIX   ?= /usr/local
 
