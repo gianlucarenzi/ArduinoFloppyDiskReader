@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Waffle Installer
-Comment=Set up the DrawBridge / Waffle floppy drive for your desktop
-Icon=waffle-fuse
-Exec=waffle-installer
-Categories=System;Utility;
-Terminal=false
-StartupNotify=true
