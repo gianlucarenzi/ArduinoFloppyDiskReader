@@ -21,8 +21,12 @@ jobs:
 
     steps:
       - name: Install dependencies
+        # Debian 11 is end of life: its packages moved to archive.debian.org
+        # (the debian-security pool on deb.debian.org answers 404)
         run: |
-          apt-get update
+          find /etc/apt -name '*.list' -o -name '*.sources' | \
+            xargs sed -i 's|http://deb.debian.org|http://archive.debian.org|g'
+          apt-get -o Acquire::Check-Valid-Until=false update
           apt-get install -y --no-install-recommends \
             build-essential \
             pkg-config \
