@@ -20,7 +20,8 @@ enum class DiskFormat { Unknown, IBM_FAT, Amiga_ADF };
 
 const char* diskFormatName(DiskFormat f);
 
-struct DiskGeometry {
+struct DiskGeometry
+{
     DiskFormat format        = DiskFormat::Unknown;
     uint32_t   numCylinders  = 80;
     uint32_t   numHeads      = 2;
@@ -32,7 +33,8 @@ struct DiskGeometry {
 
 // ── IDiskImage ────────────────────────────────────────────────────────────────
 // Abstract 512-byte block device; LBA is 0-based.
-class IDiskImage {
+class IDiskImage
+{
 public:
     virtual ~IDiskImage() = default;
     virtual bool     readSector(uint32_t lba, uint8_t* buf512)        = 0;
@@ -40,13 +42,17 @@ public:
     virtual uint32_t totalSectors()   const = 0;
     virtual bool     isWriteProtected() const = 0;
     virtual const DiskGeometry& geometry() const = 0;
-    virtual bool     flush() { return true; } // write any cached data to the medium
+    virtual bool     flush()
+    {
+        return true;    // write any cached data to the medium
+    }
 };
 
 // ── ImageDisk ─────────────────────────────────────────────────────────────────
 // IDiskImage backed by a raw sector image (.adf / .img / .ima).  Used for
 // testing the filesystem layers without the hardware.
-class ImageDisk : public IDiskImage {
+class ImageDisk : public IDiskImage
+{
 public:
     ImageDisk(const std::string& path, bool forceReadOnly);
     ~ImageDisk() override;
@@ -55,9 +61,18 @@ public:
 
     bool     readSector(uint32_t lba, uint8_t* buf512)        override;
     bool     writeSector(uint32_t lba, const uint8_t* buf512) override;
-    uint32_t totalSectors()   const override { return m_sectors; }
-    bool     isWriteProtected() const override { return m_readOnly; }
-    const DiskGeometry& geometry() const override { return m_geo; }
+    uint32_t totalSectors()   const override
+    {
+        return m_sectors;
+    }
+    bool     isWriteProtected() const override
+    {
+        return m_readOnly;
+    }
+    const DiskGeometry& geometry() const override
+    {
+        return m_geo;
+    }
     bool     flush() override;
 
 private:
@@ -75,9 +90,11 @@ private:
 // to the cache and are written back (and verified) by a background thread
 // shortly after the last change; the motor is switched off when idle and the
 // drive is polled for disk removal.
-class WaffleDisk : public IDiskImage {
+class WaffleDisk : public IDiskImage
+{
 public:
-    struct Options {
+    struct Options
+    {
         std::string port;
         bool forceReadOnly = false;
         int  forcedHD      = -1;    // -1 = autodetect, 0 = DD, 1 = HD
@@ -89,7 +106,8 @@ public:
 
     enum class OpenResult { OK, PortError, NoDisk, DriveError, UnknownFormat };
 
-    enum class Event {
+    enum class Event
+    {
         DiskRemoved,       // disk taken out, nothing was pending
         DiskRemovedDirty,  // disk taken out while changes were still pending (lost)
         WriteError,        // a track could not be written/verified
@@ -101,7 +119,10 @@ public:
     // Open the device, detect density, geometry and format.
     OpenResult open();
     void close();
-    bool isOpen() const { return m_open; }
+    bool isOpen() const
+    {
+        return m_open;
+    }
 
     // Start/stop the background thread (write-back, motor off, disk-change polling).
     // onEvent is called from that thread, without any lock held.
@@ -155,18 +176,28 @@ public:
     bool     readSector(uint32_t lba, uint8_t* buf512)        override;
     bool     writeSector(uint32_t lba, const uint8_t* buf512) override;
     uint32_t totalSectors()   const override;
-    bool     isWriteProtected() const override { return m_writeProtected || m_opts.forceReadOnly; }
-    const DiskGeometry& geometry() const override { return m_geo; }
+    bool     isWriteProtected() const override
+    {
+        return m_writeProtected || m_opts.forceReadOnly;
+    }
+    const DiskGeometry& geometry() const override
+    {
+        return m_geo;
+    }
     bool     flush() override;
 
     // Read one track afresh (no retries beyond the normal ones); number of good sectors or -1
     int scanTrack(uint32_t cylinder, uint32_t head);
 
-    bool diskRemoved() const { return m_removed; }
+    bool diskRemoved() const
+    {
+        return m_removed;
+    }
     bool hasPendingWrites() const;
 
 private:
-    struct TrackCache {
+    struct TrackCache
+    {
         std::vector<std::vector<uint8_t>> sectors; // indexed by sector number, 512 bytes each
         std::vector<bool> valid;                   // sector decoded with good checksums
         bool dirty       = false;

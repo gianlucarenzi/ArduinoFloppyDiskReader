@@ -22,10 +22,14 @@ static std::wstring toWide(const std::string& s)
 
 const char* diskFormatName(DiskFormat f)
 {
-    switch (f) {
-        case DiskFormat::IBM_FAT:   return "IBM/FAT";
-        case DiskFormat::Amiga_ADF: return "Amiga/ADF";
-        default:                    return "Unknown";
+    switch (f)
+    {
+    case DiskFormat::IBM_FAT:
+        return "IBM/FAT";
+    case DiskFormat::Amiga_ADF:
+        return "Amiga/ADF";
+    default:
+        return "Unknown";
     }
 }
 
@@ -65,7 +69,8 @@ ImageDisk::~ImageDisk()
 bool ImageDisk::open()
 {
     if (!m_readOnly) m_file = fopen(m_path.c_str(), "r+b");
-    if (!m_file) {
+    if (!m_file)
+    {
         m_file = fopen(m_path.c_str(), "rb");
         m_readOnly = true;
     }
@@ -81,15 +86,20 @@ bool ImageDisk::open()
 
     m_geo = DiskGeometry{};
     const bool amigaSize = (size == 901120 || size == 1802240);
-    if ((boot[0] == 'D' && boot[1] == 'O' && boot[2] == 'S') || amigaSize) {
+    if ((boot[0] == 'D' && boot[1] == 'O' && boot[2] == 'S') || amigaSize)
+    {
         m_geo.format          = DiskFormat::Amiga_ADF;
         m_geo.isHD            = size >= 1802240;
         m_geo.sectorsPerTrack = m_geo.isHD ? 22 : 11;
         m_geo.numHeads        = 2;
         m_geo.numCylinders    = m_sectors / (2 * m_geo.sectorsPerTrack);
-    } else if (geometryFromBPB(boot, m_geo)) {
+    }
+    else if (geometryFromBPB(boot, m_geo))
+    {
         m_geo.isHD = m_geo.sectorsPerTrack > 11;
-    } else {
+    }
+    else
+    {
         m_geo.format = DiskFormat::Unknown;
     }
     return true;
@@ -119,7 +129,8 @@ bool ImageDisk::flush()
 // WaffleDisk
 // ═════════════════════════════════════════════════════════════════════════════
 
-struct WaffleDisk::Impl {
+struct WaffleDisk::Impl
+{
     ADFWriter writer;
     bool      diskPollSupported = true;
 };
@@ -147,7 +158,8 @@ WaffleDisk::OpenResult WaffleDisk::open()
 
     m_impl = new Impl();
     // openDevice() also switches the motor on and seeks to track 0
-    if (!m_impl->writer.openDevice(toWide(m_opts.port))) {
+    if (!m_impl->writer.openDevice(toWide(m_opts.port)))
+    {
         delete m_impl;
         m_impl = nullptr;
         return OpenResult::PortError;
@@ -155,7 +167,8 @@ WaffleDisk::OpenResult WaffleDisk::open()
     m_motorOn = true;
     m_lastIO = m_lastDiskCheck = Clock::now();
 
-    auto fail = [this](OpenResult r) {
+    auto fail = [this](OpenResult r)
+    {
         m_impl->writer.enableReading(false, false);
         m_impl->writer.closeDevice();
         delete m_impl;
@@ -171,9 +184,12 @@ WaffleDisk::OpenResult WaffleDisk::open()
     m_writeProtected = (wp == DiagnosticResponse::drWriteProtected);
 
     bool isHD = false;
-    if (m_opts.forcedHD >= 0) {
+    if (m_opts.forcedHD >= 0)
+    {
         isHD = (m_opts.forcedHD == 1);
-    } else if (m_impl->writer.GuessDiskDensity(isHD) != ADFResult::adfrComplete) {
+    }
+    else if (m_impl->writer.GuessDiskDensity(isHD) != ADFResult::adfrComplete)
+    {
         isHD = false;
     }
 
@@ -181,7 +197,8 @@ WaffleDisk::OpenResult WaffleDisk::open()
     // reads at the other data rate, so unless forced we try both.
     int found = detect(isHD);
     if (found == 0 && m_opts.forcedHD < 0) found = detect(!isHD);
-    if (found != 1) {
+    if (found != 1)
+    {
         if (!m_impl->writer.isDiskInDrive()) return fail(OpenResult::NoDisk);
         return fail(found == 0 ? OpenResult::UnknownFormat : OpenResult::DriveError);
     }
@@ -198,7 +215,8 @@ WaffleDisk::OpenResult WaffleDisk::openForFormat(bool& holeIsHD, bool& holeKnown
     if (m_open) return OpenResult::OK;
 
     m_impl = new Impl();
-    if (!m_impl->writer.openDevice(toWide(m_opts.port))) {
+    if (!m_impl->writer.openDevice(toWide(m_opts.port)))
+    {
         delete m_impl;
         m_impl = nullptr;
         return OpenResult::PortError;
@@ -207,7 +225,8 @@ WaffleDisk::OpenResult WaffleDisk::openForFormat(bool& holeIsHD, bool& holeKnown
     m_lastIO = m_lastDiskCheck = Clock::now();
 
     DiagnosticResponse wp = m_impl->writer.checkIfDiskIsWriteProtected(true);
-    if (wp == DiagnosticResponse::drNoDiskInDrive) {
+    if (wp == DiagnosticResponse::drNoDiskInDrive)
+    {
         m_impl->writer.enableReading(false, false);
         m_impl->writer.closeDevice();
         delete m_impl;
@@ -237,28 +256,42 @@ int WaffleDisk::writeImage(const DiskGeometry& geo, const std::vector<uint8_t>& 
     if (image.size() < (size_t)geo.numCylinders * geo.numHeads * spt * 512) return -1;
 
     int failed = 0;
-    for (uint32_t cyl = 0; cyl < geo.numCylinders; cyl++) {
-        for (uint32_t head = 0; head < geo.numHeads; head++) {
+    for (uint32_t cyl = 0; cyl < geo.numCylinders; cyl++)
+    {
+        for (uint32_t head = 0; head < geo.numHeads; head++)
+        {
             const size_t base = ((size_t)(cyl * geo.numHeads + head) * spt) * 512;
             TrackCache tc;
             bool empty = true;
             tc.sectors.resize(spt);
             tc.valid.assign(spt, true);
-            for (uint32_t s = 0; s < spt; s++) {
+            for (uint32_t s = 0; s < spt; s++)
+            {
                 tc.sectors[s].assign(image.begin() + base + s * 512, image.begin() + base + (s + 1) * 512);
-                for (uint8_t b : tc.sectors[s]) if (b) { empty = false; break; }
+                for (uint8_t b : tc.sectors[s]) if (b)
+                    {
+                        empty = false;
+                        break;
+                    }
             }
             if (mode == WriteMode::NonEmpty && empty) continue;
 
-            if (mode == WriteMode::Changed) {
+            if (mode == WriteMode::Changed)
+            {
                 std::vector<std::vector<uint8_t>> cur;
                 std::vector<bool> valid;
-                if (readTrackRaw(cyl, head, cur, valid)) {
+                if (readTrackRaw(cyl, head, cur, valid))
+                {
                     bool same = cur.size() == spt;
                     for (uint32_t s = 0; same && s < spt; s++)
                         same = valid[s] && cur[s] == tc.sectors[s];
-                    if (same) {
-                        if (progress && !progress(cyl, head, 1)) { m_cache.clear(); return -2; }
+                    if (same)
+                    {
+                        if (progress && !progress(cyl, head, 1))
+                        {
+                            m_cache.clear();
+                            return -2;
+                        }
                         continue;
                     }
                 }
@@ -266,17 +299,23 @@ int WaffleDisk::writeImage(const DiskGeometry& geo, const std::vector<uint8_t>& 
 
             // A full format starts from a clean track: no leftovers of an older
             // (maybe different) format after the end of the new data
-            if (mode == WriteMode::Full && seekTo(cyl, head)) {
+            if (mode == WriteMode::Full && seekTo(cyl, head))
+            {
                 m_impl->writer.device().setDiskCapacity(geo.isHD);
                 m_impl->writer.device().eraseCurrentTrack();
             }
             tc.dirty = true;
             const bool ok = flushTrack(cyl * 2 + head, tc);
-            if (!ok) {
+            if (!ok)
+            {
                 failed++;
                 if (isWriteProtected()) return -1;
             }
-            if (progress && !progress(cyl, head, ok ? 0 : -1)) { m_cache.clear(); return -2; }
+            if (progress && !progress(cyl, head, ok ? 0 : -1))
+            {
+                m_cache.clear();
+                return -2;
+            }
         }
     }
     m_cache.clear();
@@ -294,11 +333,14 @@ int WaffleDisk::readImage(const DiskGeometry& geo, std::vector<uint8_t>& image,
     image.assign((size_t)geo.numCylinders * geo.numHeads * spt * 512, 0);
 
     int bad = 0;
-    for (uint32_t cyl = 0; cyl < geo.numCylinders; cyl++) {
-        for (uint32_t head = 0; head < geo.numHeads; head++) {
+    for (uint32_t cyl = 0; cyl < geo.numCylinders; cyl++)
+    {
+        for (uint32_t head = 0; head < geo.numHeads; head++)
+        {
             std::vector<std::vector<uint8_t>> best(spt);
             std::vector<bool> got(spt, false);
-            for (int attempt = 0; attempt < 3; attempt++) {
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
                 if (attempt > 0)   // re-settle the head like WaffleCopy does
                     m_impl->writer.selectTrack((unsigned char)(cyl < 40 ? cyl + 30 : cyl - 30),
                                                TrackSearchSpeed::tssSlow);
@@ -306,16 +348,23 @@ int WaffleDisk::readImage(const DiskGeometry& geo, std::vector<uint8_t>& image,
                 std::vector<bool> valid;
                 if (!readTrackRaw(cyl, head, sectors, valid)) return -1;
                 bool all = true;
-                for (uint32_t s = 0; s < spt && s < valid.size(); s++) {
-                    if (valid[s] && !got[s]) { best[s] = sectors[s]; got[s] = true; }
+                for (uint32_t s = 0; s < spt && s < valid.size(); s++)
+                {
+                    if (valid[s] && !got[s])
+                    {
+                        best[s] = sectors[s];
+                        got[s] = true;
+                    }
                     all &= got[s];
                 }
                 if (all) break;
             }
             int good = 0;
             const size_t base = ((size_t)(cyl * geo.numHeads + head) * spt) * 512;
-            for (uint32_t s = 0; s < spt; s++) {
-                if (got[s] && best[s].size() == 512) {
+            for (uint32_t s = 0; s < spt; s++)
+            {
+                if (got[s] && best[s].size() == 512)
+                {
                     memcpy(image.data() + base + (size_t)s * 512, best[s].data(), 512);
                     good++;
                 }
@@ -335,13 +384,14 @@ int WaffleDisk::dumpSCP(const std::string& path, bool isHD, unsigned int tracks,
     if (!ensureMotor()) return -1;
     m_lastIO = Clock::now();
     ADFResult r = m_impl->writer.DiskToSCP(toWide(path), isHD, tracks, (unsigned char)revolutions,
-        [&](const int track, const DiskSurface side, const int, const int, const int, const int,
-            const CallbackOperation op) {
-            if (op == CallbackOperation::coReading && progress &&
+                                           [&](const int track, const DiskSurface side, const int, const int, const int, const int,
+                                                   const CallbackOperation op)
+    {
+        if (op == CallbackOperation::coReading && progress &&
                 !progress(track, side == DiskSurface::dsUpper ? 1 : 0))
-                return WriteResponse::wrAbort;
-            return WriteResponse::wrContinue;
-        }, false);
+            return WriteResponse::wrAbort;
+        return WriteResponse::wrContinue;
+    }, false);
     m_lastIO = Clock::now();
     if (r == ADFResult::adfrAborted) return -2;
     if (r == ADFResult::adfrComplete) return 0;
@@ -383,9 +433,11 @@ int WaffleDisk::detect(bool isHD)
         std::vector<bool> valid;
         if (!m_impl->writer.readIBMTrack(isHD, 0, spt, sectors, valid, 2)) return -1;
 
-        if (valid[0] && sectors[0].size() >= 512 && geometryFromBPB(sectors[0].data(), m_geo)) {
+        if (valid[0] && sectors[0].size() >= 512 && geometryFromBPB(sectors[0].data(), m_geo))
+        {
             m_geo.isHD = isHD;
-            if (m_geo.sectorsPerTrack == spt) {
+            if (m_geo.sectorsPerTrack == spt)
+            {
                 TrackCache tc;
                 tc.sectors = std::move(sectors);
                 tc.valid   = std::move(valid);
@@ -405,7 +457,8 @@ int WaffleDisk::detect(bool isHD)
         if (!m_impl->writer.readAmigaTrack(isHD, 0, DiskSurface::dsLower, sectors, valid, 3))
             return -1;
 
-        if (valid[0] && sectors[0][0] == 'D' && sectors[0][1] == 'O' && sectors[0][2] == 'S') {
+        if (valid[0] && sectors[0][0] == 'D' && sectors[0][1] == 'O' && sectors[0][2] == 'S')
+        {
             m_geo.format          = DiskFormat::Amiga_ADF;
             m_geo.numHeads        = 2;
             m_geo.sectorsPerTrack = isHD ? 22 : 11;
@@ -452,14 +505,17 @@ bool WaffleDisk::readTrackRaw(uint32_t cylinder, uint32_t head,
     m_lastIO = Clock::now();
 
     bool ok;
-    if (m_geo.format == DiskFormat::Amiga_ADF) {
+    if (m_geo.format == DiskFormat::Amiga_ADF)
+    {
         std::vector<std::array<uint8_t, 512>> sects;
         const DiskSurface side = (head == 1) ? DiskSurface::dsUpper : DiskSurface::dsLower;
         ok = m_impl->writer.readAmigaTrack(m_geo.isHD, cylinder, side, sects, valid);
         sectors.resize(sects.size());
         for (size_t i = 0; i < sects.size(); i++)
             sectors[i].assign(sects[i].begin(), sects[i].end());
-    } else {
+    }
+    else
+    {
         const uint32_t trackNum = cylinder * m_geo.numHeads + head;
         ok = m_impl->writer.readIBMTrack(m_geo.isHD, trackNum, m_geo.sectorsPerTrack, sectors, valid);
         for (size_t i = 0; i < sectors.size(); i++)
@@ -484,29 +540,36 @@ WaffleDisk::TrackCache* WaffleDisk::loadTrack(uint32_t cylinder, uint32_t head)
 
     // Before a re-read, seek far away and back like WaffleCopy (and the Amiga) do:
     // re-settling the head sometimes recovers a track
-    if (it != m_cache.end()) {
+    if (it != m_cache.end())
+    {
         m_impl->writer.selectTrack((unsigned char)(cylinder < 40 ? cylinder + 30 : cylinder - 30),
                                    TrackSearchSpeed::tssSlow);
     }
 
     std::vector<std::vector<uint8_t>> sectors;
     std::vector<bool> valid;
-    if (!readTrackRaw(cylinder, head, sectors, valid)) {
+    if (!readTrackRaw(cylinder, head, sectors, valid))
+    {
         if (m_impl->writer.checkIfDiskIsWriteProtected(true) == DiagnosticResponse::drNoDiskInDrive)
             m_removed = true;
         return nullptr;
     }
 
-    if (it == m_cache.end()) {
+    if (it == m_cache.end())
+    {
         TrackCache tc;
         tc.sectors = std::move(sectors);
         tc.valid   = std::move(valid);
         it = m_cache.emplace(key, std::move(tc)).first;
-    } else {
+    }
+    else
+    {
         TrackCache& tc = it->second;
         tc.rereads++;
-        for (size_t i = 0; i < tc.valid.size() && i < valid.size(); i++) {
-            if (!tc.valid[i] && valid[i]) {
+        for (size_t i = 0; i < tc.valid.size() && i < valid.size(); i++)
+        {
+            if (!tc.valid[i] && valid[i])
+            {
                 tc.sectors[i] = std::move(sectors[i]);
                 tc.valid[i]   = true;
             }
@@ -524,30 +587,36 @@ bool WaffleDisk::flushTrack(uint32_t key, TrackCache& tc)
     const uint32_t head     = key % 2;
     const DiskSurface side  = (head == 1) ? DiskSurface::dsUpper : DiskSurface::dsLower;
 
-    for (int attempt = 0; attempt < 3; attempt++) {
+    for (int attempt = 0; attempt < 3; attempt++)
+    {
         if (!seekTo(cylinder, head)) return false;
         m_lastIO = Clock::now();
 
         DiagnosticResponse resp;
-        if (m_geo.format == DiskFormat::Amiga_ADF) {
+        if (m_geo.format == DiskFormat::Amiga_ADF)
+        {
             std::vector<std::array<uint8_t, 512>> sects(tc.sectors.size());
             for (size_t i = 0; i < tc.sectors.size(); i++)
                 memcpy(sects[i].data(), tc.sectors[i].data(), 512);
             resp = m_impl->writer.writeAmigaTrack(m_geo.isHD, cylinder, side, sects, true);
-        } else {
+        }
+        else
+        {
             const uint32_t trackNum = cylinder * m_geo.numHeads + head;
             resp = m_impl->writer.writeIBMTrack(m_geo.isHD, trackNum, m_geo.nonStdTiming,
                                                 tc.sectors, true);
         }
         m_lastIO = Clock::now();
 
-        if (resp == DiagnosticResponse::drWriteProtected) {
+        if (resp == DiagnosticResponse::drWriteProtected)
+        {
             m_writeProtected = true;
             return false;
         }
         if (resp != DiagnosticResponse::drOK) continue;
 
-        if (!m_opts.verifyWrites) {
+        if (!m_opts.verifyWrites)
+        {
             tc.dirty = false;
             return true;
         }
@@ -558,7 +627,8 @@ bool WaffleDisk::flushTrack(uint32_t key, TrackCache& tc)
         bool same = back.size() == tc.sectors.size();
         for (size_t i = 0; same && i < back.size(); i++)
             same = valid[i] && back[i] == tc.sectors[i];
-        if (same) {
+        if (same)
+        {
             tc.dirty = false;
             tc.writeFailed = false;
             return true;
@@ -632,7 +702,8 @@ bool WaffleDisk::readSector(uint32_t lba, uint8_t* buf512)
 
     TrackCache* tc = loadTrack(cylinder, head);
     m_lastIO = Clock::now();
-    if (!tc || sector >= tc->sectors.size() || !tc->valid[sector]) {
+    if (!tc || sector >= tc->sectors.size() || !tc->valid[sector])
+    {
         memset(buf512, 0, 512);
         return false;
     }
@@ -695,7 +766,8 @@ void WaffleDisk::backgroundLoop()
     const auto motorOff   = milliseconds(m_opts.motorOffMs);
     const auto pollEvery  = milliseconds(std::max(500, m_opts.diskPollMs));
 
-    for (;;) {
+    for (;;)
+    {
         {
             std::unique_lock<std::mutex> tl(m_threadMtx);
             m_threadCv.wait_for(tl, milliseconds(200), [this] { return m_threadStop; });
@@ -709,7 +781,8 @@ void WaffleDisk::backgroundLoop()
             const auto now = Clock::now();
 
             // Removal noticed by a failed read/seek: report it once
-            if (m_removed) {
+            if (m_removed)
+            {
                 bool dirty = false;
                 for (auto& kv : m_cache) dirty |= kv.second.dirty;
                 m_cache.clear();
@@ -719,11 +792,14 @@ void WaffleDisk::backgroundLoop()
 
             // Write back one track per pass so FUSE requests are not starved.
             bool pending = false;
-            for (auto& kv : m_cache) {
+            for (auto& kv : m_cache)
+            {
                 TrackCache& tc = kv.second;
                 if (!tc.dirty || tc.writeFailed) continue;
-                if (now - tc.lastWrite >= flushDelay || now - tc.firstDirty >= maxDirty) {
-                    if (!flushTrack(kv.first, tc)) {
+                if (now - tc.lastWrite >= flushDelay || now - tc.firstDirty >= maxDirty)
+                {
+                    if (!flushTrack(kv.first, tc))
+                    {
                         tc.writeFailed = true;
                         events.push_back(Event::WriteError);
                     }
@@ -737,26 +813,33 @@ void WaffleDisk::backgroundLoop()
 
             // Disk-change polling while idle
             if (!m_removed && m_impl->diskPollSupported && !pending &&
-                now - m_lastIO >= pollEvery && now - m_lastDiskCheck >= pollEvery) {
+                    now - m_lastIO >= pollEvery && now - m_lastDiskCheck >= pollEvery)
+            {
                 m_lastDiskCheck = now;
                 DiagnosticResponse r = m_impl->writer.device().checkForDisk(true);
-                if (r == DiagnosticResponse::drNoDiskInDrive) {
+                if (r == DiagnosticResponse::drNoDiskInDrive)
+                {
                     bool dirty = false;
                     for (auto& kv : m_cache) dirty |= kv.second.dirty;
                     m_removed = true;
                     m_removalReported = true;
                     m_cache.clear();
                     events.push_back(dirty ? Event::DiskRemovedDirty : Event::DiskRemoved);
-                } else if (r == DiagnosticResponse::drOldFirmware) {
+                }
+                else if (r == DiagnosticResponse::drOldFirmware)
+                {
                     m_impl->diskPollSupported = false;
-                } else if (r == DiagnosticResponse::drOK || r == DiagnosticResponse::drStatusError) {
+                }
+                else if (r == DiagnosticResponse::drOK || r == DiagnosticResponse::drStatusError)
+                {
                     m_writeProtected = m_impl->writer.checkIfDiskIsWriteProtected(false) ==
                                        DiagnosticResponse::drWriteProtected;
                 }
             }
 
             // Motor off when idle, like the Amiga does
-            if (!m_removed && m_motorOn && !pending && now - m_lastIO >= motorOff) {
+            if (!m_removed && m_motorOn && !pending && now - m_lastIO >= motorOff)
+            {
                 m_impl->writer.enableReading(false, false);
                 m_motorOn = false;
             }
@@ -776,7 +859,7 @@ int WaffleDisk::probe(const std::string& portName)
     const bool present = dev.isDiskInDrive();   // read before closePort(), which resets it
     dev.closePort();
     if (r == DiagnosticResponse::drOK || r == DiagnosticResponse::drStatusError ||
-        r == DiagnosticResponse::drNoDiskInDrive)
+            r == DiagnosticResponse::drNoDiskInDrive)
         return present ? 0 : 1;
     return 2;
 }
@@ -788,18 +871,31 @@ int WaffleDisk::waitForDisk(const std::string& portName, bool wantPresent, int t
 
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(timeoutSec);
     int errors = 0;
-    for (;;) {
+    for (;;)
+    {
         DiagnosticResponse r = dev.checkForDisk(true);
-        if (r == DiagnosticResponse::drOldFirmware) { dev.closePort(); return 2; }
-        if (r == DiagnosticResponse::drOK || r == DiagnosticResponse::drNoDiskInDrive ||
-            r == DiagnosticResponse::drStatusError) {
-            errors = 0;
-            if (dev.isDiskInDrive() == wantPresent) { dev.closePort(); return 0; }
-        } else if (++errors > 5) {
+        if (r == DiagnosticResponse::drOldFirmware)
+        {
             dev.closePort();
             return 2;
         }
-        if (timeoutSec > 0 && std::chrono::steady_clock::now() >= deadline) {
+        if (r == DiagnosticResponse::drOK || r == DiagnosticResponse::drNoDiskInDrive ||
+                r == DiagnosticResponse::drStatusError)
+        {
+            errors = 0;
+            if (dev.isDiskInDrive() == wantPresent)
+            {
+                dev.closePort();
+                return 0;
+            }
+        }
+        else if (++errors > 5)
+        {
+            dev.closePort();
+            return 2;
+        }
+        if (timeoutSec > 0 && std::chrono::steady_clock::now() >= deadline)
+        {
             dev.closePort();
             return 1;
         }

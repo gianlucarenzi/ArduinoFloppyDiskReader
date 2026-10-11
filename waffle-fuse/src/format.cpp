@@ -14,14 +14,27 @@
 
 static void put32be(uint8_t* b, size_t o, uint32_t v)
 {
-    b[o] = (uint8_t)(v >> 24); b[o+1] = (uint8_t)(v >> 16); b[o+2] = (uint8_t)(v >> 8); b[o+3] = (uint8_t)v;
+    b[o] = (uint8_t)(v >> 24);
+    b[o+1] = (uint8_t)(v >> 16);
+    b[o+2] = (uint8_t)(v >> 8);
+    b[o+3] = (uint8_t)v;
 }
 static uint32_t get32be(const uint8_t* b, size_t o)
 {
     return ((uint32_t)b[o] << 24) | ((uint32_t)b[o+1] << 16) | ((uint32_t)b[o+2] << 8) | b[o+3];
 }
-static void put16le(uint8_t* p, uint16_t v) { p[0] = (uint8_t)v; p[1] = (uint8_t)(v >> 8); }
-static void put32le(uint8_t* p, uint32_t v) { p[0] = (uint8_t)v; p[1] = (uint8_t)(v >> 8); p[2] = (uint8_t)(v >> 16); p[3] = (uint8_t)(v >> 24); }
+static void put16le(uint8_t* p, uint16_t v)
+{
+    p[0] = (uint8_t)v;
+    p[1] = (uint8_t)(v >> 8);
+}
+static void put32le(uint8_t* p, uint32_t v)
+{
+    p[0] = (uint8_t)v;
+    p[1] = (uint8_t)(v >> 8);
+    p[2] = (uint8_t)(v >> 16);
+    p[3] = (uint8_t)(v >> 24);
+}
 
 // Amiga block checksum: the sum of all longs must be 0
 static void amigaChecksum(uint8_t* b, size_t off)
@@ -48,9 +61,15 @@ static void amigaDate(uint8_t* b, size_t off, time_t t)
 static std::string toLatin1(const std::string& s)
 {
     std::string out;
-    for (size_t i = 0; i < s.size(); ) {
+    for (size_t i = 0; i < s.size(); )
+    {
         unsigned char c = (unsigned char)s[i];
-        if (c < 0x80) { out += (char)c; i++; continue; }
+        if (c < 0x80)
+        {
+            out += (char)c;
+            i++;
+            continue;
+        }
         int n = (c & 0xE0) == 0xC0 ? 2 : (c & 0xF0) == 0xE0 ? 3 : (c & 0xF8) == 0xF0 ? 4 : 1;
         uint32_t cp = n == 2 ? (((uint32_t)(c & 0x1F) << 6) | (i + 1 < s.size() ? (s[i+1] & 0x3F) : 0)) : 0x100;
         out += cp <= 0xFF ? (char)cp : '_';
@@ -64,8 +83,16 @@ bool parseFormatKind(const std::string& s, FormatSpec& spec)
     spec.intl = false;
     if (s == "amiga" || s == "ffs")              spec.kind = FormatSpec::Kind::AmigaFFS;
     else if (s == "ofs")                         spec.kind = FormatSpec::Kind::AmigaOFS;
-    else if (s == "amiga-intl" || s == "ffs-intl") { spec.kind = FormatSpec::Kind::AmigaFFS; spec.intl = true; }
-    else if (s == "ofs-intl")                    { spec.kind = FormatSpec::Kind::AmigaOFS; spec.intl = true; }
+    else if (s == "amiga-intl" || s == "ffs-intl")
+    {
+        spec.kind = FormatSpec::Kind::AmigaFFS;
+        spec.intl = true;
+    }
+    else if (s == "ofs-intl")
+    {
+        spec.kind = FormatSpec::Kind::AmigaOFS;
+        spec.intl = true;
+    }
     else if (s == "dos" || s == "fat" || s == "fat12") spec.kind = FormatSpec::Kind::FAT12;
     else return false;
     return true;
@@ -78,10 +105,13 @@ DiskGeometry formatGeometry(const FormatSpec& spec)
     g.numCylinders   = 80;
     g.numHeads       = 2;
     g.bytesPerSector = 512;
-    if (spec.kind == FormatSpec::Kind::FAT12) {
+    if (spec.kind == FormatSpec::Kind::FAT12)
+    {
         g.format          = DiskFormat::IBM_FAT;
         g.sectorsPerTrack = spec.hd ? 18 : 9;
-    } else {
+    }
+    else
+    {
         g.format          = DiskFormat::Amiga_ADF;
         g.sectorsPerTrack = spec.hd ? 22 : 11;
     }
@@ -102,7 +132,10 @@ static std::string buildAmiga(const FormatSpec& spec, std::vector<uint8_t>& img,
 
     // Boot block: "DOS\x", not bootable (checksum 0), root block pointer
     uint8_t* boot = img.data();
-    boot[0] = 'D'; boot[1] = 'O'; boot[2] = 'S'; boot[3] = dosType;
+    boot[0] = 'D';
+    boot[1] = 'O';
+    boot[2] = 'S';
+    boot[3] = dosType;
     put32be(boot, 8, root);
 
     // Root block
@@ -122,7 +155,11 @@ static std::string buildAmiga(const FormatSpec& spec, std::vector<uint8_t>& img,
     // Bitmap: bit (n-2) set = block n free; root and bitmap are in use
     uint8_t* bm = img.data() + (size_t)bitmap * 512;
     for (size_t o = 4; o < 512; o += 4) put32be(bm, o, 0xFFFFFFFF);
-    for (uint32_t used : {root, bitmap}) {
+    for (uint32_t used :
+            {
+                root, bitmap
+            })
+    {
         uint32_t bit = used - 2;
         size_t o = 4 + (bit / 32) * 4;
         put32be(bm, o, get32be(bm, o) & ~(1u << (bit % 32)));
@@ -134,7 +171,8 @@ static std::string buildAmiga(const FormatSpec& spec, std::vector<uint8_t>& img,
 // ── FAT12 ─────────────────────────────────────────────────────────────────────
 
 // Same "not bootable" stub mkfs.fat installs (code at 0x3E, message at 0x5B)
-static const uint8_t kBootStub[] = {
+static const uint8_t kBootStub[] =
+{
     0x0E, 0x1F, 0xBE, 0x5B, 0x7C, 0xAC, 0x22, 0xC0, 0x74, 0x0B, 0x56, 0xB4, 0x0E, 0xBB,
     0x07, 0x00, 0xCD, 0x10, 0x5E, 0xEB, 0xF0, 0x32, 0xE4, 0xCD, 0x16, 0xCD, 0x19, 0xEB, 0xFE,
 };
@@ -155,7 +193,8 @@ static std::string buildFat(const FormatSpec& spec, std::vector<uint8_t>& img)
 
     // Label: upper case, characters valid in 8.3 names, at most 11
     std::string label;
-    for (unsigned char c : spec.label) {
+    for (unsigned char c : spec.label)
+    {
         if (label.size() == 11) break;
         c = (unsigned char)toupper(c);
         if (c >= 0x80 || c < 0x20 || strchr("\"*+,./:;<=>?[\\]|", c)) c = '_';
@@ -164,7 +203,9 @@ static std::string buildFat(const FormatSpec& spec, std::vector<uint8_t>& img)
     if (spec.label.size() > 11) return "FAT volume label longer than 11 characters";
 
     uint8_t* b = img.data();
-    b[0] = 0xEB; b[1] = 0x3C; b[2] = 0x90;
+    b[0] = 0xEB;
+    b[1] = 0x3C;
+    b[2] = 0x90;
     memcpy(b + 3, "MSWIN4.1", 8);
     put16le(b + 11, 512);
     b[13] = spc;
@@ -186,16 +227,21 @@ static std::string buildFat(const FormatSpec& spec, std::vector<uint8_t>& img)
     memcpy(b + 54, "FAT12   ", 8);
     memcpy(b + 0x3E, kBootStub, sizeof kBootStub);
     memcpy(b + 0x5B, kBootMsg, sizeof kBootMsg - 1);
-    b[510] = 0x55; b[511] = 0xAA;
+    b[510] = 0x55;
+    b[511] = 0xAA;
 
     // Both FATs: media descriptor and end-of-chain for clusters 0 and 1
-    for (int copy = 0; copy < 2; copy++) {
+    for (int copy = 0; copy < 2; copy++)
+    {
         uint8_t* f = img.data() + (size_t)(1 + copy * fatSz) * 512;
-        f[0] = media; f[1] = 0xFF; f[2] = 0xFF;
+        f[0] = media;
+        f[1] = 0xFF;
+        f[2] = 0xFF;
     }
 
     // Root directory: volume label entry
-    if (!label.empty()) {
+    if (!label.empty())
+    {
         uint8_t* e = img.data() + (size_t)(1 + 2 * fatSz) * 512;
         memset(e, ' ', 11);
         memcpy(e, label.data(), label.size());

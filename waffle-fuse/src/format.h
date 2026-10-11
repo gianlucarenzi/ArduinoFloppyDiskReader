@@ -6,7 +6,8 @@
 #include <vector>
 #include "disk_cache.h"
 
-struct FormatSpec {
+struct FormatSpec
+{
     enum class Kind { AmigaOFS, AmigaFFS, FAT12 } kind = Kind::AmigaFFS;
     bool        hd    = false;   // DD: 880K / 720K, HD: 1.76M / 1.44M
     bool        intl  = false;   // AmigaDOS international mode (DOS2 / DOS3)
