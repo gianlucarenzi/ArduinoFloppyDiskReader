@@ -57,15 +57,16 @@ overrides:
       - libnotify-bin
       - pkexec | policykit-1
   rpm:
-    # Fedora and openSUSE. GTK for Python: "typelib-1_0-Gtk-3_0" on openSUSE,
-    # "gtk3" on Fedora (openSUSE's libgtk-3-0 also provides "gtk3", without the
-    # typelib: it must come second). Missing weak dependencies are ignored.
+    # Fedora and openSUSE. GTK for Python: Fedora's gtk3 has the typelib;
+    # on openSUSE gtk3 is provided by libgtk-3-0, the typelib is a separate
+    # package. Missing weak dependencies are ignored.
     depends:
       - fuse3
       - python3
       - python3-gobject
       - acl
-      - (typelib-1_0-Gtk-3_0 or gtk3)
+      - gtk3
+      - (typelib-1_0-Gtk-3_0 if libgtk-3-0)
     recommends:
       - libayatana-appindicator-gtk3
       - typelib-1_0-AyatanaAppIndicator3-0_1
