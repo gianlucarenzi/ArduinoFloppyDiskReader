@@ -4,16 +4,6 @@ on:
   push:
     tags:
       - 'waffle-fuse-v*'
-    branches:
-      - master
-    paths:
-      - 'waffle-fuse/**'
-      - '.github/workflows/waffle-fuse-appimage.yml'
-  pull_request:
-    branches:
-      - master
-    paths:
-      - 'waffle-fuse/**'
   workflow_dispatch:
 
 permissions:
