@@ -81,6 +81,27 @@ If you test it on another combination, the result is useful to add here.
 
 ## Building and installing
 
+### AppImage (easiest on Linux)
+
+An AppImage is a self-contained executable that works on any Linux distribution. No installation
+needed, just download, make executable, and run:
+
+```bash
+chmod +x Waffle-Fuse-*.AppImage
+./Waffle-Fuse-*.AppImage
+```
+
+This launches the graphical installer with all dependencies bundled. AppImages are available:
+
+* **From releases**: https://github.com/gianlucarenzi/ArduinoFloppyDiskReader/releases (look for
+  `Waffle-Fuse-*.AppImage`)
+* **Automatically built** on every push to master and on tagged releases via GitHub Actions
+* **Ubuntu 20.04 LTS and later** (and Debian-based distributions)
+
+For building the AppImage locally, see [waffle-fuse/.AppImage/README.md](.AppImage/README.md).
+
+### Traditional installation from source
+
 ```bash
 cd waffle-fuse
 make
