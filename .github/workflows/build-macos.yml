@@ -1,5 +1,13 @@
 name: Build WaffleCopyPRO on macOS
 
+# Qt6 build with Apple Clang, twice on an Apple Silicon runner, both with the
+# official Qt 6 (clang_64: universal, arm64 and x86_64):
+# - arm64: native, with libmikmod from Homebrew
+# - x86_64: for Intel Macs (and Apple Silicon through Rosetta 2). Homebrew no
+#   longer installs on Intel, so libmikmod is built from its sources for x86_64
+# macdeployqt puts the Qt frameworks and libmikmod into the bundle; the bundle
+# is signed ad hoc (not notarized).
+
 on:
   push:
     tags:
@@ -9,9 +17,22 @@ on:
 permissions:
   contents: write
 
+env:
+  QT_VERSION: 6.8.3            # LTS; needs macOS 12
+  MACOS_MIN: '12.0'
+  LIBMIKMOD_VERSION: libmikmod-3.3.13
+
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x86_64]
+
+    env:
+      ARCH: ${{ matrix.arch }}
+      DEPS: ${{ github.workspace }}/deps
 
     steps:
     - uses: actions/checkout@v4
@@ -19,40 +40,75 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
-        version: '5.15.2'
-        arch: 'clang_64'
+        version: ${{ env.QT_VERSION }}
+        host: mac
+        target: desktop
+        arch: clang_64
+        modules: qtserialport
+        dir: ${{ runner.temp }}
 
-    - name: Install x86_64 Homebrew
-      run: |
-        arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    # --- arm64: Homebrew ---------------------------------------------------
 
-    - name: Install dependencies
+    - name: Install dependencies (Homebrew)
+      if: matrix.arch == 'arm64'
       run: |
-        arch -x86_64 /usr/local/bin/brew install libmikmod
+        brew install libmikmod
+        echo "QMAKE_EXTRA=" >> $GITHUB_ENV
+        echo "RUN=" >> $GITHUB_ENV
+
+    # --- x86_64: libmikmod from source -------------------------------------
+
+    - name: Install Rosetta 2
+      if: matrix.arch == 'x86_64'
+      run: /usr/bin/pgrep -q oahd || softwareupdate --install-rosetta --agree-to-license
+
+    - name: Build libmikmod (x86_64)
+      if: matrix.arch == 'x86_64'
+      run: |
+        # Absolute install name, so that macdeployqt finds and bundles it
+        git clone --depth 1 --branch $LIBMIKMOD_VERSION https://github.com/sezero/mikmod.git mikmod-src
+        cmake -S mikmod-src/libmikmod -B mikmod-build -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOS_MIN \
+          -DCMAKE_INSTALL_PREFIX=$DEPS -DCMAKE_INSTALL_NAME_DIR=$DEPS/lib \
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DENABLE_STATIC=OFF
+        cmake --build mikmod-build --parallel
+        cmake --install mikmod-build
+        ls -la $DEPS/lib $DEPS/include
+        echo "QMAKE_EXTRA=INCLUDEPATH+=$DEPS/include LIBS+=-L$DEPS/lib" >> $GITHUB_ENV
+        echo "RUN=arch -x86_64" >> $GITHUB_ENV
+
+    # --- both --------------------------------------------------------------
 
     - name: Build waffleCopyPRO-Universal
       run: |
         cd waffleCopyPRO-Universal
-        qmake
-        make
+        qmake QMAKE_APPLE_DEVICE_ARCHS=$ARCH QMAKE_MACOSX_DEPLOYMENT_TARGET=$MACOS_MIN $QMAKE_EXTRA \
+          waffleCopyPRO-Universal.pro
+        make -j$(sysctl -n hw.ncpu)
+        file waffleCopyPRO-Universal.app/Contents/MacOS/waffleCopyPRO-Universal
+        otool -L waffleCopyPRO-Universal.app/Contents/MacOS/waffleCopyPRO-Universal
 
     - name: Package Application and Resources
       run: |
         cd waffleCopyPRO-Universal
-        macdeployqt waffleCopyPRO-Universal.app
+        APP=waffleCopyPRO-Universal.app
+        # xcrun builds its cache on the first call of each tool; that can take
+        # longer than macdeployqt waits for them: do the first calls here
+        for tool in otool install_name_tool; do xcrun --find $tool; done
+        macdeployqt $APP -always-overwrite -verbose=2 2>&1 | tee macdeployqt.log
+        if grep -q '^ERROR' macdeployqt.log; then echo "macdeployqt failed"; exit 1; fi
         echo "Copying resource folders to Contents/Resources..."
-        cp -R fonts waffleCopyPRO-Universal.app/Contents/Resources/
-        cp -R WaffleUI waffleCopyPRO-Universal.app/Contents/Resources/
-        cp -R translations waffleCopyPRO-Universal.app/Contents/Resources/
-
-        # Frameworks folder (no CAPSImage.framework copying; CAPS integrated statically)
-        mkdir -p waffleCopyPRO-Universal.app/Contents/Frameworks
-
-        # Add rpath to executables so they find the Frameworks folder
-        for exe in waffleCopyPRO-Universal.app/Contents/MacOS/*; do
-          [ -f "$exe" ] || continue
-          install_name_tool -add_rpath "@executable_path/../Frameworks" "$exe" || true
-        done
+        cp -R fonts $APP/Contents/Resources/
+        cp -R WaffleUI $APP/Contents/Resources/
+        cp -R translations $APP/Contents/Resources/
+        # No library may still be loaded from Homebrew or the deps folder
+        OUTSIDE=$(find $APP -type f \( -perm +111 -o -name '*.dylib' \) | while read f; do
+          otool -l "$f" 2>/dev/null | awk '/cmd LC_(LOAD|LOAD_WEAK|REEXPORT)_DYLIB/ { getline; getline; print $2 }' \
+            | grep -E "^(/opt/homebrew|/usr/local|$DEPS)/" | sed "s#^#$f: #"
+        done)
+        if [ -n "$OUTSIDE" ]; then
+          echo "$OUTSIDE"; echo "The bundle still uses libraries outside of it"; exit 1
+        fi
 
     - name: Ensure Info.plist has bundle name
       run: |
@@ -64,6 +120,22 @@ jobs:
         else
           echo "Info.plist not found at $PLIST"
         fi
+
+    - name: Sign the bundle (ad hoc)
+      run: |
+        cd waffleCopyPRO-Universal
+        codesign --force --deep --sign - waffleCopyPRO-Universal.app
+        codesign --verify --deep --verbose=2 waffleCopyPRO-Universal.app
+
+    - name: Smoke test (offscreen)
+      run: |
+        cd waffleCopyPRO-Universal
+        QT_QPA_PLATFORM=offscreen $RUN waffleCopyPRO-Universal.app/Contents/MacOS/waffleCopyPRO-Universal -debug > smoke.log 2>&1 &
+        PID=$!
+        sleep 10
+        cat smoke.log
+        kill -0 $PID || { echo "waffleCopyPRO-Universal did not start"; exit 1; }
+        kill $PID
 
     - name: Generate DMG background
       run: |
@@ -129,18 +201,18 @@ jobs:
         hdiutil convert "$DMG_TMP" -format UDZO -imagekey zlib-level=9 -o ../release/waffleCopyPRO-Universal.dmg
         rm -f "$DMG_TMP"
         rm -rf "$SRC_DIR"
-        mv ../release/waffleCopyPRO-Universal.dmg ../waffleCopyPRO-Universal.dmg
+        mv ../release/waffleCopyPRO-Universal.dmg ../waffleCopyPRO-Universal-macOS-$ARCH.dmg
 
     - name: Upload DMG Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: waffleCopyPRO-Universal-macOS.dmg
-        path: waffleCopyPRO-Universal.dmg
+        name: waffleCopyPRO-Universal-macOS-${{ matrix.arch }}
+        path: waffleCopyPRO-Universal-macOS-${{ matrix.arch }}.dmg
 
     - name: Create Release and Upload Asset
       if: startsWith(github.ref, 'refs/tags/v')
       uses: softprops/action-gh-release@v1
       with:
-        files: waffleCopyPRO-Universal.dmg
+        files: waffleCopyPRO-Universal-macOS-${{ matrix.arch }}.dmg
         draft: false
         prerelease: false
