@@ -1,12 +1,25 @@
 # Stage 1: Build environment
-FROM ubuntu:20.04 AS builder
+# Debian 11: Qt 6.4.2 from bullseye-backports, and a glibc (2.31) old enough
+# for the AppImage to run on most current distributions
+FROM debian:bullseye AS builder
 
 # Set environment variables for non-interactive installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Update apt and install build tools and Qt
-RUN apt-get update && \
-    apt-get install -y build-essential git cmake qt5-default qttools5-dev-tools libqt5serialport5-dev patchelf libmikmod-dev curl xz-utils
+# Debian 11 (and its backports) has moved to archive.debian.org: use it only,
+# deb.debian.org still lists packages that are no longer there.
+# Update apt and install build tools and Qt6 from bullseye-backports;
+# qt6-qpa-plugins has the xcb platform plugin that linuxdeploy-plugin-qt puts
+# into the AppImage
+RUN rm -f /etc/apt/sources.list.d/* && \
+    printf '%s\n' \
+        'deb http://archive.debian.org/debian bullseye main' \
+        'deb http://archive.debian.org/debian-security bullseye-security main' \
+        'deb http://archive.debian.org/debian bullseye-backports main' > /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install -y build-essential git cmake patchelf libmikmod-dev curl xz-utils file && \
+    apt-get install -y -t bullseye-backports qmake6 qt6-base-dev qt6-base-dev-tools \
+        qt6-serialport-dev qt6-qpa-plugins
 
 # Download and extract appimagetool
 RUN curl -L https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -o /tmp/appimagetool.AppImage && \
@@ -35,7 +48,7 @@ COPY . /app
 WORKDIR /app/waffleCopyPRO-Universal
 
 # Build the project
-RUN qmake waffleCopyPRO-Universal.pro
+RUN qmake6 waffleCopyPRO-Universal.pro
 RUN make clean
 RUN make -j$(nproc)
 
@@ -43,7 +56,8 @@ RUN make -j$(nproc)
 RUN echo "[Desktop Entry]\nName=WaffleCopyPRO-Universal\nExec=waffleCopyPRO-Universal\nIcon=waffleCopyPRO-Universal\nType=Application\nCategories=Utility;\n" > waffleCopyPRO-Universal.desktop
 RUN cp ./WaffleUI/waffleCopyPRO-icon.png ./waffleCopyPRO-Universal.png
 
-# Deploy and Package into AppImage
+# Deploy and Package into AppImage (linuxdeploy-plugin-qt finds Qt6 through QMAKE)
+ENV QMAKE=/usr/bin/qmake6
 RUN linuxdeploy --appdir AppDir --executable ./waffleCopyPRO-Universal --desktop-file ./waffleCopyPRO-Universal.desktop --icon-file ./waffleCopyPRO-Universal.png --plugin qt
 
 # Manually copy resources
@@ -52,7 +66,10 @@ RUN cp -r ./WaffleUI AppDir/usr/bin/
 RUN cp -r ./translations AppDir/usr/bin/
 
 # Create custom AppRun
-RUN echo '#!/bin/bash' > AppDir/AppRun && \
+# (linuxdeploy makes AppRun a symlink to the executable: remove it, or the
+# script below would overwrite the executable itself)
+RUN rm -f AppDir/AppRun && \
+    echo '#!/bin/bash' > AppDir/AppRun && \
     echo 'HERE="$(dirname "$(readlink -f "${0}")")"' >> AppDir/AppRun && \
     echo 'cd "$HERE/usr/bin" || exit 1' >> AppDir/AppRun && \
     echo 'exec "./waffleCopyPRO-Universal" "$@"' >> AppDir/AppRun && \
