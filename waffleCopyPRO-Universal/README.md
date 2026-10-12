@@ -37,11 +37,13 @@ Here is a glimpse of WaffleCopyPRO-Universal in action.
 
 ## Installation
 
-The project is built with Qt 5.15.2. Detailed, platform-specific instructions can be found in the original `README.md`. A summary is provided below:
+The official releases are built with Qt 6 (Qt 6.4 on Linux, Qt 6.8 LTS on macOS and Windows). The source code still builds with Qt 5.15 as well. Detailed, platform-specific instructions can be found in the original `README.md`. A summary is provided below:
 
-*   **Linux**: Install `qt5-default`, `libqt5serialport5-dev`, `libmikmod-dev`, `libftdi1-dev`, then run `qmake && make`.
-*   **macOS**: Install dependencies like `libmikmod` via Homebrew, then use `qmake && make` to build the `.app` bundle.
-*   **Windows**: Use Visual Studio 2019 and the Qt 5.15.2 MSVC kit. Dependencies like `libmikmod` can be installed via `vcpkg`. Build using `qmake` and `msbuild`.
+*   **Linux**: Install `qmake6`, `qt6-base-dev`, `qt6-serialport-dev` (`libqt6serialport6-dev` on Ubuntu), `libmikmod-dev`, then run `qmake6 && make`. The AppImage is built in Docker (Debian 11) with `./build.sh`.
+*   **macOS**: Install `libmikmod` via Homebrew and the Qt 6 kit with the Qt SerialPort module, then use `qmake && make` to build the `.app` bundle. The releases provide a DMG for Apple Silicon (`arm64`) and one for Intel Macs (`x86_64`).
+*   **Windows**: Use Visual Studio 2022 and the Qt 6 MSVC 2022 kit with the Qt SerialPort module. Dependencies like `libmikmod` can be installed via `vcpkg`. Build using `qmake` and `msbuild`.
+
+With Qt 6 the application scales its window by itself, as with Qt 5: the Qt 6 high-DPI scaling is turned off unless `QT_ENABLE_HIGHDPI_SCALING` is set in the environment.
 
 Recent cleanup of the vendored CAPS sources also removes the warning noise seen
 with newer toolchains such as **gcc 14.2.0**.
