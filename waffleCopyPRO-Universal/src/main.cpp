@@ -62,6 +62,15 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName("RetroGiovedi");
     QCoreApplication::setApplicationName("waffleCopyPRO-Universal");
     QSettings::setDefaultFormat(QSettings::IniFormat);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    // Qt6 always enables high-DPI scaling (e.g. from Xft.dpi on X11), which
+    // stacks on top of our own scale factor. Disable it to behave like Qt5,
+    // unless the user explicitly sets QT_ENABLE_HIGHDPI_SCALING.
+    if (!qEnvironmentVariableIsSet("QT_ENABLE_HIGHDPI_SCALING"))
+    {
+        qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
+    }
+#endif
     QApplication a(argc, argv);
 #ifdef __APPLE__
     // On macOS, when running from a bundle, the working directory is the user's home dir.
