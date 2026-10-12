@@ -140,12 +140,6 @@ has ported the code.
 
 ***For a more advanced and feature-rich version of this project, please refer to the [waffleCopyPRO-Universal README.md](waffleCopyPRO-Universal/README.md).***
 
-# waffle-fuse
-
-The Linux FUSE driver for the DrawBridge / Waffle drive (Amiga and PC floppies mounted on the
-Linux desktop, with tray daemon and ready-made packages for any distribution) now lives in its
-own repository: **https://github.com/gianlucarenzi/waffle-fuse**
-
 # Licence
 This entire project is available multi-licensed under the terms of the Mozilla Public License Version 2.0
 as published by Mozilla Corporation and the GNU General Public License, version 2 or later, as published by the Free
