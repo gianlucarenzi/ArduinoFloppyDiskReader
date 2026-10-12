@@ -70,7 +70,7 @@ jobs:
         cmake -S mikmod-src/libmikmod -B mikmod-build -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOS_MIN \
           -DCMAKE_INSTALL_PREFIX=$DEPS -DCMAKE_INSTALL_NAME_DIR=$DEPS/lib \
-          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DENABLE_STATIC=OFF
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DENABLE_STATIC=OFF -DENABLE_DOC=OFF
         cmake --build mikmod-build --parallel
         cmake --install mikmod-build
         ls -la $DEPS/lib $DEPS/include
