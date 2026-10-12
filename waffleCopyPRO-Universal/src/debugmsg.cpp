@@ -32,7 +32,7 @@ void DebugMsg::print(const char* func, const QString& msg)
 {
     if (s_enabled)
     {
-        QTextStream(stdout) << func << ": " << msg << endl;
+        QTextStream(stdout) << func << ": " << msg << DEBUGMSG_ENDL;
     }
 }
 #endif // _WIN32

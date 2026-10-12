@@ -442,8 +442,14 @@ void MainWindow::scaleAllWidgets(QWidget *widget)
     
     // Scale pixmaps in QLabel widgets
     QLabel *label = qobject_cast<QLabel*>(widget);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    // Qt6: QLabel::pixmap() returns the pixmap by value
+    if (label && !label->pixmap().isNull()) {
+        QPixmap originalPixmap = label->pixmap();
+#else
     if (label && label->pixmap() && !label->pixmap()->isNull()) {
         QPixmap originalPixmap = *label->pixmap();
+#endif
         QSize scaledSize(
             static_cast<int>(originalPixmap.width() * m_scaleFactor),
             static_cast<int>(originalPixmap.height() * m_scaleFactor)
@@ -1686,7 +1692,11 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         if (event->type() == QEvent::MouseButtonPress) {
             QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
             if (mouseEvent->button() == Qt::LeftButton) {
+                #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                m_diagnosticMousePressPos = mouseEvent->position().toPoint();
+#else
                 m_diagnosticMousePressPos = mouseEvent->pos();
+#endif
             }
             // Let the event propagate normally
             return QMainWindow::eventFilter(obj, event);
@@ -1695,7 +1705,11 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
             QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
             if (mouseEvent->button() == Qt::LeftButton) {
                 // Calculate distance from press to release
+                #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                QPoint releasePos = mouseEvent->position().toPoint();
+#else
                 QPoint releasePos = mouseEvent->pos();
+#endif
                 int distance = (releasePos - m_diagnosticMousePressPos).manhattanLength();
 
                 // Only close if it's a simple click (not a drag)

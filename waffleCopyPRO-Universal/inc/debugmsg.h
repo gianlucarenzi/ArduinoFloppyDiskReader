@@ -5,6 +5,14 @@
 #include <QTextStream>
 #include <stdio.h>
 
+// QTextStream manipulators moved into the Qt namespace in Qt 5.14 and the
+// global ones were removed in Qt 6
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+#define DEBUGMSG_ENDL Qt::endl
+#else
+#define DEBUGMSG_ENDL endl
+#endif
+
 #if defined(__GNUC__) || defined(__clang__)
 #define NO_INSTRUMENT __attribute__((no_instrument_function))
 #else
@@ -18,7 +26,7 @@ public:
     // Inline implementations on Windows to avoid requiring a separate compilation unit
     static void init(bool enabled) NO_INSTRUMENT { s_enabled = enabled; }
     static void initVerbose(bool enabled) NO_INSTRUMENT { s_verboseEnabled = enabled; }
-    static void print(const char* func, const QString& msg) NO_INSTRUMENT { if (s_enabled) { QTextStream(stdout) << func << ": " << msg << endl; } }
+    static void print(const char* func, const QString& msg) NO_INSTRUMENT { if (s_enabled) { QTextStream(stdout) << func << ": " << msg << DEBUGMSG_ENDL; } }
     static bool enabled() NO_INSTRUMENT { return s_enabled; }
     static bool verboseEnabled() NO_INSTRUMENT { return s_verboseEnabled; }
 
