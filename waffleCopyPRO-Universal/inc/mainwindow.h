@@ -103,8 +103,13 @@ private:
     bool m_simulationSkipped; // true = Skip was pressed: advance without re-testing
     bool m_simulationIsWrite; // true = simulating write, false = simulating read
 
+public:
+    // Auto-detected UI scale factor for the primary screen (shared with main.cpp)
+    static qreal calculateScaleFactor();
+
 private:
-    qreal calculateScaleFactor();
+    void applyScaledControls();
+    void applyScaledAppFont(bool compact);
     void scaleWidgetGeometry(QWidget *widget);
     void scaleAllWidgets(QWidget *widget);
     void applyAmigaFontToWidgets();

@@ -31,6 +31,7 @@
 #include "vumeterwidget.h"
 #include <QMenuBar>
 #include <QMenu>
+#include <QCheckBox>
 #include <QMessageBox>
 #include <QApplication>
 #include <QTranslator>
@@ -317,6 +318,9 @@ MainWindow::MainWindow(QWidget *parent)
     QAction *simulateWriteAction = debugMenu->addAction(tr("Simulate Write"));
     connect(simulateWriteAction, &QAction::triggered, this, &MainWindow::startWriteSimulation);
 #endif
+
+    // Scale menu padding and check box indicators (not covered by fonts/geometry)
+    applyScaledControls();
 }
 
 qreal MainWindow::calculateScaleFactor()
@@ -327,13 +331,24 @@ qreal MainWindow::calculateScaleFactor()
         return 1.0; // Fallback to no scaling
     }
     
-    QRect screenGeometry = screen->availableGeometry();
-    int screenWidth = screenGeometry.width();
-    int screenHeight = screenGeometry.height();
-    
-    // Base dimensions
+    // Base dimensions (design size, scale 1.0 = 1366x768 class screens)
     const int baseWidth = 1024;
-    const int baseHeight = 610;
+    const int baseHeight = 610;      // reference used for the tiers below
+    const int windowBaseHeight = 615; // real window height (see constructor)
+
+    const QRect available = screen->availableGeometry();
+#ifdef Q_OS_MACOS
+    // macOS reports the "looks like" resolution in logical points (Retina /
+    // scaled modes) and availableGeometry() also removes the menu bar and the
+    // Dock, which pushed a 1920x1080 or 2560x1440 Mac into a smaller tier than
+    // the same screen on Windows/Linux. Pick the tier from the full logical
+    // screen size; the result is clamped to the available area below.
+    const QRect tierGeometry = screen->geometry();
+#else
+    const QRect tierGeometry = available;
+#endif
+    const int screenWidth = tierGeometry.width();
+    const int screenHeight = tierGeometry.height();
     
     // Calculate scale factors for 50% and 75% of screen
     qreal scale50Width = (screenWidth * 0.5) / baseWidth;
@@ -356,17 +371,63 @@ qreal MainWindow::calculateScaleFactor()
         // Full HD: use 50-65% of screen
         scaleFactor = scale50 * 1.3;
     } else {
-        // Lower resolutions: use original size or slight scaling
-        scaleFactor = qMin(1.0, scale50);
+        // Lower resolutions: original size
+        scaleFactor = 1.0;
     }
+
+    // The window (plus its menu bar, ~4% extra height) must always fit the
+    // usable area of the screen
+    const qreal fitScale = qMin(available.width() / qreal(baseWidth),
+                                available.height() / (windowBaseHeight * 1.04));
+    scaleFactor = qMin(scaleFactor, fitScale);
     
     // Ensure minimum scale factor of 1.0 (never downscale below original)
     scaleFactor = qMax(1.0, scaleFactor);
     
-    DebugMsg::print(__func__, QString("Screen: %1x%2, Scale factor: %3")
-                    .arg(screenWidth).arg(screenHeight).arg(scaleFactor));
+    DebugMsg::print(__func__, QString("Screen: %1x%2 (available %3x%4, DPR %5), Scale factor: %6")
+                    .arg(screenWidth).arg(screenHeight)
+                    .arg(available.width()).arg(available.height())
+                    .arg(screen->devicePixelRatio()).arg(scaleFactor));
     
     return scaleFactor;
+}
+
+void MainWindow::applyScaledControls()
+{
+    // Widget styles draw menu item padding and check box indicators with fixed
+    // pixel metrics that do not follow our scale factor: at 4K the menu items
+    // touch each other and the check boxes stay a few pixels wide next to
+    // 30px text. Scale them explicitly.
+    if (m_scaleFactor == 1.0)
+        return;
+
+    auto px = [this](int base) { return qMax(1, qRound(base * m_scaleFactor)); };
+
+    menuBar()->setStyleSheet(QString(
+        "QMenuBar::item { padding: %1px %2px; background: transparent; }"
+        "QMenuBar::item:selected { background: palette(highlight); color: palette(highlighted-text); }")
+        .arg(px(2)).arg(px(6)));
+
+    const QString menuStyle = QString(
+        "QMenu::item { padding: %1px %2px %1px %3px; }"
+        "QMenu::item:selected { background: palette(highlight); color: palette(highlighted-text); }")
+        .arg(px(3)).arg(px(16)).arg(px(12));
+    for (QMenu *menu : menuBar()->findChildren<QMenu*>())
+        menu->setStyleSheet(menuStyle);
+
+    const QString checkStyle = QString(
+        "QCheckBox::indicator { width: %1px; height: %1px; }"
+        "QCheckBox { spacing: %2px; }")
+        .arg(px(13)).arg(px(4));
+    for (QCheckBox *cb : findChildren<QCheckBox*>()) {
+        // Keep the existing per-widget style. The .ui uses bare declarations
+        // ("color: ...;"), which must be wrapped in a selector before rules
+        // with selectors can be appended.
+        QString existing = cb->styleSheet().trimmed();
+        if (!existing.isEmpty() && !existing.contains('{'))
+            existing = QString("QCheckBox { %1 }").arg(existing);
+        cb->setStyleSheet(existing + checkStyle);
+    }
 }
 
 void MainWindow::scaleWidgetGeometry(QWidget *widget)
@@ -796,47 +857,41 @@ void MainWindow::prepareTracksPosition(void)
     const int lowerStartX = 343;
     const int lowerStartY = 60;
     
-    int scaledTrackSize = static_cast<int>(trackSize * m_scaleFactor);
-    int scaledCellSize = static_cast<int>(cellSize * m_scaleFactor);
-    int scaledPadding = static_cast<int>(padding * m_scaleFactor);
-    int scaledLabelSize = static_cast<int>(labelSize * m_scaleFactor);
-    int scaledLineThickness = static_cast<int>(lineThickness * m_scaleFactor);
-    int scaledUpperStartX = static_cast<int>(upperStartX * m_scaleFactor);
-    int scaledUpperStartY = static_cast<int>(upperStartY * m_scaleFactor);
-    int scaledLowerStartX = static_cast<int>(lowerStartX * m_scaleFactor);
-    int scaledLowerStartY = static_cast<int>(lowerStartY * m_scaleFactor);
-    
-    // Position upper tracks in grid (10 cols x 9 rows, only first 84)
-    for (int j = 0; j < MAX_TRACKS; j++)
-    {
-        int row = j / cols;
-        int col = j % cols;
-        
-        // Calculate position: scale each component separately to maintain alignment with grid
-        int scaledX = scaledUpperStartX + scaledLabelSize + scaledLineThickness + 
-                      col * scaledCellSize + scaledPadding;
-        int scaledY = scaledUpperStartY + scaledLineThickness + row * scaledCellSize + scaledPadding;
-        
-        upperTrack[j]->hide();
-        upperTrack[j]->setGeometry(scaledX, scaledY, scaledTrackSize, scaledTrackSize);
-        upperTrack[j]->setStyleSheet("background-color: rgb(0,0,0)");
-    }
-    
-    // Position lower tracks in grid
-    for (int j = 0; j < MAX_TRACKS; j++)
-    {
-        int row = j / cols;
-        int col = j % cols;
-        
-        // Calculate position: scale each component separately to maintain alignment with grid
-        int scaledX = scaledLowerStartX + scaledLabelSize + scaledLineThickness + 
-                      col * scaledCellSize + scaledPadding;
-        int scaledY = scaledLowerStartY + scaledLineThickness + row * scaledCellSize + scaledPadding;
-        
-        lowerTrack[j]->hide();
-        lowerTrack[j]->setGeometry(scaledX, scaledY, scaledTrackSize, scaledTrackSize);
-        lowerTrack[j]->setStyleSheet("background-color: rgb(0,0,0)");
-    }
+    const int scaledTrackSize = static_cast<int>(trackSize * m_scaleFactor);
+    const int scaledLineThickness = static_cast<int>(lineThickness * m_scaleFactor);
+
+    // Place each track using the SAME rounded coordinates createTrackGrid() uses
+    // for the grid lines, then center it inside the cell interior. Scaling the
+    // single components separately (col * int(cellSize * scale)) accumulates
+    // rounding errors and makes the boxes overlap the grid lines on fractional
+    // scale factors (e.g. 1.37-1.45 on a 2560x1440 macOS display).
+    auto gridLine = [this](int base) {
+        return static_cast<int>(base * m_scaleFactor);
+    };
+
+    auto placeTracks = [&](QLabel **tracks, int startX, int startY) {
+        for (int j = 0; j < MAX_TRACKS; j++)
+        {
+            const int row = j / cols;
+            const int col = j % cols;
+
+            // Cell interior: from the end of the left/top line to the start of the next line
+            const int left   = gridLine(startX + labelSize + col * cellSize) + scaledLineThickness;
+            const int right  = gridLine(startX + labelSize + (col + 1) * cellSize);
+            const int top    = gridLine(startY + row * cellSize) + scaledLineThickness;
+            const int bottom = gridLine(startY + (row + 1) * cellSize);
+
+            const int x = left + (right - left - scaledTrackSize) / 2;
+            const int y = top + (bottom - top - scaledTrackSize) / 2;
+
+            tracks[j]->hide();
+            tracks[j]->setGeometry(x, y, scaledTrackSize, scaledTrackSize);
+            tracks[j]->setStyleSheet("background-color: rgb(0,0,0)");
+        }
+    };
+
+    placeTracks(upperTrack, upperStartX, upperStartY);
+    placeTracks(lowerTrack, lowerStartX, lowerStartY);
     
     // Bring tracks to front (above grid lines)
     for (int j = 0; j < MAX_TRACKS; j++) {
@@ -1759,6 +1814,20 @@ void MainWindow::onLanguageSettings()
     }
 }
 
+void MainWindow::applyScaledAppFont(bool compact)
+{
+    // Always size the application font in PIXELS scaled by m_scaleFactor.
+    // Point sizes must not be used: on macOS 1pt == 1px (72 DPI logical),
+    // so "9pt" renders much smaller than on Windows/Linux and ignores the
+    // high-DPI scale factor. Base: 12px (~9pt at 96 DPI), compact: 11px
+    // (about 1pt smaller, for non-Latin fallback fonts that would clip).
+    const int basePixelSize = compact ? 11 : 12;
+    QFont f = qApp->font();
+    f.setPixelSize(qMax(1, static_cast<int>(basePixelSize * m_scaleFactor)));
+    qApp->setFont(f);
+    this->setFont(f);
+}
+
 void MainWindow::loadLanguage(const QString &language)
 {
     qApp->removeTranslator(&m_translator);
@@ -1784,13 +1853,7 @@ void MainWindow::loadLanguage(const QString &language)
     
     // For languages with non-Latin scripts (Greek, Russian, Ukrainian),
     // reduce font size slightly to prevent clipping when fallback fonts are used
-    QFont currentFont = this->font();
-    if (language == "el" || language == "ru" || language == "uk") {
-        // Reduce by 1 point for Cyrillic and Greek
-        currentFont.setPointSize(currentFont.pointSize() > 8 ? currentFont.pointSize() - 1 : 8);
-        qApp->setFont(currentFont);
-        this->setFont(currentFont);
-    }
+    applyScaledAppFont(language == "el" || language == "ru" || language == "uk");
     
     // Reapply Amiga font to all widgets after retranslation
     applyAmigaFontToWidgets();
@@ -1822,19 +1885,8 @@ void MainWindow::changeLanguage(const QString &language)
     
     // For languages with non-Latin scripts (Greek, Russian, Ukrainian, Japanese, Chinese),
     // reduce font size slightly to prevent clipping when fallback fonts are used
-    QFont currentFont = this->font();
-    if (language == "el" || language == "ru" || language == "uk" || language == "ja" || language == "zh_CN") {
-        // Reduce by 1 point for Cyrillic, Greek and CJK
-        currentFont.setPointSize(currentFont.pointSize() > 8 ? currentFont.pointSize() - 1 : 8);
-        qApp->setFont(currentFont);
-        this->setFont(currentFont);
-    } else {
-        // Restore original font size for Latin scripts
-        QFont originalFont = this->font();
-        originalFont.setPointSize(9); // Original Topaz size
-        qApp->setFont(originalFont);
-        this->setFont(originalFont);
-    }
+    applyScaledAppFont(language == "el" || language == "ru" || language == "uk" ||
+                       language == "ja" || language == "zh_CN");
     
     // Reapply Topaz font to all widgets after retranslation
     // This prevents font changes and clipping issues

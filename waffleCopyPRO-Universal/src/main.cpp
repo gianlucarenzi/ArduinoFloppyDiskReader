@@ -81,9 +81,6 @@ int main(int argc, char *argv[])
     // Load and set Topaz font BEFORE creating MainWindow
     int id = -1; // Initialize id outside the ifdef
 #ifdef __APPLE__
-    // On macOS, when running from a bundle, the working directory is the user's home dir.
-    // We need to change it to the Resources directory inside the bundle, where the assets are.
-    QDir::setCurrent(QCoreApplication::applicationDirPath() + "/../Resources");
     QString fontPath = QCoreApplication::applicationDirPath() + "/../Resources/fonts/TopazPlus_a500_v1.0.ttf";
     id = QFontDatabase::addApplicationFont(fontPath);
 #else
@@ -91,63 +88,40 @@ int main(int argc, char *argv[])
     id = QFontDatabase::addApplicationFont("fonts/TopazPlus_a500_v1.0.ttf");
 #endif
     
+    // Calculate scale factor for highDPI screens
+    QScreen *screen = QGuiApplication::primaryScreen();
+    qreal scaleFactor = 1.0;
+    
+    // Check if scale factor was forced via command line
+    if (forceScaleFactor > 0) {
+        scaleFactor = forceScaleFactor;
+        printf("Using forced scale factor: %.2f\n", scaleFactor);
+    } else if (screen) {
+        // Same auto-detection used by MainWindow (single implementation)
+        scaleFactor = MainWindow::calculateScaleFactor();
+        printf("Auto-detected scale factor: %.2f (Screen: %dx%d)\n", scaleFactor,
+               screen->geometry().width(), screen->geometry().height());
+    }
+    
+    // Store scale factor in QApplication property so MainWindow can access it
+    a.setProperty("forceScaleFactor", scaleFactor);
+    
+    // Use the Topaz font if available, otherwise the platform default font:
+    // in both cases the size is set in pixels and scaled, so text never
+    // stays tiny on high-DPI screens (on macOS 1pt == 1px).
+    QFont appFont = QApplication::font();
     if (id < 0)
     {
         DebugMsg::print(__func__, "Missing font!");
     }
     else
     {
-        QString family = QFontDatabase::applicationFontFamilies(id).at(0);
-        QFont amigaTopaz(family);
-        
-        // Calculate scale factor for highDPI screens
-        QScreen *screen = QGuiApplication::primaryScreen();
-        qreal scaleFactor = 1.0;
-        
-        // Check if scale factor was forced via command line
-        if (forceScaleFactor > 0) {
-            scaleFactor = forceScaleFactor;
-            printf("Using forced scale factor: %.2f\n", scaleFactor);
-        } else if (screen) {
-            QRect screenGeometry = screen->availableGeometry();
-            int screenWidth = screenGeometry.width();
-            int screenHeight = screenGeometry.height();
-            
-            const int baseWidth = 1024;
-            const int baseHeight = 610;
-            
-            qreal scale50Width = (screenWidth * 0.5) / baseWidth;
-            qreal scale50Height = (screenHeight * 0.5) / baseHeight;
-            qreal scale50 = qMin(scale50Width, scale50Height);
-            
-            qreal scale75Width = (screenWidth * 0.75) / baseWidth;
-            qreal scale75Height = (screenHeight * 0.75) / baseHeight;
-            qreal scale75 = qMin(scale75Width, scale75Height);
-            
-            if (screenWidth >= 3840 || screenHeight >= 2160) {
-                scaleFactor = scale75;
-            } else if (screenWidth >= 2560 || screenHeight >= 1440) {
-                scaleFactor = (scale50 + scale75) / 2.0;
-            } else if (screenWidth >= 1920 || screenHeight >= 1080) {
-                scaleFactor = scale50 * 1.3;
-            } else {
-                scaleFactor = qMin(1.0, scale50);
-            }
-            
-            scaleFactor = qMax(1.0, scaleFactor);
-            printf("Auto-detected scale factor: %.2f (Screen: %dx%d)\n", scaleFactor, screenWidth, screenHeight);
-        }
-        
-        // Store scale factor in QApplication property so MainWindow can access it
-        a.setProperty("forceScaleFactor", scaleFactor);
-        
-        // Apply scaled font size using pixel size for better consistency
-        const int basePixelSize = 12; // A 9-point font is typically ~12 pixels high
-        int scaledPixelSize = static_cast<int>(basePixelSize * scaleFactor);
-        amigaTopaz.setPixelSize(scaledPixelSize);
-        
-        a.setFont(amigaTopaz); // Set font globally for the entire application
+        appFont = QFont(QFontDatabase::applicationFontFamilies(id).at(0));
     }
+
+    const int basePixelSize = 12; // A 9-point font is typically ~12 pixels high
+    appFont.setPixelSize(qMax(1, static_cast<int>(basePixelSize * scaleFactor)));
+    a.setFont(appFont); // Set font globally for the entire application
     
     MainWindow w;
     w.show();
