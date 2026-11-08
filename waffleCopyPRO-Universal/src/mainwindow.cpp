@@ -785,7 +785,7 @@ void MainWindow::prepareTracksPosition(void)
     // Grid layout constants (base values, will be scaled) - must match createTrackGrid()
     const int trackSize = 16;        // Track indicator size
     const int padding = 4;           // Padding around track
-    const int cellSize = 24;         // Cell size (explicit instead of calculated)
+    const int cellSize = trackSize + 2 * padding;  // 24x24 cell (same as createTrackGrid)
     const int cols = 10;
     const int labelSize = 16;        // Size for row/column labels
     const int lineThickness = 2;     // Line thickness
@@ -797,6 +797,14 @@ void MainWindow::prepareTracksPosition(void)
     const int lowerStartY = 60;
     
     int scaledTrackSize = static_cast<int>(trackSize * m_scaleFactor);
+    int scaledCellSize = static_cast<int>(cellSize * m_scaleFactor);
+    int scaledPadding = static_cast<int>(padding * m_scaleFactor);
+    int scaledLabelSize = static_cast<int>(labelSize * m_scaleFactor);
+    int scaledLineThickness = static_cast<int>(lineThickness * m_scaleFactor);
+    int scaledUpperStartX = static_cast<int>(upperStartX * m_scaleFactor);
+    int scaledUpperStartY = static_cast<int>(upperStartY * m_scaleFactor);
+    int scaledLowerStartX = static_cast<int>(lowerStartX * m_scaleFactor);
+    int scaledLowerStartY = static_cast<int>(lowerStartY * m_scaleFactor);
     
     // Position upper tracks in grid (10 cols x 9 rows, only first 84)
     for (int j = 0; j < MAX_TRACKS; j++)
@@ -804,14 +812,10 @@ void MainWindow::prepareTracksPosition(void)
         int row = j / cols;
         int col = j % cols;
         
-        // Calculate position to center track in cell:
-        // Cell starts at: startX + labelSize + lineThickness + (col * cellSize)
-        // Track should be centered: + (cellSize - trackSize) / 2
-        int baseX = upperStartX + labelSize + lineThickness + col * cellSize + (cellSize - trackSize) / 2;
-        int baseY = upperStartY + lineThickness + row * cellSize + (cellSize - trackSize) / 2;
-        
-        int scaledX = static_cast<int>(baseX * m_scaleFactor);
-        int scaledY = static_cast<int>(baseY * m_scaleFactor);
+        // Calculate position: scale each component separately to maintain alignment with grid
+        int scaledX = scaledUpperStartX + scaledLabelSize + scaledLineThickness + 
+                      col * scaledCellSize + scaledPadding;
+        int scaledY = scaledUpperStartY + scaledLineThickness + row * scaledCellSize + scaledPadding;
         
         upperTrack[j]->hide();
         upperTrack[j]->setGeometry(scaledX, scaledY, scaledTrackSize, scaledTrackSize);
@@ -824,12 +828,10 @@ void MainWindow::prepareTracksPosition(void)
         int row = j / cols;
         int col = j % cols;
         
-        // Calculate position to center track in cell
-        int baseX = lowerStartX + labelSize + lineThickness + col * cellSize + (cellSize - trackSize) / 2;
-        int baseY = lowerStartY + lineThickness + row * cellSize + (cellSize - trackSize) / 2;
-        
-        int scaledX = static_cast<int>(baseX * m_scaleFactor);
-        int scaledY = static_cast<int>(baseY * m_scaleFactor);
+        // Calculate position: scale each component separately to maintain alignment with grid
+        int scaledX = scaledLowerStartX + scaledLabelSize + scaledLineThickness + 
+                      col * scaledCellSize + scaledPadding;
+        int scaledY = scaledLowerStartY + scaledLineThickness + row * scaledCellSize + scaledPadding;
         
         lowerTrack[j]->hide();
         lowerTrack[j]->setGeometry(scaledX, scaledY, scaledTrackSize, scaledTrackSize);
