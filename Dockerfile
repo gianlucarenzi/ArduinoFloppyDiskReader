@@ -22,7 +22,7 @@ RUN rm -f /etc/apt/sources.list.d/* && \
         qt6-serialport-dev qt6-qpa-plugins
 
 # Download and extract appimagetool
-RUN curl -L https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -o /tmp/appimagetool.AppImage && \
+RUN curl -L https://github.com/gianlucarenzi/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -o /tmp/appimagetool.AppImage && \
     chmod +x /tmp/appimagetool.AppImage && \
     /tmp/appimagetool.AppImage --appimage-extract && \
     mv squashfs-root /usr/local/appimagetool_extracted && \
